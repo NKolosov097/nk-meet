@@ -20,6 +20,18 @@ describe("compositeColor", () => {
       "Unsupported color format: red. Use #RRGGBB or rgba(r, g, b, a).",
     )
   })
+
+  it("rejects rgba channels outside the 0 to 255 range", () => {
+    expect(() => compositeColor("rgba(256, 0, 0, 1)", "#FFFFFF")).toThrow(
+      "Unsupported color format: rgba(256, 0, 0, 1). Use #RRGGBB or rgba(r, g, b, a).",
+    )
+  })
+
+  it("rejects rgba alpha values greater than one", () => {
+    expect(() => compositeColor("rgba(0, 0, 0, 1.01)", "#FFFFFF")).toThrow(
+      "Unsupported color format: rgba(0, 0, 0, 1.01). Use #RRGGBB or rgba(r, g, b, a).",
+    )
+  })
 })
 
 describe("contrastRatio", () => {
@@ -29,5 +41,15 @@ describe("contrastRatio", () => {
 
   it("uses the composited foreground when calculating contrast", () => {
     expect(contrastRatio("rgba(0, 0, 0, 0.5)", "#FFFFFF")).toBeCloseTo(3.95, 2)
+  })
+
+  it("uses WCAG red channel luminance for a chromatic foreground", () => {
+    expect(contrastRatio("#FF0000", "#000000")).toBeCloseTo(5.25, 2)
+  })
+
+  it("rejects a translucent background without a canvas", () => {
+    expect(() => contrastRatio("#FFFFFF", "rgba(0, 0, 0, 0.5)")).toThrow(
+      "Background color must be opaque to calculate contrast without a canvas.",
+    )
   })
 })

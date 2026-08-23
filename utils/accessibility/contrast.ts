@@ -101,10 +101,17 @@ export const contrastRatio = (
   foreground: string,
   background: string,
 ): number => {
+  const backgroundColor = parseColor(background)
+
+  if (backgroundColor.alpha !== 1) {
+    throw new Error(
+      "Background color must be opaque to calculate contrast without a canvas.",
+    )
+  }
+
   const compositedForeground = parseColor(
     compositeColor(foreground, background),
   )
-  const backgroundColor = parseColor(background)
   const foregroundLuminance = relativeLuminance(compositedForeground)
   const backgroundLuminance = relativeLuminance(backgroundColor)
 
