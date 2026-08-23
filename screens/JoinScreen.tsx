@@ -223,10 +223,7 @@ export const JoinScreen = ({
 
     const participantName = name.trim()
 
-    if (!participantName) {
-      setTokenError("Please enter your name")
-      return
-    }
+    if (!participantName) return
 
     isJoiningRef.current = true
     setHasStartedJoin(true)
@@ -273,8 +270,9 @@ export const JoinScreen = ({
 
   const message =
     configError ?? tokenError ?? (hasStartedJoin ? undefined : error)
-  const isDisabled =
+  const areMediaControlsDisabled =
     isLoading || !initializationComplete || configError !== null
+  const isJoinDisabled = areMediaControlsDisabled || name.trim() === ""
 
   return (
     <SafeAreaView style={styles.container}>
@@ -337,8 +335,8 @@ export const JoinScreen = ({
                     : "Turn on microphone"
                 }
                 dropdownAccessibilityLabel="Select microphone"
-                disabled={isDisabled}
-                dropdownDisabled={isDisabled}
+                disabled={areMediaControlsDisabled}
+                dropdownDisabled={areMediaControlsDisabled}
                 isDropdownVisible={openDropdown === "microphone"}
                 toggleAccessibilityState={{ selected: microphoneEnabled }}
                 dropdownAccessibilityState={{
@@ -381,8 +379,8 @@ export const JoinScreen = ({
                   cameraEnabled ? "Turn off camera" : "Turn on camera"
                 }
                 dropdownAccessibilityLabel="Select camera"
-                disabled={isDisabled}
-                dropdownDisabled={isDisabled}
+                disabled={areMediaControlsDisabled}
+                dropdownDisabled={areMediaControlsDisabled}
                 isDropdownVisible={openDropdown === "camera"}
                 toggleAccessibilityState={{ selected: cameraEnabled }}
                 dropdownAccessibilityState={{
@@ -424,7 +422,7 @@ export const JoinScreen = ({
               placeholderTextColor={TEXT_COLORS.placeholder}
               autoCapitalize="words"
               autoCorrect={false}
-              editable={!isDisabled}
+              editable={!areMediaControlsDisabled}
               returnKeyType="go"
               onSubmitEditing={join}
               accessibilityLabel="Participant name"
@@ -440,10 +438,10 @@ export const JoinScreen = ({
           <TouchableOpacity
             style={[
               styles.joinButton,
-              isDisabled ? styles.joinButtonDisabled : undefined,
+              isJoinDisabled ? styles.joinButtonDisabled : undefined,
             ]}
             onPress={join}
-            disabled={isDisabled}
+            disabled={isJoinDisabled}
             accessibilityLabel="Join room"
           >
             {isLoading ? (
@@ -452,7 +450,7 @@ export const JoinScreen = ({
               <Text
                 style={[
                   styles.joinButtonText,
-                  isDisabled ? styles.joinButtonTextDisabled : undefined,
+                  isJoinDisabled ? styles.joinButtonTextDisabled : undefined,
                 ]}
               >
                 Join

@@ -306,7 +306,7 @@ test("keeps the form and media controls disabled until restoration completes", a
 
   await waitFor(() => {
     expect(screen.getByLabelText("Participant name")).toBeEnabled()
-    expect(screen.getByLabelText("Join room")).toBeEnabled()
+    expect(screen.getByLabelText("Join room")).toBeDisabled()
     expect(screen.getByLabelText("Turn on microphone")).toBeEnabled()
     expect(screen.getByLabelText("Turn on camera")).toBeEnabled()
   })
@@ -369,7 +369,9 @@ test("finishes initialization when device enumeration fails", async () => {
   )
 
   expect(await screen.findByLabelText("Participant name")).toBeEnabled()
-  expect(screen.getByLabelText("Join room")).toBeEnabled()
+  expect(screen.getByLabelText("Join room")).toBeDisabled()
+  expect(screen.getByLabelText("Turn on microphone")).toBeEnabled()
+  expect(screen.getByLabelText("Turn on camera")).toBeEnabled()
 })
 
 test("finishes initialization when device enumeration is unavailable", async () => {
@@ -387,7 +389,9 @@ test("finishes initialization when device enumeration is unavailable", async () 
   )
 
   expect(await screen.findByLabelText("Participant name")).toBeEnabled()
-  expect(screen.getByLabelText("Join room")).toBeEnabled()
+  expect(screen.getByLabelText("Join room")).toBeDisabled()
+  expect(screen.getByLabelText("Turn on microphone")).toBeEnabled()
+  expect(screen.getByLabelText("Turn on camera")).toBeEnabled()
 })
 
 test("leaves the name field empty for a room with no history", async () => {
@@ -403,7 +407,7 @@ test("leaves the name field empty for a room with no history", async () => {
   expect(screen.getByLabelText("Participant name")).toHaveProp("value", "")
 })
 
-test("rejects an empty name without requesting a token", async () => {
+test("keeps Join disabled until a non-whitespace name is entered", async () => {
   await render(
     <JoinScreen
       roomSlug="quiet-tiger-42"
@@ -412,10 +416,32 @@ test("rejects an empty name without requesting a token", async () => {
     />,
   )
 
-  await fireEvent.press(screen.getByLabelText("Join room"))
+  expect(screen.getByLabelText("Join room")).toBeDisabled()
+  expect(screen.getByLabelText("Participant name")).toBeEnabled()
+  expect(screen.getByLabelText("Turn on microphone")).toBeEnabled()
+  expect(screen.getByLabelText("Turn on camera")).toBeEnabled()
+  await fireEvent.changeText(
+    screen.getByLabelText("Participant name"),
+    "  Ada  ",
+  )
+  expect(screen.getByLabelText("Join room")).toBeEnabled()
+  await fireEvent.changeText(screen.getByLabelText("Participant name"), "   ")
+  expect(screen.getByLabelText("Join room")).toBeDisabled()
+})
 
-  expect(screen.getByText("Please enter your name")).toBeVisible()
+test("does not request a token or show an error for an empty submit", async () => {
+  await render(
+    <JoinScreen
+      roomSlug="quiet-tiger-42"
+      onJoined={jest.fn()}
+      onBack={jest.fn()}
+    />,
+  )
+
+  await fireEvent(screen.getByLabelText("Participant name"), "submitEditing")
+
   expect(mockFetchParticipantToken).not.toHaveBeenCalled()
+  expect(screen.queryByText("Please enter your name")).toBeNull()
 })
 
 test("trims the participant name and reports a successful join", async () => {
