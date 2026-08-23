@@ -9,6 +9,8 @@ import {
 } from "@testing-library/react-native"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 
+import { BACKGROUND_COLORS } from "@/constants/colors"
+
 import { JoinScreen as ActualJoinScreen } from "./JoinScreen"
 
 const JoinScreen = ({
@@ -723,7 +725,7 @@ test("shows pre-join media controls and only input device choices", async () => 
   expect(await screen.findByText("Select microphone")).toBeVisible()
   expect(await screen.findByText("Desk microphone")).toBeVisible()
   expect(screen.getByLabelText("Desk microphone device")).toHaveStyle({
-    backgroundColor: "#007AFF",
+    backgroundColor: BACKGROUND_COLORS.primary,
   })
   expect(screen.queryByText("Desk speakers")).not.toBeOnTheScreen()
 })
