@@ -1,6 +1,11 @@
-# Native Meet - LiveKit React Native Demo
+# NK Meet
 
-A video calling app built with the LiveKit React Native SDK, Expo and TypeScript.
+[![CI](https://github.com/NKolosov097/native-meet/actions/workflows/ci.yml/badge.svg)](https://github.com/NKolosov097/native-meet/actions/workflows/ci.yml)
+
+A cross-platform video meeting app built with React Native, Expo Router,
+LiveKit, and TypeScript. NK Meet supports room creation and joining, real-time
+audio and video, participant controls, and shareable deep links on iOS and
+Android.
 
 ## Features
 
@@ -151,17 +156,19 @@ The project is configured with:
 
 ```
 native-meet/
-├── app/                 # expo-router routes
-│   ├── _layout.tsx      # Root layout: providers, deep-link handling
-│   ├── index.tsx        # Home screen: join or create a room by slug
-│   └── [slug].tsx       # Per-room screen: join form + video call
-├── screens/             # Reusable screen components
-│   └── JoinScreen.tsx   # Name-entry form, shown by app/[slug].tsx
-├── components/          # UI components
-│   └── room/            # Video call screen and its controls
-├── services/            # External services and pure utilities
-│   ├── livekitToken.ts  # Access token fetching from the token server
-│   └── roomSlug.ts      # Slug generation and validation
+├── app/                       # Expo Router routes and routing tests
+│   ├── _layout.tsx            # Root layout and active-room lifecycle
+│   ├── +native-intent.ts      # Incoming deep-link normalization
+│   ├── index.tsx              # Create or join a room
+│   └── [slug].tsx             # Room join flow and active call
+├── screens/
+│   └── JoinScreen.tsx         # Participant name and join form
+├── components/
+│   ├── participant/           # Participant video tiles
+│   └── room/                  # Conference UI, grid, and media controls
+├── services/                  # Tokens, room slugs, identity, and recents
+├── constants/                 # Theme and environment configuration
+└── types/                     # Shared TypeScript types
 ```
 
 ## TypeScript
