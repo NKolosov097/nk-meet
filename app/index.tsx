@@ -23,6 +23,25 @@ import { configError } from "@/constants/env"
 import { getRecentRooms, type RecentRoom } from "@/services/recentRooms"
 import { generateRoomSlug, slugify } from "@/services/roomSlug"
 
+const formatRecentRoomTime = (joinedAt: number): string => {
+  const elapsedMinutes = Math.max(
+    0,
+    Math.floor((Date.now() - joinedAt) / (60 * 1000)),
+  )
+
+  if (elapsedMinutes < 1) return "Just now"
+  if (elapsedMinutes < 60) return `${elapsedMinutes} min ago`
+
+  const elapsedHours = Math.floor(elapsedMinutes / 60)
+  if (elapsedHours < 24) return `${elapsedHours} hr ago`
+  if (elapsedHours < 48) return "Yesterday"
+
+  return new Date(joinedAt).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  })
+}
+
 export default function HomeScreen() {
   const router = useRouter()
   const [roomCode, setRoomCode] = useState<string>("")
@@ -72,7 +91,12 @@ export default function HomeScreen() {
         disabled={isDisabled}
         accessibilityLabel={`Rejoin ${item.slug} as ${item.participantName}`}
       >
-        <Text style={styles.recentRoomSlug}>{item.slug}</Text>
+        <View style={styles.recentRoomHeader}>
+          <Text style={styles.recentRoomSlug}>{item.slug}</Text>
+          <Text style={styles.recentRoomTime}>
+            {formatRecentRoomTime(item.joinedAt)}
+          </Text>
+        </View>
         <Text style={styles.recentRoomName}>{item.participantName}</Text>
       </TouchableOpacity>
     ),
@@ -236,9 +260,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   recentRoomCard: {
-    backgroundColor: BACKGROUND_COLORS.secondary,
-    borderRadius: BORDER_RADIUSES.medium,
-    padding: 16,
+    backgroundColor: BACKGROUND_COLORS.lightBackground,
+    borderWidth: 1,
+    borderColor: BORDER_COLORS.divider,
+    borderLeftWidth: 3,
+    borderLeftColor: BACKGROUND_COLORS.primary,
+    borderRadius: BORDER_RADIUSES.large,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     marginBottom: 12,
   },
   recentRoomCardDisabled: {
@@ -248,6 +277,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: TEXT_COLORS.light,
+    flex: 1,
+  },
+  recentRoomHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  recentRoomTime: {
+    fontSize: 12,
+    color: TEXT_COLORS.placeholder,
   },
   recentRoomName: {
     fontSize: 14,

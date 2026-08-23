@@ -37,10 +37,26 @@ jest.mock("@/services/recentRooms", () => ({
 }))
 
 beforeEach(() => {
+  jest.restoreAllMocks()
   mockConfigError = null
   mockRecentRooms = []
   mockPush.mockReset()
   latestFocusEffect = undefined
+})
+
+test("shows when a recent meeting was joined", async () => {
+  jest.spyOn(Date, "now").mockReturnValue(1_000_000)
+  mockRecentRooms = [
+    {
+      slug: "weekly-sync",
+      participantName: "Alex",
+      joinedAt: 1_000_000 - 12 * 60 * 1000,
+    },
+  ]
+
+  await render(<HomeScreen />)
+
+  expect(await screen.findByText("12 min ago")).toBeVisible()
 })
 
 test("joins a room by typed code, slugified", async () => {
