@@ -44,6 +44,13 @@ beforeEach(() => {
   latestFocusEffect = undefined
 })
 
+test("identifies the app as NK Meet by NKolosov", async () => {
+  await render(<HomeScreen />)
+
+  expect(screen.getByText("NK Meet")).toBeVisible()
+  expect(screen.getByText("by NKolosov")).toBeVisible()
+})
+
 test("shows when a recent meeting was joined", async () => {
   jest.spyOn(Date, "now").mockReturnValue(1_000_000)
   mockRecentRooms = [

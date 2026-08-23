@@ -40,9 +40,9 @@ const decodeSegment = (segment: string): string => {
   }
 }
 
-// Canonical slug an incoming deep link (`nativemeet://<slug>`) points at, run
+// Canonical slug an incoming deep link (`nk-meet://<slug>`) points at, run
 // through the same slugify() a typed room code goes through. Returns "" for
-// a link that names no room, e.g. "nativemeet://".
+// a link that names no room, e.g. "nk-meet://".
 export const roomSlugFromUrl = (url: string): string => {
   const path = url.replace(/^[a-z][a-z\d+.-]*:\/\//i, "").split(/[?#]/)[0]
   const [segment] = path.split("/").filter(part => part !== "")

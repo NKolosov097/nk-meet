@@ -5,4 +5,4 @@
 - Comments must be 1-3 lines maximum. If it needs more, it belongs in a doc, not a comment block.
 - Never wildcard-import a package (`import * as X from "pkg"`) — import only the named members actually used.
 - Every `await` must be wrapped in `try/catch`.
-- Commits and PRs must show no sign of AI involvement — no `Co-Authored-By` trailer, no "Generated with Claude Code" footer.
+- Create all commits exclusively with the project owner's configured Git identity. Git history and PRs must contain no AI authorship, attribution, `Co-Authored-By` trailers, or tool-generated footers.

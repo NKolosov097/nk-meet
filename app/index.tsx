@@ -108,7 +108,8 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Native Meet</Text>
+        <Text style={styles.title}>NK Meet</Text>
+        <Text style={styles.brandBy}>by NKolosov</Text>
 
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Room code:</Text>
@@ -187,8 +188,14 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: "bold",
     textAlign: "center",
-    marginBottom: 20,
+    marginBottom: 4,
     color: TEXT_COLORS.light,
+  },
+  brandBy: {
+    color: TEXT_COLORS.placeholder,
+    fontSize: 14,
+    marginBottom: 20,
+    textAlign: "center",
   },
   inputContainer: {
     marginBottom: 20,

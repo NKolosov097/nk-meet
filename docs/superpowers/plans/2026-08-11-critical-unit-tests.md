@@ -137,7 +137,7 @@ expect(setItem).not.toHaveBeenCalled()
 
 ```ts
 expect(generated).toMatch(/^device-[a-z0-9]{16}$/)
-expect(setItem).toHaveBeenCalledWith("native-meet.device-identity", generated)
+expect(setItem).toHaveBeenCalledWith("nk-meet.device-identity", generated)
 ```
 
 ```ts

@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage"
 
-const RECENT_ROOMS_KEY = "native-meet.recent-rooms"
+const RECENT_ROOMS_KEY = "nk-meet.recent-rooms"
 const MAX_RECENT_ROOMS = 20
 
 export interface RecentRoom {

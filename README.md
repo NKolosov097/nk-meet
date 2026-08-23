@@ -2,10 +2,10 @@
 
 [![CI](https://github.com/NKolosov097/nk-meet/actions/workflows/ci.yml/badge.svg)](https://github.com/NKolosov097/nk-meet/actions/workflows/ci.yml)
 
-A cross-platform video meeting app built with React Native, Expo Router,
-LiveKit, and TypeScript. NK Meet supports room creation and joining, real-time
-audio and video, participant controls, and shareable deep links on iOS and
-Android.
+A cross-platform video meeting app by [NKolosov](https://nkolosov.com), built
+with React Native, Expo Router, LiveKit, and TypeScript. NK Meet supports room
+creation and joining, real-time audio and video, participant controls, and
+shareable deep links on iOS and Android.
 
 ## Features
 
@@ -101,14 +101,14 @@ eas build --platform ios --profile development
 Every room has a shareable link under the app's own URL scheme:
 
 ```
-nativemeet://<slug>
-nativemeet://team-sync
+nk-meet://<slug>
+nk-meet://team-sync
 ```
 
 Opening one takes the participant straight to that room's name-entry screen,
 skipping the home screen. The slug is canonicalized exactly like a typed room
-code (lowercased, anything else collapsed into `-`), so `nativemeet://Team Sync`
-and `nativemeet://team-sync` are the same room; a link that names no room
+code (lowercased, anything else collapsed into `-`), so `nk-meet://Team Sync`
+and `nk-meet://team-sync` are the same room; a link that names no room
 redirects to the home screen. A link that arrives while a call is in progress
 disconnects that call first, unless it points at the room already open.
 
@@ -116,10 +116,10 @@ Open a link by hand to test it:
 
 ```bash
 # Android (device or emulator)
-npx uri-scheme open "nativemeet://test-room" --android
+npx uri-scheme open "nk-meet://test-room" --android
 
 # iOS simulator
-xcrun simctl openurl booted "nativemeet://test-room"
+xcrun simctl openurl booted "nk-meet://test-room"
 ```
 
 The scheme is declared in `app.json` (`expo.scheme`), so it only reaches the

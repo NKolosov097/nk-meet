@@ -59,6 +59,19 @@ afterEach(() => {
   jest.restoreAllMocks()
 })
 
+test("identifies the app as NK Meet by NKolosov", async () => {
+  await render(
+    <JoinScreen
+      roomSlug="quiet-tiger-42"
+      onJoined={jest.fn()}
+      onBack={jest.fn()}
+    />,
+  )
+
+  expect(screen.getByText("NK Meet")).toBeVisible()
+  expect(screen.getByText("by NKolosov")).toBeVisible()
+})
+
 test("shows which room is being joined", async () => {
   await render(
     <JoinScreen

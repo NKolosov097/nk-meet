@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "native-meet",
-    "slug": "native-meet",
-    "scheme": "nativemeet",
+    "name": "NK Meet",
+    "slug": "nk-meet",
+    "scheme": "nk-meet",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -14,7 +14,7 @@
         "NSMicrophoneUsageDescription": "This app needs access to microphone to enable audio calls",
         "UIBackgroundModes": ["audio"]
       },
-      "bundleIdentifier": "com.nativemeet.app"
+      "bundleIdentifier": "com.nkolosov.nkmeet"
     },
     "android": {
       "adaptiveIcon": {
@@ -29,7 +29,7 @@
         "android.permission.ACCESS_NETWORK_STATE",
         "android.permission.WAKE_LOCK"
       ],
-      "package": "com.nativemeet.app"
+      "package": "com.nkolosov.nkmeet"
     },
     "web": {
       "favicon": "./assets/favicon.png"

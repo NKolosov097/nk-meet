@@ -20,31 +20,31 @@ describe("slugify", () => {
 
 describe("roomSlugFromUrl", () => {
   test("reads the slug out of a custom-scheme link", () => {
-    expect(roomSlugFromUrl("nativemeet://team-sync")).toBe("team-sync")
+    expect(roomSlugFromUrl("nk-meet://team-sync")).toBe("team-sync")
   })
 
   test("canonicalizes an escaped, mixed-case slug", () => {
-    expect(roomSlugFromUrl("nativemeet://Team%20Sync")).toBe("team-sync")
+    expect(roomSlugFromUrl("nk-meet://Team%20Sync")).toBe("team-sync")
   })
 
   test("ignores a query string and a fragment", () => {
-    expect(roomSlugFromUrl("nativemeet://room-a?ref=chat#top")).toBe("room-a")
+    expect(roomSlugFromUrl("nk-meet://room-a?ref=chat#top")).toBe("room-a")
   })
 
   test("reads the first path segment of a triple-slashed link", () => {
-    expect(roomSlugFromUrl("nativemeet:///room-a/details")).toBe("room-a")
+    expect(roomSlugFromUrl("nk-meet:///room-a/details")).toBe("room-a")
   })
 
   test("returns an empty slug for a link that names no room", () => {
-    expect(roomSlugFromUrl("nativemeet://")).toBe("")
+    expect(roomSlugFromUrl("nk-meet://")).toBe("")
   })
 
   test("returns an empty slug for a link with no valid characters", () => {
-    expect(roomSlugFromUrl("nativemeet://!!!")).toBe("")
+    expect(roomSlugFromUrl("nk-meet://!!!")).toBe("")
   })
 
   test("falls back to the raw segment for a malformed escape", () => {
-    expect(roomSlugFromUrl("nativemeet://room%zz")).toBe("room-zz")
+    expect(roomSlugFromUrl("nk-meet://room%zz")).toBe("room-zz")
   })
 })
 

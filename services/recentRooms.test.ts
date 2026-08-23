@@ -43,6 +43,7 @@ test("returns an empty list when nothing is stored", async () => {
   const { getRecentRooms } = loadRecentRooms()
 
   await expect(getRecentRooms()).resolves.toEqual([])
+  expect(mockGetItem).toHaveBeenCalledWith("nk-meet.recent-rooms")
 })
 
 test("returns an empty list when storage read fails", async () => {
@@ -64,6 +65,10 @@ test("saves a new room as the only entry", async () => {
 
   await saveRecentRoom("room-a", "Ada")
 
+  expect(mockSetItem).toHaveBeenCalledWith(
+    "nk-meet.recent-rooms",
+    expect.any(String),
+  )
   const [, savedJson] = mockSetItem.mock.calls[0]
   const saved = JSON.parse(savedJson) as {
     slug: string

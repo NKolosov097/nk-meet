@@ -49,7 +49,7 @@ test("subscribes to incoming links and disconnects the active room", async () =>
   expect(mockAddEventListener).toHaveBeenCalledWith("url", expect.any(Function))
 
   const handler = mockAddEventListener.mock.calls[0][1] as LinkHandler
-  handler({ url: "nativemeet://room-b" })
+  handler({ url: "nk-meet://room-b" })
 
   expect(mockDisconnectActiveRoom).toHaveBeenCalledWith("room-b")
 })
@@ -58,7 +58,7 @@ test("passes the canonicalized slug of the incoming link", async () => {
   await render(<RootLayout />)
   const handler = mockAddEventListener.mock.calls[0][1] as LinkHandler
 
-  handler({ url: "nativemeet://Team%20Sync" })
+  handler({ url: "nk-meet://Team%20Sync" })
 
   expect(mockDisconnectActiveRoom).toHaveBeenCalledWith("team-sync")
 })
@@ -67,7 +67,7 @@ test("passes an empty slug for a link that names no room", async () => {
   await render(<RootLayout />)
   const handler = mockAddEventListener.mock.calls[0][1] as LinkHandler
 
-  handler({ url: "nativemeet://" })
+  handler({ url: "nk-meet://" })
 
   expect(mockDisconnectActiveRoom).toHaveBeenCalledWith("")
 })

@@ -193,7 +193,7 @@ test("stays on the room a mid-call link navigated to", async () => {
   await joinRoom("room-a")
   expect(mockRooms).toHaveLength(1)
 
-  await openLink("nativemeet://room-b")
+  await openLink("nk-meet://room-b")
 
   // The old call is gone but room B stays on screen — disconnect() fires
   // twice (registry + LiveKitRoom's own unmount cleanup) because
@@ -210,7 +210,7 @@ test("keeps the call alive when the link targets the room already open", async (
   await renderApp()
   await joinRoom("room-a")
 
-  await openLink("nativemeet://room-a")
+  await openLink("nk-meet://room-a")
 
   expect(mockRooms[0].disconnect).not.toHaveBeenCalled()
   expect(app.getPathname()).toBe("/room-a")
@@ -224,7 +224,7 @@ test("keeps the call alive when an unroutable link (extra path segment) points a
   // An unmatched path would otherwise hit the auto-injected "+not-found"
   // route, unmounting the whole nav tree (live call included) outside the
   // registry's reach — +native-intent.ts collapses it to the known slug first.
-  await openLink("nativemeet://room-a/extra")
+  await openLink("nk-meet://room-a/extra")
 
   expect(mockRooms[0].disconnect).not.toHaveBeenCalled()
   expect(mockRooms[0].unmounted).toBe(false)
@@ -238,7 +238,7 @@ test("drops an unroutable link to a different room instead of stranding on +not-
   await renderApp()
   await joinRoom("room-a")
 
-  await openLink("nativemeet://room-b/extra")
+  await openLink("nk-meet://room-b/extra")
 
   await waitFor(() => {
     expect(app.getPathname()).toBe("/room-b")
@@ -253,7 +253,7 @@ test("keeps the same call alive when a non-canonical link to the room already op
   // +native-intent.ts rewrites "Room-A" to the canonical "/room-a" first, so
   // this guards the native-intent + same-room-no-op path end to end: casing
   // differences must not tear down and rejoin the active call.
-  await openLink("nativemeet://Room-A")
+  await openLink("nk-meet://Room-A")
 
   await waitFor(() => {
     expect(app.getPathname()).toBe("/room-a")
@@ -270,7 +270,7 @@ test("keeps the same call alive when a non-canonical link to the room already op
 test("canonicalizes the slug a link points at before joining", async () => {
   await renderApp()
 
-  await openLink("nativemeet://Room%20B")
+  await openLink("nk-meet://Room%20B")
 
   await waitFor(() => {
     expect(app.getPathname()).toBe("/room-b")

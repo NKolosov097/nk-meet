@@ -117,7 +117,8 @@ export const JoinScreen = ({
       </TouchableOpacity>
 
       <View style={styles.content}>
-        <Text style={styles.title}>Native Meet</Text>
+        <Text style={styles.title}>NK Meet</Text>
+        <Text style={styles.brandBy}>by NKolosov</Text>
         <Text style={styles.subtitle}>Room: {roomSlug}</Text>
 
         <View style={styles.inputContainer}>
@@ -187,8 +188,14 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: "bold",
     textAlign: "center",
-    marginBottom: 8,
+    marginBottom: 4,
     color: TEXT_COLORS.light,
+  },
+  brandBy: {
+    color: TEXT_COLORS.placeholder,
+    fontSize: 14,
+    marginBottom: 8,
+    textAlign: "center",
   },
   subtitle: {
     fontSize: 16,

@@ -44,10 +44,7 @@ test("generates and persists an identity when storage is empty", async () => {
   const identity = await getDeviceIdentity()
 
   expect(identity).toMatch(/^device-[a-z0-9]+$/)
-  expect(mockSetItem).toHaveBeenCalledWith(
-    "native-meet.device-identity",
-    identity,
-  )
+  expect(mockSetItem).toHaveBeenCalledWith("nk-meet.device-identity", identity)
 })
 
 test("reuses the in-memory identity without reading storage again", async () => {
@@ -69,10 +66,7 @@ test("returns and persists a generated identity when reading storage fails", asy
   const identity = await getDeviceIdentity()
 
   expect(identity).toMatch(/^device-[a-z0-9]+$/)
-  expect(mockSetItem).toHaveBeenCalledWith(
-    "native-meet.device-identity",
-    identity,
-  )
+  expect(mockSetItem).toHaveBeenCalledWith("nk-meet.device-identity", identity)
   expect(consoleError).toHaveBeenCalledWith(
     "Failed to read the device identity: ",
     readFailure,
