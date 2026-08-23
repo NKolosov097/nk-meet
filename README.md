@@ -1,6 +1,6 @@
 # NK Meet
 
-[![CI](https://github.com/NKolosov097/native-meet/actions/workflows/ci.yml/badge.svg)](https://github.com/NKolosov097/native-meet/actions/workflows/ci.yml)
+[![CI](https://github.com/NKolosov097/nk-meet/actions/workflows/ci.yml/badge.svg)](https://github.com/NKolosov097/nk-meet/actions/workflows/ci.yml)
 
 A cross-platform video meeting app built with React Native, Expo Router,
 LiveKit, and TypeScript. NK Meet supports room creation and joining, real-time
@@ -164,6 +164,7 @@ native-meet/
 ├── screens/
 │   └── JoinScreen.tsx         # Participant name and join form
 ├── components/
+│   ├── icons/                 # Accessible media and navigation icons
 │   ├── participant/           # Participant video tiles
 │   └── room/                  # Conference UI, grid, and media controls
 ├── services/                  # Tokens, room slugs, identity, and recents
@@ -204,7 +205,7 @@ The project is fully typed with TypeScript:
 
 ### Requirements
 
-- Node.js 16+
+- Node.js 24
 - Expo CLI
 - EAS CLI: `npm install -g eas-cli`
 - iOS Simulator (for iOS development, macOS only)
