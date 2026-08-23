@@ -47,6 +47,16 @@ jest.mock("@/services/recentRooms", () => ({
   getRecentRoom: jest.fn(() => Promise.resolve(null)),
 }))
 
+jest.mock("livekit-client", () => ({
+  ...jest.requireActual("livekit-client"),
+  createLocalVideoTrack: jest.fn(() =>
+    Promise.resolve({
+      stop: jest.fn(),
+      mediaStream: { toURL: () => "preview" },
+    }),
+  ),
+}))
+
 let mockActiveRoomSlug: string | null = null
 
 jest.mock("@/services/activeRoomConnection", () => ({
@@ -85,6 +95,10 @@ jest.mock("@livekit/react-native", () => {
   const { Button, View } = jest.requireActual("react-native")
 
   return {
+    VideoTrack: () => null,
+    isTrackReference: (trackRef: { publication?: unknown }) =>
+      Boolean(trackRef.publication),
+    useTrackMutedIndicator: () => ({ isMuted: false }),
     LiveKitRoom: (props: LiveKitRoomBoundaryProps) => {
       mockLatestLiveKitProps = props
 
@@ -146,6 +160,18 @@ beforeEach(() => {
   mockReplace.mockReset()
   mockCanGoBack = true
   mockActiveRoomSlug = null
+  Object.defineProperty(global.navigator, "mediaDevices", {
+    configurable: true,
+    value: {
+      getUserMedia: jest.fn(),
+      enumerateDevices: jest.fn(() =>
+        Promise.resolve([
+          { deviceId: "mic-1", kind: "audioinput", label: "Microphone" },
+          { deviceId: "camera-1", kind: "videoinput", label: "Camera" },
+        ]),
+      ),
+    },
+  })
 })
 
 afterEach(() => {
@@ -186,7 +212,9 @@ test("connects with the expected room and connect options", async () => {
   expect(mockLatestLiveKitProps?.options).toStrictEqual({
     adaptiveStream: true,
     dynacast: true,
+    audioCaptureDefaults: { deviceId: "mic-1" },
     videoCaptureDefaults: {
+      deviceId: "camera-1",
       resolution: {
         width: 640,
         height: 360,
@@ -201,6 +229,25 @@ test("connects with the expected room and connect options", async () => {
         maxFramerate: 20,
         priority: undefined,
       },
+    },
+  })
+})
+
+test("connects with the media choices made before joining", async () => {
+  mockFetchParticipantToken.mockResolvedValue("token-abc")
+  await render(<RoomScreen />)
+
+  await fireEvent.press(screen.getByLabelText("Turn on camera"))
+  await fireEvent.changeText(screen.getByLabelText("Participant name"), "Ada")
+  await fireEvent.press(screen.getByLabelText("Join room"))
+
+  await waitFor(() => expect(mockLatestLiveKitProps).toBeDefined())
+  expect(mockLatestLiveKitProps).toMatchObject({
+    audio: false,
+    video: { deviceId: "camera-1" },
+    options: {
+      audioCaptureDefaults: { deviceId: "mic-1" },
+      videoCaptureDefaults: expect.objectContaining({ deviceId: "camera-1" }),
     },
   })
 })

@@ -83,6 +83,46 @@ test("saves a new room as the only entry", async () => {
   })
 })
 
+test("saves pre-join media settings with the room", async () => {
+  mockGetItem.mockResolvedValue(null)
+  const { saveRecentRoom } = loadRecentRooms()
+
+  await saveRecentRoom("room-a", "Ada", {
+    microphoneEnabled: false,
+    cameraEnabled: true,
+    microphoneDeviceId: "mic-2",
+    cameraDeviceId: "camera-2",
+  })
+
+  const [, savedJson] = mockSetItem.mock.calls[0]
+  expect(JSON.parse(savedJson)).toEqual([
+    {
+      slug: "room-a",
+      participantName: "Ada",
+      joinedAt: expect.any(Number),
+      media: {
+        microphoneEnabled: false,
+        cameraEnabled: true,
+        microphoneDeviceId: "mic-2",
+        cameraDeviceId: "camera-2",
+      },
+    },
+  ])
+})
+
+test("reads legacy recent rooms without media settings", async () => {
+  mockGetItem.mockResolvedValue(
+    JSON.stringify([{ slug: "room-a", participantName: "Ada", joinedAt: 1 }]),
+  )
+  const { getRecentRoom } = loadRecentRooms()
+
+  await expect(getRecentRoom("room-a")).resolves.toEqual({
+    slug: "room-a",
+    participantName: "Ada",
+    joinedAt: 1,
+  })
+})
+
 test("puts the most recently saved room first", async () => {
   mockGetItem.mockResolvedValue(
     JSON.stringify([{ slug: "room-a", participantName: "Ada", joinedAt: 1 }]),

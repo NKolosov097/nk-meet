@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import { useLocalSearchParams, useRouter } from "expo-router"
 
@@ -15,7 +15,7 @@ import { JoinScreen } from "@/screens/JoinScreen"
 import { getActiveRoomSlug } from "@/services/activeRoomConnection"
 import { slugify } from "@/services/roomSlug"
 
-import type { ConnectionState } from "@/types"
+import type { ConnectionState, PreJoinMediaSettings } from "@/types"
 
 const initialConnectionState: ConnectionState = {
   token: null,
@@ -51,10 +51,13 @@ const Room = ({ slug }: RoomProps) => {
   // Lets onDisconnect skip its own navigation — the router is already there.
   const isDisconnectForcedRef = useRef<boolean>(false)
 
-  const onJoined = useCallback((token: string): void => {
-    isDisconnectForcedRef.current = false
-    setConnectionState({ token })
-  }, [])
+  const onJoined = useCallback(
+    (token: string, media: PreJoinMediaSettings): void => {
+      isDisconnectForcedRef.current = false
+      setConnectionState({ token, media })
+    },
+    [],
+  )
 
   // The call is being torn down for the room the router is already navigating
   // to, so drop the token right away instead of waiting for LiveKit's
@@ -91,6 +94,21 @@ const Room = ({ slug }: RoomProps) => {
     })
   }, [])
 
+  const media = connectionState.media
+  const connectedRoomOptions = useMemo<RoomOptions>(
+    () => ({
+      ...roomOptions,
+      audioCaptureDefaults: media?.microphoneDeviceId
+        ? { deviceId: media.microphoneDeviceId }
+        : undefined,
+      videoCaptureDefaults: {
+        ...roomOptions.videoCaptureDefaults,
+        ...(media?.cameraDeviceId ? { deviceId: media.cameraDeviceId } : {}),
+      },
+    }),
+    [media?.microphoneDeviceId, media?.cameraDeviceId],
+  )
+
   if (connectionState.token === null) {
     return (
       <JoinScreen
@@ -109,7 +127,21 @@ const Room = ({ slug }: RoomProps) => {
       connect
       onDisconnected={onDisconnect}
       onError={onConnectionError}
-      options={roomOptions}
+      audio={
+        media?.microphoneEnabled
+          ? media.microphoneDeviceId
+            ? { deviceId: media.microphoneDeviceId }
+            : true
+          : false
+      }
+      video={
+        media?.cameraEnabled
+          ? media.cameraDeviceId
+            ? { deviceId: media.cameraDeviceId }
+            : true
+          : false
+      }
+      options={connectedRoomOptions}
       connectOptions={connectOptions}
     >
       <ActiveRoom roomSlug={slug} onForcedDisconnect={onForcedDisconnect} />

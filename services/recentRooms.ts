@@ -1,5 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage"
 
+import type { PreJoinMediaSettings } from "@/types"
+
 const RECENT_ROOMS_KEY = "nk-meet.recent-rooms"
 const MAX_RECENT_ROOMS = 20
 
@@ -10,6 +12,8 @@ export interface RecentRoom {
   participantName: string
   // Epoch ms of the most recent successful join — determines sort order
   joinedAt: number
+  // Last media choices for this room; absent on legacy stored entries
+  media?: PreJoinMediaSettings
 }
 
 // Returns [] on any storage or parse failure — a corrupt/missing cache must
@@ -45,12 +49,18 @@ export const getRecentRoom = async (
 export const saveRecentRoom = async (
   slug: string,
   participantName: string,
+  media?: PreJoinMediaSettings,
 ): Promise<void> => {
   try {
     const existing = await getRecentRooms()
     const withoutSlug = existing.filter(room => room.slug !== slug)
     const updated = [
-      { slug, participantName, joinedAt: Date.now() },
+      {
+        slug,
+        participantName,
+        joinedAt: Date.now(),
+        ...(media ? { media } : {}),
+      },
       ...withoutSlug,
     ].slice(0, MAX_RECENT_ROOMS)
 

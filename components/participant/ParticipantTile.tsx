@@ -1,3 +1,4 @@
+import { useMemo } from "react"
 import { StyleSheet, Text, View } from "react-native"
 
 import { BlurView } from "expo-blur"
@@ -6,9 +7,10 @@ import {
   isTrackReference,
   useTrackMutedIndicator,
   VideoTrack,
+  type TrackReference,
   type TrackReferenceOrPlaceholder,
 } from "@livekit/react-native"
-import { Track } from "livekit-client"
+import { Track, type LocalVideoTrack } from "livekit-client"
 
 import { MicDisabledIcon, ParticipantPlaceholderIcon } from "@/components/icons"
 import { BORDER_RADIUSES } from "@/constants/borderRadiuses"
@@ -19,20 +21,40 @@ const BLUR_INTENSITY = 40
 const BADGE_BACKGROUND = "rgba(0, 0, 0, 0.25)"
 const BADGE_INSET = 4
 
-interface ParticipantTileProps {
+interface ConnectedParticipantTileProps {
   // The participant's camera/screen-share track, or a placeholder.
   trackRef: TrackReferenceOrPlaceholder
   // Width of this tile, in pixels, as computed by the grid layout.
   width: number
   // Height of this tile, in pixels, as computed by the grid layout.
   height: number
+  previewTrack?: never
+  displayName?: never
+  isMicrophoneEnabled?: never
 }
 
-export const ParticipantTile = ({
+interface PreviewParticipantTileProps {
+  // Camera track created before joining, or null while camera is off
+  previewTrack: LocalVideoTrack | null
+  // Name displayed on the pre-join preview badge
+  displayName: string
+  // Whether the microphone will start enabled
+  isMicrophoneEnabled: boolean
+  // Width of the pre-join preview
+  width: number
+  // Height of the pre-join preview
+  height: number
+  trackRef?: never
+}
+
+type ParticipantTileProps =
+  ConnectedParticipantTileProps | PreviewParticipantTileProps
+
+const ConnectedParticipantTile = ({
   trackRef,
   width,
   height,
-}: ParticipantTileProps) => {
+}: ConnectedParticipantTileProps) => {
   const { participant } = trackRef
   const { isMuted: isVideoMuted } = useTrackMutedIndicator(trackRef)
   const { isMuted: isMicrophoneMuted } = useTrackMutedIndicator({
@@ -95,6 +117,59 @@ export const ParticipantTile = ({
     </View>
   )
 }
+
+const PreviewParticipantTile = ({
+  previewTrack,
+  displayName,
+  isMicrophoneEnabled,
+  width,
+  height,
+}: PreviewParticipantTileProps) => {
+  const trackRef = useMemo(
+    () =>
+      previewTrack
+        ? ({
+            participant: { identity: "prejoin", isLocal: true },
+            publication: { track: previewTrack },
+            source: Track.Source.Camera,
+          } as unknown as TrackReference)
+        : undefined,
+    [previewTrack],
+  )
+  const placeholderSize = Math.min(width, height) * 0.5
+
+  return (
+    <View
+      accessibilityLabel="Pre-join participant preview"
+      style={[styles.participantContainer, { width, height }]}
+    >
+      {trackRef ? (
+        <VideoTrack style={styles.videoView} trackRef={trackRef} mirror />
+      ) : (
+        <View style={styles.placeholderView}>
+          <ParticipantPlaceholderIcon size={placeholderSize} />
+        </View>
+      )}
+      <View style={styles.badgeAnchor}>
+        <View style={styles.badge}>
+          {!isMicrophoneEnabled && (
+            <MicDisabledIcon size={MIC_ICON_SIZE} color={TEXT_COLORS.danger} />
+          )}
+          <Text style={styles.participantName} numberOfLines={1}>
+            {displayName || "You"} (You)
+          </Text>
+        </View>
+      </View>
+    </View>
+  )
+}
+
+export const ParticipantTile = (props: ParticipantTileProps) =>
+  props.trackRef !== undefined ? (
+    <ConnectedParticipantTile {...props} />
+  ) : (
+    <PreviewParticipantTile {...(props as PreviewParticipantTileProps)} />
+  )
 
 const styles = StyleSheet.create({
   participantContainer: {
