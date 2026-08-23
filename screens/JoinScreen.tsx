@@ -24,6 +24,7 @@ import {
   MicIcon,
 } from "@/components/icons"
 import { ParticipantTile } from "@/components/participant/ParticipantTile"
+import { DeviceDropdown } from "@/components/room/controls/DeviceDropdown"
 import { MediaDeviceButton } from "@/components/room/controls/MediaDeviceButton"
 import { BORDER_RADIUSES } from "@/constants/borderRadiuses"
 import {
@@ -34,6 +35,7 @@ import {
 import { configError } from "@/constants/env"
 import { fetchParticipantToken } from "@/services/livekitToken"
 import { getRecentRoom, saveRecentRoom } from "@/services/recentRooms"
+import { roomSlug as roomName } from "@/services/roomSlug"
 
 import type { PreJoinMediaSettings } from "@/types"
 
@@ -47,6 +49,8 @@ interface InputDevice {
 }
 
 interface JoinScreenProps {
+  // Canonical company of the room being joined
+  company: string
   // Slug of the room being joined, shown to the participant
   roomSlug: string
   // Message from the most recent failed join/connection attempt, if any
@@ -59,6 +63,7 @@ interface JoinScreenProps {
 
 // Login screen: the participant enters a name, the token is requested for them
 export const JoinScreen = ({
+  company,
   roomSlug,
   error,
   onJoined,
@@ -183,7 +188,7 @@ export const JoinScreen = ({
 
     const loadRecentName = async (): Promise<void> => {
       try {
-        const recentRoom = await getRecentRoom(roomSlug)
+        const recentRoom = await getRecentRoom(company, roomSlug)
 
         if (active && recentRoom) {
           setName(recentRoom.participantName)
@@ -205,7 +210,7 @@ export const JoinScreen = ({
     return () => {
       active = false
     }
-  }, [roomSlug])
+  }, [company, roomSlug])
 
   const join = useCallback(async (): Promise<void> => {
     if (
@@ -229,7 +234,10 @@ export const JoinScreen = ({
     setTokenError(null)
 
     try {
-      const token = await fetchParticipantToken(participantName, roomSlug)
+      const token = await fetchParticipantToken(
+        participantName,
+        roomName(company, roomSlug),
+      )
       stopPreview()
       const media = {
         microphoneEnabled,
@@ -238,7 +246,7 @@ export const JoinScreen = ({
         cameraDeviceId,
       }
       onJoined(token, media)
-      saveRecentRoom(roomSlug, participantName, media)
+      await saveRecentRoom(company, roomSlug, participantName, media)
     } catch (cause) {
       console.error("Failed to get an access token: ", cause)
       setTokenError(
@@ -252,6 +260,7 @@ export const JoinScreen = ({
     }
   }, [
     name,
+    company,
     roomSlug,
     onJoined,
     stopPreview,
@@ -291,6 +300,7 @@ export const JoinScreen = ({
       </View>
 
       <ScrollView
+        testID="join-screen-scroll"
         contentContainerStyle={[
           styles.content,
           { paddingTop: insets.top + 80 },
@@ -336,24 +346,24 @@ export const JoinScreen = ({
                 }}
               />
               {openDropdown === "microphone" && (
-                <View style={styles.deviceList}>
-                  {microphones.map(device => (
-                    <TouchableOpacity
-                      key={device.deviceId}
-                      style={styles.deviceItem}
-                      accessibilityLabel={`${device.label} device`}
-                      accessibilityState={{
+                <DeviceDropdown
+                  sections={[
+                    {
+                      title: "Select microphone",
+                      items: microphones.map(device => ({
+                        deviceId: device.deviceId,
+                        label: device.label,
                         selected: microphoneDeviceId === device.deviceId,
-                      }}
-                      onPress={() => {
-                        setMicrophoneDeviceId(device.deviceId)
-                        setOpenDropdown(undefined)
-                      }}
-                    >
-                      <Text style={styles.deviceText}>{device.label}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                        onPress: () => {
+                          setMicrophoneDeviceId(device.deviceId)
+                          setOpenDropdown(undefined)
+                        },
+                      })),
+                    },
+                  ]}
+                  emptyMessage="No audio devices found"
+                  positionStyle={styles.preJoinDropdown}
+                />
               )}
             </View>
 
@@ -380,24 +390,24 @@ export const JoinScreen = ({
                 }}
               />
               {openDropdown === "camera" && (
-                <View style={styles.deviceList}>
-                  {cameras.map(device => (
-                    <TouchableOpacity
-                      key={device.deviceId}
-                      style={styles.deviceItem}
-                      accessibilityLabel={`${device.label} device`}
-                      accessibilityState={{
+                <DeviceDropdown
+                  sections={[
+                    {
+                      title: "Select camera",
+                      items: cameras.map(device => ({
+                        deviceId: device.deviceId,
+                        label: device.label,
                         selected: cameraDeviceId === device.deviceId,
-                      }}
-                      onPress={() => {
-                        setCameraDeviceId(device.deviceId)
-                        setOpenDropdown(undefined)
-                      }}
-                    >
-                      <Text style={styles.deviceText}>{device.label}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                        onPress: () => {
+                          setCameraDeviceId(device.deviceId)
+                          setOpenDropdown(undefined)
+                        },
+                      })),
+                    },
+                  ]}
+                  emptyMessage="No cameras found"
+                  positionStyle={styles.preJoinDropdown}
+                />
               )}
             </View>
           </View>
@@ -439,7 +449,14 @@ export const JoinScreen = ({
             {isLoading ? (
               <ActivityIndicator color={TEXT_COLORS.light} />
             ) : (
-              <Text style={styles.joinButtonText}>Join</Text>
+              <Text
+                style={[
+                  styles.joinButtonText,
+                  isDisabled ? styles.joinButtonTextDisabled : undefined,
+                ]}
+              >
+                Join
+              </Text>
             )}
           </TouchableOpacity>
         </View>
@@ -475,7 +492,7 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     padding: 20,
-    justifyContent: "center",
+    justifyContent: "flex-start",
   },
   previewContainer: {
     alignItems: "center",
@@ -489,22 +506,14 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   controlWrapper: { flex: 1 },
+  preJoinDropdown: {
+    left: 0,
+    right: 0,
+  },
   joinFormGroup: {
     gap: 12,
     marginTop: 28,
   },
-  deviceList: {
-    position: "absolute",
-    top: 48,
-    left: 0,
-    right: 0,
-    backgroundColor: BACKGROUND_COLORS.secondary,
-    borderRadius: BORDER_RADIUSES.medium,
-    overflow: "hidden",
-    zIndex: 3,
-  },
-  deviceItem: { paddingHorizontal: 12, paddingVertical: 12 },
-  deviceText: { color: TEXT_COLORS.light },
   title: {
     fontSize: 22,
     fontWeight: "bold",
@@ -572,5 +581,8 @@ const styles = StyleSheet.create({
     color: TEXT_COLORS.light,
     fontSize: 18,
     fontWeight: "600",
+  },
+  joinButtonTextDisabled: {
+    color: TEXT_COLORS.disabled,
   },
 })

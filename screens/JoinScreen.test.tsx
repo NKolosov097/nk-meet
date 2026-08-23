@@ -1,3 +1,5 @@
+import type { ComponentProps } from "react"
+
 import {
   act,
   fireEvent,
@@ -7,7 +9,14 @@ import {
 } from "@testing-library/react-native"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 
-import { JoinScreen } from "./JoinScreen"
+import { JoinScreen as ActualJoinScreen } from "./JoinScreen"
+
+const JoinScreen = ({
+  company = "acme",
+  ...props
+}: Omit<ComponentProps<typeof ActualJoinScreen>, "company"> & {
+  company?: string
+}) => <ActualJoinScreen company={company} {...props} />
 
 let mockConfigError: string | null = null
 
@@ -135,10 +144,61 @@ test("prefills the participant name from a known recent room", async () => {
     />,
   )
 
-  expect(mockGetRecentRoom).toHaveBeenCalledWith("quiet-tiger-42")
+  expect(mockGetRecentRoom).toHaveBeenCalledWith("acme", "quiet-tiger-42")
   expect(await screen.findByLabelText("Participant name")).toHaveProp(
     "value",
     "Ada",
+  )
+})
+
+test("loads and saves recent settings using the company and room identity", async () => {
+  mockGetRecentRoom.mockResolvedValue({
+    company: "acme",
+    slug: "quiet-tiger-42",
+    participantName: "Ada",
+    joinedAt: 100,
+  })
+  mockFetchParticipantToken.mockResolvedValue("token-abc")
+
+  await render(
+    <JoinScreen
+      company="acme"
+      roomSlug="quiet-tiger-42"
+      onJoined={jest.fn()}
+      onBack={jest.fn()}
+    />,
+  )
+
+  expect(mockGetRecentRoom).toHaveBeenCalledWith("acme", "quiet-tiger-42")
+  await fireEvent.press(screen.getByLabelText("Join room"))
+
+  await waitFor(() => {
+    expect(mockSaveRecentRoom).toHaveBeenCalledWith(
+      "acme",
+      "quiet-tiger-42",
+      "Ada",
+      expect.any(Object),
+    )
+  })
+})
+
+test("requests a token for the company-scoped LiveKit room name", async () => {
+  mockFetchParticipantToken.mockResolvedValue("token-abc")
+
+  await render(
+    <JoinScreen
+      company="acme"
+      roomSlug="quiet-tiger-42"
+      onJoined={jest.fn()}
+      onBack={jest.fn()}
+    />,
+  )
+  await fireEvent.changeText(screen.getByLabelText("Participant name"), "Ada")
+  await fireEvent.press(screen.getByLabelText("Join room"))
+
+  expect(mockFetchParticipantToken).toHaveBeenCalledWith(
+    "Ada",
+    "acme--quiet-tiger-42",
   )
 })
 
@@ -237,6 +297,10 @@ test("keeps the form and media controls disabled until restoration completes", a
   expect(screen.getByLabelText("Turn on camera")).toBeDisabled()
   expect(screen.getByLabelText("Select microphone")).toBeDisabled()
   expect(screen.getByLabelText("Select camera")).toBeDisabled()
+  expect(screen.getByLabelText("Join room")).toHaveStyle({
+    backgroundColor: "#4A4A4A",
+  })
+  expect(screen.getByText("Join")).toHaveStyle({ color: "#BDBDBD" })
 
   recentRoom.resolve(null)
 
@@ -286,6 +350,7 @@ test("replaces stale saved device ids before previewing and joining", async () =
   }
   expect(onJoined).toHaveBeenCalledWith("token-abc", expectedMedia)
   expect(mockSaveRecentRoom).toHaveBeenCalledWith(
+    "acme",
     "quiet-tiger-42",
     "Ada",
     expectedMedia,
@@ -334,7 +399,7 @@ test("leaves the name field empty for a room with no history", async () => {
     />,
   )
 
-  expect(mockGetRecentRoom).toHaveBeenCalledWith("quiet-tiger-42")
+  expect(mockGetRecentRoom).toHaveBeenCalledWith("acme", "quiet-tiger-42")
   expect(screen.getByLabelText("Participant name")).toHaveProp("value", "")
 })
 
@@ -372,7 +437,7 @@ test("trims the participant name and reports a successful join", async () => {
 
   expect(mockFetchParticipantToken).toHaveBeenCalledWith(
     "Ada",
-    "quiet-tiger-42",
+    "acme--quiet-tiger-42",
   )
   expect(onJoined).toHaveBeenCalledWith("token-abc", {
     microphoneEnabled: false,
@@ -563,6 +628,26 @@ test("groups the name input with Join below the preview controls", async () => {
   expect(screen.getByLabelText("Join room")).toHaveStyle({ marginTop: 0 })
 })
 
+test("starts the pre-join content near the top of the screen", async () => {
+  await render(
+    <JoinScreen
+      roomSlug="quiet-tiger-42"
+      onJoined={jest.fn()}
+      onBack={jest.fn()}
+    />,
+  )
+
+  expect(screen.getByTestId("join-screen-scroll")).toHaveProp(
+    "contentContainerStyle",
+    expect.arrayContaining([
+      expect.objectContaining({
+        flexGrow: 1,
+        justifyContent: "flex-start",
+      }),
+    ]),
+  )
+})
+
 test("saves the room to recent rooms after a successful join", async () => {
   mockFetchParticipantToken.mockResolvedValue("token-abc")
   await render(
@@ -580,12 +665,17 @@ test("saves the room to recent rooms after a successful join", async () => {
   await fireEvent.press(screen.getByLabelText("Join room"))
 
   await waitFor(() => {
-    expect(mockSaveRecentRoom).toHaveBeenCalledWith("quiet-tiger-42", "Ada", {
-      microphoneEnabled: false,
-      cameraEnabled: false,
-      microphoneDeviceId: "mic-1",
-      cameraDeviceId: "camera-1",
-    })
+    expect(mockSaveRecentRoom).toHaveBeenCalledWith(
+      "acme",
+      "quiet-tiger-42",
+      "Ada",
+      {
+        microphoneEnabled: false,
+        cameraEnabled: false,
+        microphoneDeviceId: "mic-1",
+        cameraDeviceId: "camera-1",
+      },
+    )
   })
 })
 
@@ -604,8 +694,26 @@ test("shows pre-join media controls and only input device choices", async () => 
 
   await fireEvent.press(screen.getByLabelText("Select microphone"))
 
+  expect(await screen.findByText("Select microphone")).toBeVisible()
   expect(await screen.findByText("Desk microphone")).toBeVisible()
+  expect(screen.getByLabelText("Desk microphone device")).toHaveStyle({
+    backgroundColor: "#007AFF",
+  })
   expect(screen.queryByText("Desk speakers")).not.toBeOnTheScreen()
+})
+
+test("places the pre-join device dropdown above its trigger", async () => {
+  await render(
+    <JoinScreen
+      roomSlug="quiet-tiger-42"
+      onJoined={jest.fn()}
+      onBack={jest.fn()}
+    />,
+  )
+
+  await fireEvent.press(screen.getByLabelText("Select camera"))
+
+  expect(screen.getByTestId("device-dropdown")).toHaveStyle({ bottom: 48 })
 })
 
 test("keeps only one pre-join device list open", async () => {

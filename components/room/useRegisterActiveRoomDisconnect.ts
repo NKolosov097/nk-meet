@@ -12,6 +12,7 @@ import {
 // tree when a deep link arrives for a different room, and calls
 // `onForcedDisconnect` so the screen knows the app (not the user) ended it.
 export const useRegisterActiveRoomDisconnect = (
+  company: string,
   slug: string,
   onForcedDisconnect: VoidFunction,
 ): void => {
@@ -19,6 +20,7 @@ export const useRegisterActiveRoomDisconnect = (
 
   useEffect(() => {
     const registration: ActiveRoomRegistration = {
+      company,
       slug,
       disconnect: () => room.disconnect(),
       onForcedDisconnect,
@@ -27,5 +29,5 @@ export const useRegisterActiveRoomDisconnect = (
     registerActiveRoom(registration)
 
     return () => unregisterActiveRoom(registration)
-  }, [room, slug, onForcedDisconnect])
+  }, [room, company, slug, onForcedDisconnect])
 }

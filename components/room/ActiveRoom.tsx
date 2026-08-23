@@ -11,6 +11,8 @@ import { useRegisterActiveRoomDisconnect } from "./useRegisterActiveRoomDisconne
 import { VideoConference } from "./VideoConference"
 
 interface ActiveRoomProps {
+  // Company of the room this call belongs to, published to the active-room registry
+  company: string
   // Slug of the room this call belongs to, published to the active-room registry
   roomSlug: string
   // Called when the app (not the user) ends this call for an incoming room link
@@ -18,10 +20,11 @@ interface ActiveRoomProps {
 }
 
 export const ActiveRoom = ({
+  company,
   roomSlug,
   onForcedDisconnect,
 }: ActiveRoomProps) => {
-  useRegisterActiveRoomDisconnect(roomSlug, onForcedDisconnect)
+  useRegisterActiveRoomDisconnect(company, roomSlug, onForcedDisconnect)
 
   return (
     <SafeAreaView style={styles.roomContainer}>

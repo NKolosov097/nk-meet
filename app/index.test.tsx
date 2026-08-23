@@ -1,19 +1,21 @@
-import { render, screen } from "@testing-library/react-native"
+import { renderRouter, screen, waitFor } from "expo-router/testing-library"
 
-import RootScreen from "./index"
+jest.mock("@react-native-async-storage/async-storage", () =>
+  require("@react-native-async-storage/async-storage/jest/async-storage-mock"),
+)
 
-jest.mock("expo-router", () => {
-  const { View } = jest.requireActual("react-native")
+jest.mock("@/constants/env", () => ({ env: {}, configError: null }))
 
-  return {
-    Redirect: ({ href }: { href: string }) => (
-      <View href={href} testID="root-redirect" />
-    ),
-  }
-})
+test("routes the root path to the default company landing", async () => {
+  const app = renderRouter(
+    {
+      index: require("./index"),
+      "[company]/index": require("./[company]/index"),
+    },
+    { initialUrl: "/" },
+  )
+  await app
 
-test("redirects the root route to the default company", async () => {
-  await render(<RootScreen />)
-
-  expect(screen.getByTestId("root-redirect")).toHaveProp("href", "/nkolosov")
+  await waitFor(() => expect(app.getPathname()).toBe("/nkolosov"))
+  expect(screen.getByLabelText("Room code")).toBeVisible()
 })

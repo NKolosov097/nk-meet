@@ -63,7 +63,7 @@ test("saves a new room as the only entry", async () => {
   mockGetItem.mockResolvedValue(null)
   const { saveRecentRoom } = loadRecentRooms()
 
-  await saveRecentRoom("room-a", "Ada")
+  await saveRecentRoom("acme", "room-a", "Ada")
 
   expect(mockSetItem).toHaveBeenCalledWith(
     "nk-meet.recent-rooms",
@@ -77,6 +77,7 @@ test("saves a new room as the only entry", async () => {
   }[]
   expect(saved).toHaveLength(1)
   expect(saved[0]).toEqual({
+    company: "acme",
     slug: "room-a",
     participantName: "Ada",
     joinedAt: expect.any(Number),
@@ -87,7 +88,7 @@ test("saves pre-join media settings with the room", async () => {
   mockGetItem.mockResolvedValue(null)
   const { saveRecentRoom } = loadRecentRooms()
 
-  await saveRecentRoom("room-a", "Ada", {
+  await saveRecentRoom("acme", "room-a", "Ada", {
     microphoneEnabled: false,
     cameraEnabled: true,
     microphoneDeviceId: "mic-2",
@@ -97,6 +98,7 @@ test("saves pre-join media settings with the room", async () => {
   const [, savedJson] = mockSetItem.mock.calls[0]
   expect(JSON.parse(savedJson)).toEqual([
     {
+      company: "acme",
       slug: "room-a",
       participantName: "Ada",
       joinedAt: expect.any(Number),
@@ -110,26 +112,87 @@ test("saves pre-join media settings with the room", async () => {
   ])
 })
 
-test("reads legacy recent rooms without media settings", async () => {
+test("filters legacy recent rooms that do not identify a company", async () => {
   mockGetItem.mockResolvedValue(
     JSON.stringify([{ slug: "room-a", participantName: "Ada", joinedAt: 1 }]),
   )
-  const { getRecentRoom } = loadRecentRooms()
+  const { getRecentRooms } = loadRecentRooms()
 
-  await expect(getRecentRoom("room-a")).resolves.toEqual({
-    slug: "room-a",
-    participantName: "Ada",
-    joinedAt: 1,
-  })
+  await expect(getRecentRooms()).resolves.toEqual([])
+  expect(mockSetItem).not.toHaveBeenCalled()
+})
+
+test("filters a stored row with an empty company", async () => {
+  mockGetItem.mockResolvedValue(
+    JSON.stringify([
+      { company: "", slug: "room-a", participantName: "Ada", joinedAt: 1 },
+    ]),
+  )
+  const { getRecentRooms } = loadRecentRooms()
+
+  await expect(getRecentRooms()).resolves.toEqual([])
+})
+
+test("filters non-canonical and malformed persisted rooms", async () => {
+  mockGetItem.mockResolvedValue(
+    JSON.stringify([
+      { company: "Acme", slug: "room-a", participantName: "Ada", joinedAt: 1 },
+      { company: "acme", slug: "Room A", participantName: "Ada", joinedAt: 1 },
+      {
+        company: "acme",
+        slug: "room-a",
+        participantName: "Ada",
+        joinedAt: Infinity,
+      },
+      {
+        company: "acme",
+        slug: "room-a",
+        participantName: "Ada",
+        joinedAt: 1,
+        media: { microphoneEnabled: true, cameraEnabled: "yes" },
+      },
+    ]),
+  )
+  const { getRecentRooms } = loadRecentRooms()
+
+  await expect(getRecentRooms()).resolves.toEqual([])
+})
+
+test("filters a non-finite joined timestamp", async () => {
+  mockGetItem.mockResolvedValue(
+    '[{"company":"acme","slug":"room-a","participantName":"Ada","joinedAt":1e999}]',
+  )
+  const { getRecentRooms } = loadRecentRooms()
+
+  await expect(getRecentRooms()).resolves.toEqual([])
+})
+
+test("does not re-persist invalid rows when saving a valid room", async () => {
+  mockGetItem.mockResolvedValue(
+    JSON.stringify([
+      { slug: "legacy-room", participantName: "Ada", joinedAt: 1 },
+      { company: "Acme", slug: "room-a", participantName: "Ada", joinedAt: 1 },
+    ]),
+  )
+  const { saveRecentRoom } = loadRecentRooms()
+
+  await saveRecentRoom("acme", "room-a", "Ada")
+
+  const [, savedJson] = mockSetItem.mock.calls[0]
+  expect(JSON.parse(savedJson)).toEqual([
+    expect.objectContaining({ company: "acme", slug: "room-a" }),
+  ])
 })
 
 test("puts the most recently saved room first", async () => {
   mockGetItem.mockResolvedValue(
-    JSON.stringify([{ slug: "room-a", participantName: "Ada", joinedAt: 1 }]),
+    JSON.stringify([
+      { company: "acme", slug: "room-a", participantName: "Ada", joinedAt: 1 },
+    ]),
   )
   const { saveRecentRoom } = loadRecentRooms()
 
-  await saveRecentRoom("room-b", "Grace")
+  await saveRecentRoom("acme", "room-b", "Grace")
 
   const [, savedJson] = mockSetItem.mock.calls[0]
   const saved = JSON.parse(savedJson) as { slug: string }[]
@@ -139,13 +202,18 @@ test("puts the most recently saved room first", async () => {
 test("replaces an existing entry for the same slug instead of duplicating it", async () => {
   mockGetItem.mockResolvedValue(
     JSON.stringify([
-      { slug: "room-a", participantName: "Ada", joinedAt: 1 },
-      { slug: "room-b", participantName: "Grace", joinedAt: 2 },
+      { company: "acme", slug: "room-a", participantName: "Ada", joinedAt: 1 },
+      {
+        company: "acme",
+        slug: "room-b",
+        participantName: "Grace",
+        joinedAt: 2,
+      },
     ]),
   )
   const { saveRecentRoom } = loadRecentRooms()
 
-  await saveRecentRoom("room-a", "Ada Lovelace")
+  await saveRecentRoom("acme", "room-a", "Ada Lovelace")
 
   const [, savedJson] = mockSetItem.mock.calls[0]
   const saved = JSON.parse(savedJson) as {
@@ -154,6 +222,7 @@ test("replaces an existing entry for the same slug instead of duplicating it", a
   }[]
   expect(saved).toHaveLength(2)
   expect(saved[0]).toEqual({
+    company: "acme",
     slug: "room-a",
     participantName: "Ada Lovelace",
     joinedAt: expect.any(Number),
@@ -162,6 +231,7 @@ test("replaces an existing entry for the same slug instead of duplicating it", a
 
 test("caps the list at 20 entries, dropping the oldest", async () => {
   const existing = Array.from({ length: 20 }, (_, i) => ({
+    company: "acme",
     slug: `room-${i}`,
     participantName: "Ada",
     joinedAt: i,
@@ -169,7 +239,7 @@ test("caps the list at 20 entries, dropping the oldest", async () => {
   mockGetItem.mockResolvedValue(JSON.stringify(existing))
   const { saveRecentRoom } = loadRecentRooms()
 
-  await saveRecentRoom("room-new", "Ada")
+  await saveRecentRoom("acme", "room-new", "Ada")
 
   const [, savedJson] = mockSetItem.mock.calls[0]
   const saved = JSON.parse(savedJson) as { slug: string }[]
@@ -178,29 +248,94 @@ test("caps the list at 20 entries, dropping the oldest", async () => {
   expect(saved.find(room => room.slug === "room-19")).toBeUndefined()
 })
 
-test("finds a recent room by slug", async () => {
+test("caps persisted entries at 20 even when invalid rows are present", async () => {
+  const validRooms = Array.from({ length: 20 }, (_, i) => ({
+    company: "acme",
+    slug: `room-${i}`,
+    participantName: "Ada",
+    joinedAt: i,
+  }))
   mockGetItem.mockResolvedValue(
     JSON.stringify([
-      { slug: "room-a", participantName: "Ada", joinedAt: 1 },
-      { slug: "room-b", participantName: "Grace", joinedAt: 2 },
+      { slug: "legacy", participantName: "Ada", joinedAt: 0 },
+      ...validRooms,
+    ]),
+  )
+  const { saveRecentRoom } = loadRecentRooms()
+
+  await saveRecentRoom("acme", "room-new", "Ada")
+
+  const [, savedJson] = mockSetItem.mock.calls[0]
+  expect(JSON.parse(savedJson)).toHaveLength(20)
+})
+
+test("keeps the same slug separate for different companies", async () => {
+  mockGetItem.mockResolvedValue(
+    JSON.stringify([
+      {
+        company: "acme",
+        slug: "weekly-sync",
+        participantName: "Ada",
+        joinedAt: 1,
+      },
+      {
+        company: "globex",
+        slug: "weekly-sync",
+        participantName: "Grace",
+        joinedAt: 2,
+      },
     ]),
   )
   const { getRecentRoom } = loadRecentRooms()
 
-  await expect(getRecentRoom("room-b")).resolves.toEqual({
-    slug: "room-b",
+  await expect(getRecentRoom("globex", "weekly-sync")).resolves.toEqual({
+    company: "globex",
+    slug: "weekly-sync",
     participantName: "Grace",
     joinedAt: 2,
   })
 })
 
+test("does not overwrite a same-slug room in another company", async () => {
+  mockGetItem.mockResolvedValue(
+    JSON.stringify([
+      {
+        company: "globex",
+        slug: "weekly-sync",
+        participantName: "Grace",
+        joinedAt: 2,
+      },
+    ]),
+  )
+  const { saveRecentRoom } = loadRecentRooms()
+
+  await saveRecentRoom("acme", "weekly-sync", "Ada")
+
+  const [, savedJson] = mockSetItem.mock.calls[0]
+  expect(JSON.parse(savedJson)).toEqual([
+    expect.objectContaining({
+      company: "acme",
+      slug: "weekly-sync",
+      participantName: "Ada",
+    }),
+    {
+      company: "globex",
+      slug: "weekly-sync",
+      participantName: "Grace",
+      joinedAt: 2,
+    },
+  ])
+})
+
 test("returns null when no recent room matches the slug", async () => {
   mockGetItem.mockResolvedValue(
-    JSON.stringify([{ slug: "room-a", participantName: "Ada", joinedAt: 1 }]),
+    JSON.stringify([
+      { company: "acme", slug: "room-a", participantName: "Ada", joinedAt: 1 },
+    ]),
   )
   const { getRecentRoom } = loadRecentRooms()
 
-  await expect(getRecentRoom("room-z")).resolves.toBeNull()
+  await expect(getRecentRoom("acme", "room-z")).resolves.toBeNull()
 })
 
 test("logs and resolves instead of throwing when persisting fails", async () => {
@@ -210,7 +345,7 @@ test("logs and resolves instead of throwing when persisting fails", async () => 
   mockSetItem.mockRejectedValue(writeFailure)
   const { saveRecentRoom } = loadRecentRooms()
 
-  await expect(saveRecentRoom("room-a", "Ada")).resolves.toBeUndefined()
+  await expect(saveRecentRoom("acme", "room-a", "Ada")).resolves.toBeUndefined()
   expect(consoleError).toHaveBeenCalledWith(
     "Error saving a recent room: ",
     writeFailure,

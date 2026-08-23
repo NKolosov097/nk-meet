@@ -8,7 +8,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context"
 
 import { GridPreview } from "@/components/room/grid/GridPreview"
 import { disconnectActiveRoom } from "@/services/activeRoomConnection"
-import { roomSlugFromUrl } from "@/services/roomSlug"
+import { parseMeetingPath } from "@/services/roomSlug"
 
 const stackScreenOptions: NativeStackNavigationOptions = {
   headerShown: false,
@@ -28,7 +28,7 @@ export default function RootLayout() {
     // Tears down a call the link is navigating away from; expo-router
     // handles the navigation itself.
     const subscription = addEventListener("url", ({ url }) => {
-      disconnectActiveRoom(roomSlugFromUrl(url))
+      disconnectActiveRoom(parseMeetingPath(url))
     })
 
     return () => subscription.remove()

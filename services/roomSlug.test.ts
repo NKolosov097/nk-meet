@@ -1,4 +1,10 @@
-import { generateRoomSlug, roomSlugFromUrl, slugify } from "./roomSlug"
+import {
+  generateRoomSlug,
+  parseMeetingPath,
+  roomIdentityFromUrl,
+  roomSlug,
+  slugify,
+} from "./roomSlug"
 
 describe("slugify", () => {
   test("lowercases and trims the input", () => {
@@ -18,33 +24,56 @@ describe("slugify", () => {
   })
 })
 
-describe("roomSlugFromUrl", () => {
-  test("reads the slug out of a custom-scheme link", () => {
-    expect(roomSlugFromUrl("nk-meet://team-sync")).toBe("team-sync")
+describe("roomIdentityFromUrl", () => {
+  test("keeps canonical company and room segments from a deep link", () => {
+    expect(
+      roomIdentityFromUrl("nk-meet://Acme/Expo%20Development%20Client"),
+    ).toEqual({
+      company: "acme",
+      slug: "expo-development-client",
+    })
   })
 
-  test("canonicalizes an escaped, mixed-case slug", () => {
-    expect(roomSlugFromUrl("nk-meet://Team%20Sync")).toBe("team-sync")
+  test("returns a company-only identity for a landing deep link", () => {
+    expect(roomIdentityFromUrl("nk-meet://Acme")).toEqual({
+      company: "acme",
+      slug: "",
+    })
   })
 
-  test("ignores a query string and a fragment", () => {
-    expect(roomSlugFromUrl("nk-meet://room-a?ref=chat#top")).toBe("room-a")
+  test("rejects additional path segments instead of collapsing them", () => {
+    expect(roomIdentityFromUrl("nk-meet://acme/weekly-sync/extra")).toEqual({
+      company: "",
+      slug: "",
+    })
+  })
+})
+
+describe("parseMeetingPath", () => {
+  test.each([
+    ["nk-meet:/Acme/Weekly%20Sync", { company: "acme", slug: "weekly-sync" }],
+    ["nk-meet:Acme/Weekly%20Sync", { company: "acme", slug: "weekly-sync" }],
+    [
+      "https://meet.example/Acme/Weekly%20Sync",
+      { company: "acme", slug: "weekly-sync" },
+    ],
+  ])("parses the company and room path from %s", (path, expected) => {
+    expect(parseMeetingPath(path)).toEqual(expected)
   })
 
-  test("reads the first path segment of a triple-slashed link", () => {
-    expect(roomSlugFromUrl("nk-meet:///room-a/details")).toBe("room-a")
+  test("rejects extra path segments without using the URL host as a company", () => {
+    expect(
+      parseMeetingPath("https://meet.example/acme/weekly-sync/extra"),
+    ).toEqual({
+      company: "",
+      slug: "",
+    })
   })
+})
 
-  test("returns an empty slug for a link that names no room", () => {
-    expect(roomSlugFromUrl("nk-meet://")).toBe("")
-  })
-
-  test("returns an empty slug for a link with no valid characters", () => {
-    expect(roomSlugFromUrl("nk-meet://!!!")).toBe("")
-  })
-
-  test("falls back to the raw segment for a malformed escape", () => {
-    expect(roomSlugFromUrl("nk-meet://room%zz")).toBe("room-zz")
+describe("roomSlug", () => {
+  test("creates a deterministic LiveKit room name scoped to its company", () => {
+    expect(roomSlug("acme", "weekly-sync")).toBe("acme--weekly-sync")
   })
 })
 

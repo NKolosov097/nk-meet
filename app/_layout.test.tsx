@@ -43,24 +43,30 @@ afterAll(() => {
 
 type LinkHandler = (event: { url: string }) => void
 
-test("subscribes to incoming links and disconnects the active room", async () => {
+test("subscribes to incoming links and disconnects the active company room", async () => {
   await render(<RootLayout />)
 
   expect(mockAddEventListener).toHaveBeenCalledWith("url", expect.any(Function))
 
   const handler = mockAddEventListener.mock.calls[0][1] as LinkHandler
-  handler({ url: "nk-meet://room-b" })
+  handler({ url: "nk-meet://acme/room-b" })
 
-  expect(mockDisconnectActiveRoom).toHaveBeenCalledWith("room-b")
+  expect(mockDisconnectActiveRoom).toHaveBeenCalledWith({
+    company: "acme",
+    slug: "room-b",
+  })
 })
 
 test("passes the canonicalized slug of the incoming link", async () => {
   await render(<RootLayout />)
   const handler = mockAddEventListener.mock.calls[0][1] as LinkHandler
 
-  handler({ url: "nk-meet://Team%20Sync" })
+  handler({ url: "nk-meet://Acme/Team%20Sync" })
 
-  expect(mockDisconnectActiveRoom).toHaveBeenCalledWith("team-sync")
+  expect(mockDisconnectActiveRoom).toHaveBeenCalledWith({
+    company: "acme",
+    slug: "team-sync",
+  })
 })
 
 test("passes an empty slug for a link that names no room", async () => {
@@ -69,7 +75,10 @@ test("passes an empty slug for a link that names no room", async () => {
 
   handler({ url: "nk-meet://" })
 
-  expect(mockDisconnectActiveRoom).toHaveBeenCalledWith("")
+  expect(mockDisconnectActiveRoom).toHaveBeenCalledWith({
+    company: "",
+    slug: "",
+  })
 })
 
 test("unsubscribes on unmount", async () => {

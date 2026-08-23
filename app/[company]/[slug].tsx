@@ -12,43 +12,37 @@ import {
 import { ActiveRoom } from "@/components/room/ActiveRoom"
 import { env } from "@/constants/env"
 import { JoinScreen } from "@/screens/JoinScreen"
-import { getActiveRoomSlug } from "@/services/activeRoomConnection"
+import { getActiveRoomIdentity } from "@/services/activeRoomConnection"
 import { slugify } from "@/services/roomSlug"
 
 import type { ConnectionState, PreJoinMediaSettings } from "@/types"
 
-const initialConnectionState: ConnectionState = {
-  token: null,
-}
+const initialConnectionState: ConnectionState = { token: null }
 
 const roomOptions: RoomOptions = {
   adaptiveStream: true,
   dynacast: true,
-  videoCaptureDefaults: {
-    resolution: VideoPresets.h360.resolution,
-  },
+  videoCaptureDefaults: { resolution: VideoPresets.h360.resolution },
   publishDefaults: {
     simulcast: false,
     videoEncoding: VideoPresets.h360.encoding,
   },
 }
 
-const connectOptions: RoomConnectOptions = {
-  maxRetries: 5,
-}
+const connectOptions: RoomConnectOptions = { maxRetries: 5 }
 
 interface RoomProps {
-  // Canonical slug of the room to join, already slugified by the route
+  // Canonical company segment that scopes the call
+  company: string
+  // Canonical room segment displayed in the join and call UI
   slug: string
 }
 
-const Room = ({ slug }: RoomProps) => {
+const Room = ({ company, slug }: RoomProps) => {
   const router = useRouter()
   const [connectionState, setConnectionState] = useState<ConnectionState>(
     () => initialConnectionState,
   )
-  // Set while the app itself ends this call (a link to another room arrived).
-  // Lets onDisconnect skip its own navigation — the router is already there.
   const isDisconnectForcedRef = useRef<boolean>(false)
 
   const onJoined = useCallback(
@@ -59,21 +53,14 @@ const Room = ({ slug }: RoomProps) => {
     [],
   )
 
-  // The call is being torn down for the room the router is already navigating
-  // to, so drop the token right away instead of waiting for LiveKit's
-  // Disconnected event — a room that was never connected never sends one.
   const onForcedDisconnect = useCallback((): void => {
     isDisconnectForcedRef.current = true
     setConnectionState(initialConnectionState)
   }, [])
 
-  const goToHomeScreen = useCallback((): void => {
-    if (router.canGoBack()) {
-      router.back()
-    } else {
-      router.replace("/")
-    }
-  }, [router])
+  const goToCompanyHome = useCallback((): void => {
+    router.replace(`/${company}`)
+  }, [company, router])
 
   const onDisconnect = useCallback((): void => {
     setConnectionState(initialConnectionState)
@@ -83,8 +70,8 @@ const Room = ({ slug }: RoomProps) => {
       return
     }
 
-    goToHomeScreen()
-  }, [goToHomeScreen])
+    goToCompanyHome()
+  }, [goToCompanyHome])
 
   const onConnectionError = useCallback((error?: Error): void => {
     console.error("Connection error: ", error)
@@ -112,10 +99,11 @@ const Room = ({ slug }: RoomProps) => {
   if (connectionState.token === null) {
     return (
       <JoinScreen
+        company={company}
         roomSlug={slug}
         error={connectionState.error}
         onJoined={onJoined}
-        onBack={goToHomeScreen}
+        onBack={goToCompanyHome}
       />
     )
   }
@@ -144,46 +132,46 @@ const Room = ({ slug }: RoomProps) => {
       options={connectedRoomOptions}
       connectOptions={connectOptions}
     >
-      <ActiveRoom roomSlug={slug} onForcedDisconnect={onForcedDisconnect} />
+      <ActiveRoom
+        company={company}
+        roomSlug={slug}
+        onForcedDisconnect={onForcedDisconnect}
+      />
     </LiveKitRoom>
   )
 }
 
 export default function RoomScreen() {
-  const { slug: rawSlug } = useLocalSearchParams<{ slug: string }>()
+  const { company: rawCompany, slug: rawSlug } = useLocalSearchParams<{
+    company: string
+    slug: string
+  }>()
   const router = useRouter()
-  // Deep-link params are untrusted input and reach the LiveKit room name
-  // directly, so "Team%20Sync", "Team-Sync" and "team-sync" must all resolve
-  // to the one room a home-screen user reaches by typing the same text.
+  const company = slugify(rawCompany ?? "")
   const slug = slugify(rawSlug ?? "")
-  const isCanonical = slug === rawSlug
-  // Defense-in-depth: +native-intent.ts already canonicalizes real links, but
-  // any other route to this screen with a raw param could still produce a
-  // non-canonical duplicate of a room already open elsewhere — dismiss it.
+  const isCanonical = company === rawCompany && slug === rawSlug
+  const activeRoom = getActiveRoomIdentity()
   const isDuplicateOfActiveRoom =
-    !isCanonical && slug !== "" && slug === getActiveRoomSlug()
+    !isCanonical &&
+    company !== "" &&
+    slug !== "" &&
+    activeRoom?.company === company &&
+    activeRoom.slug === slug
 
   useEffect(() => {
-    if (isCanonical) {
-      return
-    }
+    if (isCanonical) return
 
     if (isDuplicateOfActiveRoom && router.canGoBack()) {
-      // Dismiss this duplicate rather than joining afresh — the existing
-      // screen underneath is already connected to this room.
       router.back()
       return
     }
 
-    // Fix the URL/history entry to the canonical form.
-    router.replace(slug ? `/${slug}` : "/")
-  }, [isCanonical, isDuplicateOfActiveRoom, slug, router])
+    router.replace(
+      company && slug ? `/${company}/${slug}` : company ? `/${company}` : "/",
+    )
+  }, [company, isCanonical, isDuplicateOfActiveRoom, router, slug])
 
-  if (!slug || isDuplicateOfActiveRoom) {
-    return null
-  }
+  if (!company || !slug || isDuplicateOfActiveRoom) return null
 
-  // Keyed by the canonical slug so per-room state rebuilds when the room
-  // actually changes, but stays mounted for a non-canonical link to the same one.
-  return <Room key={slug} slug={slug} />
+  return <Room key={`${company}/${slug}`} company={company} slug={slug} />
 }
