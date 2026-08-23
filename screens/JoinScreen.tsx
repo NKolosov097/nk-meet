@@ -24,6 +24,7 @@ import {
   MicIcon,
 } from "@/components/icons"
 import { ParticipantTile } from "@/components/participant/ParticipantTile"
+import { MediaDeviceButton } from "@/components/room/controls/MediaDeviceButton"
 import { BORDER_RADIUSES } from "@/constants/borderRadiuses"
 import {
   BACKGROUND_COLORS,
@@ -280,178 +281,168 @@ export const JoinScreen = ({
         <ChevronLeftIcon />
       </TouchableOpacity>
 
-      <ScrollView
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
+      <View
+        testID="join-screen-header"
+        pointerEvents="none"
+        style={[styles.header, { top: insets.top + 20 }]}
       >
         <Text style={styles.title}>NK Meet</Text>
         <Text style={styles.brandBy}>by NKolosov</Text>
+      </View>
+
+      <ScrollView
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: insets.top + 80 },
+        ]}
+        keyboardShouldPersistTaps="handled"
+      >
         <Text style={styles.subtitle}>Room: {roomSlug}</Text>
 
-        <View style={styles.previewContainer}>
-          <ParticipantTile
-            previewTrack={previewTrack}
-            displayName={name.trim()}
-            isMicrophoneEnabled={microphoneEnabled}
-            width={Math.min(viewportWidth - 40, 560)}
-            height={Math.min((viewportWidth - 40) * 0.56, 315)}
-          />
-        </View>
+        <View testID="prejoin-media-group" style={styles.preJoinMediaGroup}>
+          <View style={styles.previewContainer}>
+            <ParticipantTile
+              previewTrack={previewTrack}
+              displayName={name.trim()}
+              isMicrophoneEnabled={microphoneEnabled}
+              width={Math.min(viewportWidth - 40, 560)}
+              height={Math.min((viewportWidth - 40) * 0.56, 315)}
+            />
+          </View>
 
-        <View style={styles.mediaControls}>
-          <View style={styles.controlWrapper}>
-            <View style={styles.compoundControl}>
-              <TouchableOpacity
-                style={styles.controlMain}
-                onPress={() => setMicrophoneEnabled(enabled => !enabled)}
-                disabled={isDisabled}
-                accessibilityState={{
-                  disabled: isDisabled,
-                  selected: microphoneEnabled,
-                }}
-                accessibilityLabel={
-                  microphoneEnabled
-                    ? "Turn off microphone"
-                    : "Turn on microphone"
-                }
-              >
-                {microphoneEnabled ? <MicIcon /> : <MicDisabledIcon />}
-                <Text style={styles.controlText}>Microphone</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.controlDropdownButton}
-                onPress={() =>
+          <View style={styles.mediaControls}>
+            <View style={styles.controlWrapper}>
+              <MediaDeviceButton
+                icon={microphoneEnabled ? <MicIcon /> : <MicDisabledIcon />}
+                text="Microphone"
+                onToggle={() => setMicrophoneEnabled(enabled => !enabled)}
+                onToggleDropdown={() =>
                   setOpenDropdown(current =>
                     current === "microphone" ? undefined : "microphone",
                   )
                 }
+                toggleAccessibilityLabel={
+                  microphoneEnabled
+                    ? "Turn off microphone"
+                    : "Turn on microphone"
+                }
+                dropdownAccessibilityLabel="Select microphone"
                 disabled={isDisabled}
-                accessibilityState={{
-                  disabled: isDisabled,
+                dropdownDisabled={isDisabled}
+                isDropdownVisible={openDropdown === "microphone"}
+                toggleAccessibilityState={{ selected: microphoneEnabled }}
+                dropdownAccessibilityState={{
                   selected: openDropdown === "microphone",
                 }}
-                accessibilityLabel="Select microphone"
-              >
-                <Text style={styles.dropdownArrow}>▼</Text>
-              </TouchableOpacity>
+              />
+              {openDropdown === "microphone" && (
+                <View style={styles.deviceList}>
+                  {microphones.map(device => (
+                    <TouchableOpacity
+                      key={device.deviceId}
+                      style={styles.deviceItem}
+                      accessibilityLabel={`${device.label} device`}
+                      accessibilityState={{
+                        selected: microphoneDeviceId === device.deviceId,
+                      }}
+                      onPress={() => {
+                        setMicrophoneDeviceId(device.deviceId)
+                        setOpenDropdown(undefined)
+                      }}
+                    >
+                      <Text style={styles.deviceText}>{device.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
             </View>
-            {openDropdown === "microphone" && (
-              <View style={styles.deviceList}>
-                {microphones.map(device => (
-                  <TouchableOpacity
-                    key={device.deviceId}
-                    style={styles.deviceItem}
-                    accessibilityLabel={`${device.label} device`}
-                    accessibilityState={{
-                      selected: microphoneDeviceId === device.deviceId,
-                    }}
-                    onPress={() => {
-                      setMicrophoneDeviceId(device.deviceId)
-                      setOpenDropdown(undefined)
-                    }}
-                  >
-                    <Text style={styles.deviceText}>{device.label}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-          </View>
 
-          <View style={styles.controlWrapper}>
-            <View style={styles.compoundControl}>
-              <TouchableOpacity
-                style={styles.controlMain}
-                onPress={() => setCameraEnabled(enabled => !enabled)}
-                disabled={isDisabled}
-                accessibilityState={{
-                  disabled: isDisabled,
-                  selected: cameraEnabled,
-                }}
-                accessibilityLabel={
-                  cameraEnabled ? "Turn off camera" : "Turn on camera"
-                }
-              >
-                {cameraEnabled ? <CameraIcon /> : <CameraDisabledIcon />}
-                <Text style={styles.controlText}>Camera</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.controlDropdownButton}
-                onPress={() =>
+            <View style={styles.controlWrapper}>
+              <MediaDeviceButton
+                icon={cameraEnabled ? <CameraIcon /> : <CameraDisabledIcon />}
+                text="Camera"
+                onToggle={() => setCameraEnabled(enabled => !enabled)}
+                onToggleDropdown={() =>
                   setOpenDropdown(current =>
                     current === "camera" ? undefined : "camera",
                   )
                 }
+                toggleAccessibilityLabel={
+                  cameraEnabled ? "Turn off camera" : "Turn on camera"
+                }
+                dropdownAccessibilityLabel="Select camera"
                 disabled={isDisabled}
-                accessibilityState={{
-                  disabled: isDisabled,
+                dropdownDisabled={isDisabled}
+                isDropdownVisible={openDropdown === "camera"}
+                toggleAccessibilityState={{ selected: cameraEnabled }}
+                dropdownAccessibilityState={{
                   selected: openDropdown === "camera",
                 }}
-                accessibilityLabel="Select camera"
-              >
-                <Text style={styles.dropdownArrow}>▼</Text>
-              </TouchableOpacity>
+              />
+              {openDropdown === "camera" && (
+                <View style={styles.deviceList}>
+                  {cameras.map(device => (
+                    <TouchableOpacity
+                      key={device.deviceId}
+                      style={styles.deviceItem}
+                      accessibilityLabel={`${device.label} device`}
+                      accessibilityState={{
+                        selected: cameraDeviceId === device.deviceId,
+                      }}
+                      onPress={() => {
+                        setCameraDeviceId(device.deviceId)
+                        setOpenDropdown(undefined)
+                      }}
+                    >
+                      <Text style={styles.deviceText}>{device.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
             </View>
-            {openDropdown === "camera" && (
-              <View style={styles.deviceList}>
-                {cameras.map(device => (
-                  <TouchableOpacity
-                    key={device.deviceId}
-                    style={styles.deviceItem}
-                    accessibilityLabel={`${device.label} device`}
-                    accessibilityState={{
-                      selected: cameraDeviceId === device.deviceId,
-                    }}
-                    onPress={() => {
-                      setCameraDeviceId(device.deviceId)
-                      setOpenDropdown(undefined)
-                    }}
-                  >
-                    <Text style={styles.deviceText}>{device.label}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
           </View>
         </View>
 
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Your name:</Text>
-          <TextInput
-            style={styles.input}
-            value={name}
-            onChangeText={setName}
-            placeholder="Enter your name"
-            placeholderTextColor={TEXT_COLORS.placeholder}
-            autoCapitalize="words"
-            autoCorrect={false}
-            editable={!isDisabled}
-            returnKeyType="go"
-            onSubmitEditing={join}
-            accessibilityLabel="Participant name"
-          />
-        </View>
-
-        {message && (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{message}</Text>
+        <View testID="join-form-group" style={styles.joinFormGroup}>
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Your name:</Text>
+            <TextInput
+              style={styles.input}
+              value={name}
+              onChangeText={setName}
+              placeholder="Enter your name"
+              placeholderTextColor={TEXT_COLORS.placeholder}
+              autoCapitalize="words"
+              autoCorrect={false}
+              editable={!isDisabled}
+              returnKeyType="go"
+              onSubmitEditing={join}
+              accessibilityLabel="Participant name"
+            />
           </View>
-        )}
 
-        <TouchableOpacity
-          style={[
-            styles.joinButton,
-            isDisabled ? styles.joinButtonDisabled : undefined,
-          ]}
-          onPress={join}
-          disabled={isDisabled}
-          accessibilityLabel="Join room"
-        >
-          {isLoading ? (
-            <ActivityIndicator color={TEXT_COLORS.light} />
-          ) : (
-            <Text style={styles.joinButtonText}>Join</Text>
+          {message && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{message}</Text>
+            </View>
           )}
-        </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.joinButton,
+              isDisabled ? styles.joinButtonDisabled : undefined,
+            ]}
+            onPress={join}
+            disabled={isDisabled}
+            accessibilityLabel="Join room"
+          >
+            {isLoading ? (
+              <ActivityIndicator color={TEXT_COLORS.light} />
+            ) : (
+              <Text style={styles.joinButtonText}>Join</Text>
+            )}
+          </TouchableOpacity>
+        </View>
       </ScrollView>
 
       <StatusBar style="light" />
@@ -468,6 +459,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     zIndex: 1,
   },
+  header: {
+    position: "absolute",
+    left: 60,
+    right: 60,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: BACKGROUND_COLORS.background,
@@ -479,43 +479,23 @@ const styles = StyleSheet.create({
   },
   previewContainer: {
     alignItems: "center",
-    marginBottom: 16,
+  },
+  preJoinMediaGroup: {
+    gap: 12,
   },
   mediaControls: {
     flexDirection: "row",
     gap: 12,
-    marginBottom: 20,
     zIndex: 2,
   },
   controlWrapper: { flex: 1 },
-  compoundControl: { flexDirection: "row" },
-  controlMain: {
-    flex: 1,
-    minHeight: 52,
-    flexDirection: "row",
-    gap: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: BACKGROUND_COLORS.secondary,
-    borderTopLeftRadius: BORDER_RADIUSES.medium,
-    borderBottomLeftRadius: BORDER_RADIUSES.medium,
+  joinFormGroup: {
+    gap: 12,
+    marginTop: 28,
   },
-  controlDropdownButton: {
-    width: 36,
-    minHeight: 52,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: BACKGROUND_COLORS.secondary,
-    borderLeftWidth: 1,
-    borderLeftColor: BORDER_COLORS.lightBorder,
-    borderTopRightRadius: BORDER_RADIUSES.medium,
-    borderBottomRightRadius: BORDER_RADIUSES.medium,
-  },
-  controlText: { color: TEXT_COLORS.light, fontWeight: "600" },
-  dropdownArrow: { color: TEXT_COLORS.light, fontSize: 11 },
   deviceList: {
     position: "absolute",
-    top: 56,
+    top: 48,
     left: 0,
     right: 0,
     backgroundColor: BACKGROUND_COLORS.secondary,
@@ -526,16 +506,16 @@ const styles = StyleSheet.create({
   deviceItem: { paddingHorizontal: 12, paddingVertical: 12 },
   deviceText: { color: TEXT_COLORS.light },
   title: {
-    fontSize: 32,
+    fontSize: 22,
     fontWeight: "bold",
     textAlign: "center",
-    marginBottom: 4,
+    marginBottom: 0,
     color: TEXT_COLORS.light,
   },
   brandBy: {
     color: TEXT_COLORS.placeholder,
-    fontSize: 14,
-    marginBottom: 8,
+    fontSize: 11,
+    marginTop: -2,
     textAlign: "center",
   },
   subtitle: {
@@ -545,7 +525,7 @@ const styles = StyleSheet.create({
     color: TEXT_COLORS.placeholder,
   },
   inputContainer: {
-    marginBottom: 20,
+    marginBottom: 0,
   },
   label: {
     fontSize: 16,
@@ -567,7 +547,7 @@ const styles = StyleSheet.create({
     backgroundColor: BACKGROUND_COLORS.tertiary,
     borderRadius: BORDER_RADIUSES.medium,
     padding: 12,
-    marginBottom: 16,
+    marginBottom: 0,
     borderLeftWidth: 4,
     borderLeftColor: BORDER_COLORS.danger,
   },
@@ -581,7 +561,7 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUSES.medium,
     padding: 16,
     alignItems: "center",
-    marginTop: 20,
+    marginTop: 0,
     minHeight: 56,
     justifyContent: "center",
   },

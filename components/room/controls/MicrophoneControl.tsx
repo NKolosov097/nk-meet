@@ -1,18 +1,19 @@
 import React, { useCallback, useEffect, useState } from "react"
 import {
   Alert,
+  Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  ScrollView,
-  Pressable,
 } from "react-native"
 
 import { useRoomContext } from "@livekit/react-native"
 import { Track } from "livekit-client"
 
 import { MicDisabledIcon, MicIcon } from "@/components/icons"
+import { MediaDeviceButton } from "@/components/room/controls/MediaDeviceButton"
 import {
   initializeActiveMediaDevice,
   subscribeToMediaDevicesChanged,
@@ -48,6 +49,8 @@ interface MicrophoneControlProps {
   onToggleDropdown: VoidFunction
   // Closes the microphone device dropdown
   onCloseDropdown: VoidFunction
+  // Optional label displayed between the state icon and dropdown
+  text?: string
 }
 
 export const MicrophoneControl = ({
@@ -57,6 +60,7 @@ export const MicrophoneControl = ({
   isDropdownVisible,
   onToggleDropdown,
   onCloseDropdown,
+  text,
 }: MicrophoneControlProps) => {
   const room = useRoomContext()
   const [audioDevices, setAudioDevices] = useState<AudioDevice[]>([])
@@ -151,34 +155,18 @@ export const MicrophoneControl = ({
         style={styles.container}
         onLayout={onContainerLayout}
       >
-        {/* Microphone button */}
-        <TouchableOpacity
-          style={[
-            styles.micButton,
-            disabled ? styles.micButtonDisabled : undefined,
-          ]}
-          onPress={onToggleMute}
+        <MediaDeviceButton
+          icon={isMuted ? <MicDisabledIcon /> : <MicIcon />}
+          text={text}
+          onToggle={onToggleMute}
+          onToggleDropdown={onToggleDropdown}
+          toggleAccessibilityLabel={
+            isMuted ? "Unmute microphone" : "Mute microphone"
+          }
+          dropdownAccessibilityLabel="Select audio device"
           disabled={disabled}
-          accessibilityLabel={isMuted ? "Unmute microphone" : "Mute microphone"}
-        >
-          {isMuted ? <MicDisabledIcon /> : <MicIcon />}
-        </TouchableOpacity>
-
-        {/* Dropdown list button */}
-        <TouchableOpacity
-          style={styles.dropdownButton}
-          onPress={onToggleDropdown}
-          accessibilityLabel="Select audio device"
-        >
-          <Text
-            style={[
-              styles.dropdownArrow,
-              isDropdownVisible ? styles.dropdownArrowUp : undefined,
-            ]}
-          >
-            ▼
-          </Text>
-        </TouchableOpacity>
+          isDropdownVisible={isDropdownVisible}
+        />
 
         {/* Device dropdown list */}
         {isDropdownVisible && (
@@ -286,39 +274,9 @@ const styles = StyleSheet.create({
     position: "relative",
     zIndex: 1000,
   },
-  micButton: {
-    backgroundColor: BACKGROUND_COLORS.secondary,
-    width: 50,
-    height: 50,
-    borderTopLeftRadius: BORDER_RADIUSES.pill,
-    borderBottomLeftRadius: BORDER_RADIUSES.pill,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  micButtonDisabled: {
-    opacity: 0.4,
-  },
-  dropdownButton: {
-    backgroundColor: BACKGROUND_COLORS.secondary,
-    width: 30,
-    height: 50,
-    borderTopRightRadius: BORDER_RADIUSES.pill,
-    borderBottomRightRadius: BORDER_RADIUSES.pill,
-    marginLeft: -5,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  dropdownArrow: {
-    color: TEXT_COLORS.light,
-    fontSize: 12,
-    fontWeight: "bold",
-  },
-  dropdownArrowUp: {
-    transform: [{ rotate: "180deg" }],
-  },
   dropdownContainer: {
     position: "absolute",
-    bottom: 55,
+    bottom: 49,
     backgroundColor: BACKGROUND_COLORS.secondary,
     borderRadius: BORDER_RADIUSES.large,
     maxHeight: 400,

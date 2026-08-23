@@ -522,6 +522,47 @@ test("offsets the back button below the device's safe-area inset", async () => {
   })
 })
 
+test("aligns the compact brand with the back button", async () => {
+  await render(
+    <SafeAreaProvider
+      initialMetrics={{
+        frame: { x: 0, y: 0, width: 320, height: 640 },
+        insets: { top: 47, left: 20, right: 0, bottom: 34 },
+      }}
+    >
+      <JoinScreen
+        roomSlug="quiet-tiger-42"
+        onJoined={jest.fn()}
+        onBack={jest.fn()}
+      />
+    </SafeAreaProvider>,
+  )
+
+  expect(screen.getByTestId("join-screen-header")).toHaveStyle({
+    top: 67,
+    height: 40,
+  })
+  expect(screen.getByText("NK Meet")).toHaveStyle({ marginBottom: 0 })
+  expect(screen.getByText("by NKolosov")).toHaveStyle({ marginTop: -2 })
+})
+
+test("groups the name input with Join below the preview controls", async () => {
+  await render(
+    <JoinScreen
+      roomSlug="quiet-tiger-42"
+      onJoined={jest.fn()}
+      onBack={jest.fn()}
+    />,
+  )
+
+  expect(screen.getByTestId("prejoin-media-group")).toHaveStyle({ gap: 12 })
+  expect(screen.getByTestId("join-form-group")).toHaveStyle({
+    gap: 12,
+    marginTop: 28,
+  })
+  expect(screen.getByLabelText("Join room")).toHaveStyle({ marginTop: 0 })
+})
+
 test("saves the room to recent rooms after a successful join", async () => {
   mockFetchParticipantToken.mockResolvedValue("token-abc")
   await render(

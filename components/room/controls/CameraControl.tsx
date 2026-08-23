@@ -1,18 +1,19 @@
 import React, { useCallback, useEffect, useState } from "react"
 import {
   Alert,
+  Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  ScrollView,
-  Pressable,
 } from "react-native"
 
 import { useRoomContext } from "@livekit/react-native"
 import { Track } from "livekit-client"
 
 import { CameraDisabledIcon, CameraIcon } from "@/components/icons"
+import { MediaDeviceButton } from "@/components/room/controls/MediaDeviceButton"
 import {
   initializeActiveMediaDevice,
   subscribeToMediaDevicesChanged,
@@ -48,6 +49,8 @@ interface CameraControlProps {
   onToggleDropdown: VoidFunction
   // Closes the camera device dropdown
   onCloseDropdown: VoidFunction
+  // Optional label displayed between the state icon and dropdown
+  text?: string
 }
 
 export const CameraControl = ({
@@ -57,6 +60,7 @@ export const CameraControl = ({
   isDropdownVisible,
   onToggleDropdown,
   onCloseDropdown,
+  text,
 }: CameraControlProps) => {
   const room = useRoomContext()
   const [videoDevices, setVideoDevices] = useState<VideoDevice[]>([])
@@ -123,36 +127,18 @@ export const CameraControl = ({
         style={styles.container}
         onLayout={onContainerLayout}
       >
-        {/* Camera button */}
-        <TouchableOpacity
-          style={[
-            styles.cameraButton,
-            disabled ? styles.cameraButtonDisabled : undefined,
-          ]}
-          onPress={onToggleVideo}
-          disabled={disabled}
-          accessibilityLabel={
+        <MediaDeviceButton
+          icon={isVideoEnabled ? <CameraIcon /> : <CameraDisabledIcon />}
+          text={text}
+          onToggle={onToggleVideo}
+          onToggleDropdown={onToggleDropdown}
+          toggleAccessibilityLabel={
             isVideoEnabled ? "Turn off camera" : "Turn on camera"
           }
-        >
-          {isVideoEnabled ? <CameraIcon /> : <CameraDisabledIcon />}
-        </TouchableOpacity>
-
-        {/* Dropdown list button */}
-        <TouchableOpacity
-          style={styles.dropdownButton}
-          onPress={onToggleDropdown}
-          accessibilityLabel="Select camera"
-        >
-          <Text
-            style={[
-              styles.dropdownArrow,
-              isDropdownVisible ? styles.dropdownArrowUp : undefined,
-            ]}
-          >
-            ▼
-          </Text>
-        </TouchableOpacity>
+          dropdownAccessibilityLabel="Select camera"
+          disabled={disabled}
+          isDropdownVisible={isDropdownVisible}
+        />
 
         {/* Camera dropdown list */}
         {isDropdownVisible && (
@@ -204,39 +190,9 @@ const styles = StyleSheet.create({
     position: "relative",
     zIndex: 999,
   },
-  cameraButton: {
-    backgroundColor: BACKGROUND_COLORS.secondary,
-    width: 50,
-    height: 50,
-    borderTopLeftRadius: BORDER_RADIUSES.pill,
-    borderBottomLeftRadius: BORDER_RADIUSES.pill,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  cameraButtonDisabled: {
-    opacity: 0.4,
-  },
-  dropdownButton: {
-    backgroundColor: BACKGROUND_COLORS.secondary,
-    width: 30,
-    height: 50,
-    borderTopRightRadius: BORDER_RADIUSES.pill,
-    borderBottomRightRadius: BORDER_RADIUSES.pill,
-    marginLeft: -5,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  dropdownArrow: {
-    color: TEXT_COLORS.light,
-    fontSize: 12,
-    fontWeight: "bold",
-  },
-  dropdownArrowUp: {
-    transform: [{ rotate: "180deg" }],
-  },
   dropdownContainer: {
     position: "absolute",
-    bottom: 55,
+    bottom: 49,
     backgroundColor: BACKGROUND_COLORS.lightBackground,
     borderRadius: BORDER_RADIUSES.large,
     maxHeight: 400,
