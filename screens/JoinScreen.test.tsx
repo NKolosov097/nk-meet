@@ -719,7 +719,9 @@ test("groups the name input with Join below the preview controls", async () => {
     />,
   )
 
-  expect(screen.getByTestId("prejoin-media-group")).toHaveStyle({ gap: 12 })
+  expect(screen.getByTestId("prejoin-media-group")).toHaveStyle({
+    position: "relative",
+  })
   expect(screen.getByTestId("join-form-group")).toHaveStyle({
     gap: 12,
     marginTop: 28,
@@ -813,6 +815,48 @@ test("places the pre-join device dropdown above its trigger", async () => {
   await fireEvent.press(screen.getByLabelText("Select camera"))
 
   expect(screen.getByTestId("device-dropdown")).toHaveStyle({ bottom: 48 })
+})
+
+test("closes the pre-join device list when pressing outside it", async () => {
+  await render(
+    <JoinScreen
+      roomSlug="quiet-tiger-42"
+      onJoined={jest.fn()}
+      onBack={jest.fn()}
+    />,
+  )
+
+  const microphoneSelector = screen.getByLabelText("Select microphone")
+  await fireEvent.press(microphoneSelector)
+  expect(await screen.findByText("Desk microphone")).toBeVisible()
+
+  expect(screen.getByTestId("prejoin-media-group")).toHaveStyle({ flexGrow: 1 })
+  const closeDeviceList = screen.getByLabelText("Close device list")
+  expect(closeDeviceList).toHaveProp("accessibilityRole", "button")
+  await fireEvent.press(closeDeviceList)
+
+  expect(screen.queryByText("Desk microphone")).not.toBeOnTheScreen()
+  expect(microphoneSelector).toHaveProp(
+    "accessibilityState",
+    expect.objectContaining({ expanded: false }),
+  )
+})
+
+test("closes the pre-join device list when pressing another media control", async () => {
+  await render(
+    <JoinScreen
+      roomSlug="quiet-tiger-42"
+      onJoined={jest.fn()}
+      onBack={jest.fn()}
+    />,
+  )
+
+  await fireEvent.press(screen.getByLabelText("Select microphone"))
+  expect(await screen.findByText("Desk microphone")).toBeVisible()
+
+  await fireEvent.press(screen.getByLabelText("Turn on camera"))
+
+  expect(screen.queryByText("Desk microphone")).not.toBeOnTheScreen()
 })
 
 test("keeps only one pre-join device list open", async () => {
