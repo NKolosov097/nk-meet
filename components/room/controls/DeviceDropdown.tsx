@@ -66,6 +66,7 @@ export const DeviceDropdown = ({
                   item.selected ? styles.selectedDevice : undefined,
                 ]}
                 accessibilityLabel={`${item.label} device`}
+                accessibilityRole="button"
                 accessibilityState={{ selected: item.selected }}
                 onPress={item.onPress}
               >

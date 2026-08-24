@@ -65,6 +65,7 @@ export const MediaDeviceButton = ({
         onPress={onToggle}
         disabled={disabled}
         accessibilityLabel={toggleAccessibilityLabel}
+        accessibilityRole="button"
         accessibilityState={{ disabled, ...toggleAccessibilityState }}
       >
         <View
@@ -83,6 +84,7 @@ export const MediaDeviceButton = ({
         onPress={onToggleDropdown}
         disabled={dropdownDisabled}
         accessibilityLabel={dropdownAccessibilityLabel}
+        accessibilityRole="button"
         accessibilityState={{
           disabled: dropdownDisabled,
           ...dropdownAccessibilityState,

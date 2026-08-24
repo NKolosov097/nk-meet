@@ -219,7 +219,7 @@ test("starts a first-time room with microphone and camera off", async () => {
   expect(mockCreateLocalVideoTrack).not.toHaveBeenCalled()
 })
 
-test("exposes enabled controls and selected devices to accessibility", async () => {
+test("exposes media toggles and selector disclosure state to accessibility", async () => {
   await render(
     <JoinScreen
       roomSlug="quiet-tiger-42"
@@ -229,8 +229,28 @@ test("exposes enabled controls and selected devices to accessibility", async () 
   )
 
   expect(screen.getByLabelText("Turn on microphone")).toHaveProp(
+    "accessibilityRole",
+    "button",
+  )
+  expect(screen.getByLabelText("Turn on camera")).toHaveProp(
+    "accessibilityRole",
+    "button",
+  )
+  expect(screen.getByLabelText("Select microphone")).toHaveProp(
+    "accessibilityRole",
+    "button",
+  )
+  expect(screen.getByLabelText("Select camera")).toHaveProp(
+    "accessibilityRole",
+    "button",
+  )
+  expect(screen.getByLabelText("Select microphone")).toHaveProp(
     "accessibilityState",
-    expect.objectContaining({ selected: false }),
+    expect.objectContaining({ expanded: false }),
+  )
+  expect(screen.getByLabelText("Select camera")).toHaveProp(
+    "accessibilityState",
+    expect.objectContaining({ expanded: false }),
   )
   await fireEvent.press(screen.getByLabelText("Turn on microphone"))
   expect(screen.getByLabelText("Turn off microphone")).toHaveProp(
@@ -239,9 +259,23 @@ test("exposes enabled controls and selected devices to accessibility", async () 
   )
 
   await fireEvent.press(screen.getByLabelText("Select microphone"))
-  expect(await screen.findByLabelText("Desk microphone device")).toHaveProp(
+  expect(screen.getByLabelText("Select microphone")).toHaveProp(
     "accessibilityState",
-    expect.objectContaining({ selected: true }),
+    expect.objectContaining({ expanded: true }),
+  )
+  expect(screen.getByLabelText("Select camera")).toHaveProp(
+    "accessibilityState",
+    expect.objectContaining({ expanded: false }),
+  )
+
+  await fireEvent.press(screen.getByLabelText("Select camera"))
+  expect(screen.getByLabelText("Select microphone")).toHaveProp(
+    "accessibilityState",
+    expect.objectContaining({ expanded: false }),
+  )
+  expect(screen.getByLabelText("Select camera")).toHaveProp(
+    "accessibilityState",
+    expect.objectContaining({ expanded: true }),
   )
 })
 
