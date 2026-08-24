@@ -4,7 +4,7 @@ import { render, screen } from "@testing-library/react-native"
 import CompanyHomeScreen from "./index"
 
 const mockReplace = jest.fn()
-let mockCompany = "Acme Team"
+let mockCompany = "Nkolosov Team"
 
 jest.mock("expo-router", () => ({
   useLocalSearchParams: () => ({ company: mockCompany }),
@@ -22,14 +22,14 @@ jest.mock("@/screens/HomeScreen", () => ({
 
 beforeEach(() => {
   mockReplace.mockReset()
-  mockCompany = "Acme Team"
+  mockCompany = "Nkolosov Team"
 })
 
 test("renders the canonical company landing", async () => {
   await render(<CompanyHomeScreen />)
 
-  expect(screen.getByText("Company home: acme-team")).toBeVisible()
-  expect(mockReplace).toHaveBeenCalledWith("/acme-team")
+  expect(screen.getByText("Company home: nkolosov-team")).toBeVisible()
+  expect(mockReplace).toHaveBeenCalledWith("/nkolosov-team")
 })
 
 test("returns to the safe root fallback for an invalid company", async () => {

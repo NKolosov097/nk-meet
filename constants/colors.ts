@@ -1,3 +1,5 @@
+type ColorPalette = Readonly<Record<string, string>>
+
 export const BACKGROUND_COLORS = {
   danger: "#FF3B30",
   secondary: "#333333",
@@ -12,7 +14,7 @@ export const BACKGROUND_COLORS = {
   transparent: "transparent",
   elevated: "#4A4A4A",
   overlay: "rgba(0, 0, 0, 0.5)",
-}
+} satisfies ColorPalette
 
 export const TEXT_COLORS = {
   light: "#FFFFFF",
@@ -25,7 +27,7 @@ export const TEXT_COLORS = {
   placeholderOnLight: "#767676",
   paginationIcon: "#8CC8FF",
   participantStatusDanger: "#FF6B63",
-}
+} satisfies ColorPalette
 
 export const BORDER_COLORS = {
   light: "#FFFFFF",
@@ -35,13 +37,13 @@ export const BORDER_COLORS = {
   divider: "rgba(255, 255, 255, 0.15)",
   controlDivider: "rgba(255, 255, 255, 0.5)",
   selectionIndicator: "#FFFFFF",
-}
+} satisfies ColorPalette
 
 export const SHADOW_COLORS = {
   black: "#000000",
-}
+} satisfies ColorPalette
 
 export const NATIVE_CONFIG_COLORS = {
   adaptiveIconBackground: "#FFFFFF",
   splashBackground: "#FFFFFF",
-}
+} satisfies ColorPalette

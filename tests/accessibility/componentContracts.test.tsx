@@ -445,7 +445,7 @@ test("ActiveRoom supplies the room surface and delegates visuals to covered chil
   try {
     const view = await render(
       <ActiveRoom
-        company="acme"
+        company="nkolosov"
         roomSlug="weekly-sync"
         onForcedDisconnect={jest.fn()}
       />,

@@ -10,32 +10,53 @@ import {
 
 import { BORDER_COLORS, TEXT_COLORS } from "@/constants/colors"
 
-import { DeviceDropdown } from "./DeviceDropdown"
+import { DeviceDropdown, type DeviceDropdownSection } from "./DeviceDropdown"
+
+const deviceSections: DeviceDropdownSection[] = [
+  {
+    title: "Select microphone",
+    items: [
+      {
+        deviceId: "mic-1",
+        label: "Desk microphone",
+        selected: true,
+        onPress: (): void => undefined,
+      },
+      {
+        deviceId: "mic-2",
+        label: "Headset microphone",
+        selected: false,
+        onPress: (): void => undefined,
+      },
+    ],
+  },
+]
 
 const DeviceDropdownSelectionHarness = () => {
   const [selectedDeviceId, setSelectedDeviceId] = useState("mic-1")
+  const selectionSections: DeviceDropdownSection[] = [
+    {
+      title: "Select microphone",
+      items: [
+        {
+          deviceId: "mic-1",
+          label: "Desk microphone",
+          selected: selectedDeviceId === "mic-1",
+          onPress: () => setSelectedDeviceId("mic-1"),
+        },
+        {
+          deviceId: "mic-2",
+          label: "Headset microphone",
+          selected: selectedDeviceId === "mic-2",
+          onPress: () => setSelectedDeviceId("mic-2"),
+        },
+      ],
+    },
+  ]
 
   return (
     <DeviceDropdown
-      sections={[
-        {
-          title: "Select microphone",
-          items: [
-            {
-              deviceId: "mic-1",
-              label: "Desk microphone",
-              selected: selectedDeviceId === "mic-1",
-              onPress: () => setSelectedDeviceId("mic-1"),
-            },
-            {
-              deviceId: "mic-2",
-              label: "Headset microphone",
-              selected: selectedDeviceId === "mic-2",
-              onPress: () => setSelectedDeviceId("mic-2"),
-            },
-          ],
-        },
-      ]}
+      sections={selectionSections}
       emptyMessage="No audio devices found"
     />
   )
@@ -44,25 +65,7 @@ const DeviceDropdownSelectionHarness = () => {
 test("announces selected and unselected device rows as buttons", async () => {
   await render(
     <DeviceDropdown
-      sections={[
-        {
-          title: "Select microphone",
-          items: [
-            {
-              deviceId: "mic-1",
-              label: "Desk microphone",
-              selected: true,
-              onPress: (): void => undefined,
-            },
-            {
-              deviceId: "mic-2",
-              label: "Headset microphone",
-              selected: false,
-              onPress: (): void => undefined,
-            },
-          ],
-        },
-      ]}
+      sections={deviceSections}
       emptyMessage="No audio devices found"
     />,
   )

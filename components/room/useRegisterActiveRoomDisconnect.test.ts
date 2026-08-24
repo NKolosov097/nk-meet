@@ -28,12 +28,12 @@ beforeEach(() => {
 
 test("registers a disconnect handler bound to the current company and room", async () => {
   await renderHook(() =>
-    useRegisterActiveRoomDisconnect("acme", "quiet-tiger-42", jest.fn()),
+    useRegisterActiveRoomDisconnect("nkolosov", "quiet-tiger-42", jest.fn()),
   )
 
   expect(mockRegister).toHaveBeenCalledTimes(1)
   const registration = registeredRegistration(0)
-  expect(registration.company).toBe("acme")
+  expect(registration.company).toBe("nkolosov")
   expect(registration.slug).toBe("quiet-tiger-42")
   registration.disconnect()
   expect(mockDisconnect).toHaveBeenCalledTimes(1)
@@ -43,7 +43,7 @@ test("forwards the forced-disconnect callback to the registry", async () => {
   const onForcedDisconnect = jest.fn<void, []>()
   await renderHook(() =>
     useRegisterActiveRoomDisconnect(
-      "acme",
+      "nkolosov",
       "quiet-tiger-42",
       onForcedDisconnect,
     ),
@@ -56,7 +56,7 @@ test("forwards the forced-disconnect callback to the registry", async () => {
 
 test("releases only its own registration on unmount", async () => {
   const { unmount } = await renderHook(() =>
-    useRegisterActiveRoomDisconnect("acme", "quiet-tiger-42", jest.fn()),
+    useRegisterActiveRoomDisconnect("nkolosov", "quiet-tiger-42", jest.fn()),
   )
   await act(() => unmount())
 

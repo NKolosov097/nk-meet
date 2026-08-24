@@ -50,10 +50,10 @@ test("subscribes to incoming links and disconnects the active company room", asy
   expect(mockAddEventListener).toHaveBeenCalledWith("url", expect.any(Function))
 
   const handler = mockAddEventListener.mock.calls[0][1] as LinkHandler
-  handler({ url: "nk-meet://acme/room-b" })
+  handler({ url: "nk-meet://nkolosov/room-b" })
 
   expect(mockDisconnectActiveRoom).toHaveBeenCalledWith({
-    company: "acme",
+    company: "nkolosov",
     slug: "room-b",
   })
 })
@@ -62,10 +62,10 @@ test("passes the canonicalized slug of the incoming link", async () => {
   await render(<RootLayout />)
   const handler = mockAddEventListener.mock.calls[0][1] as LinkHandler
 
-  handler({ url: "nk-meet://Acme/Team%20Sync" })
+  handler({ url: "nk-meet://Nkolosov/Team%20Sync" })
 
   expect(mockDisconnectActiveRoom).toHaveBeenCalledWith({
-    company: "acme",
+    company: "nkolosov",
     slug: "team-sync",
   })
 })

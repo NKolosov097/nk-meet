@@ -27,35 +27,43 @@ describe("slugify", () => {
 describe("roomIdentityFromUrl", () => {
   test("keeps canonical company and room segments from a deep link", () => {
     expect(
-      roomIdentityFromUrl("nk-meet://Acme/Expo%20Development%20Client"),
+      roomIdentityFromUrl("nk-meet://Nkolosov/Expo%20Development%20Client"),
     ).toEqual({
-      company: "acme",
+      company: "nkolosov",
       slug: "expo-development-client",
     })
   })
 
   test("returns a company-only identity for a landing deep link", () => {
-    expect(roomIdentityFromUrl("nk-meet://Acme")).toEqual({
-      company: "acme",
+    expect(roomIdentityFromUrl("nk-meet://Nkolosov")).toEqual({
+      company: "nkolosov",
       slug: "",
     })
   })
 
   test("rejects additional path segments instead of collapsing them", () => {
-    expect(roomIdentityFromUrl("nk-meet://acme/weekly-sync/extra")).toEqual({
-      company: "",
-      slug: "",
-    })
+    expect(roomIdentityFromUrl("nk-meet://nkolosov/weekly-sync/extra")).toEqual(
+      {
+        company: "",
+        slug: "",
+      },
+    )
   })
 })
 
 describe("parseMeetingPath", () => {
   test.each([
-    ["nk-meet:/Acme/Weekly%20Sync", { company: "acme", slug: "weekly-sync" }],
-    ["nk-meet:Acme/Weekly%20Sync", { company: "acme", slug: "weekly-sync" }],
     [
-      "https://meet.example/Acme/Weekly%20Sync",
-      { company: "acme", slug: "weekly-sync" },
+      "nk-meet:/Nkolosov/Weekly%20Sync",
+      { company: "nkolosov", slug: "weekly-sync" },
+    ],
+    [
+      "nk-meet:Nkolosov/Weekly%20Sync",
+      { company: "nkolosov", slug: "weekly-sync" },
+    ],
+    [
+      "https://meet.example/Nkolosov/Weekly%20Sync",
+      { company: "nkolosov", slug: "weekly-sync" },
     ],
   ])("parses the company and room path from %s", (path, expected) => {
     expect(parseMeetingPath(path)).toEqual(expected)
@@ -63,7 +71,7 @@ describe("parseMeetingPath", () => {
 
   test("rejects extra path segments without using the URL host as a company", () => {
     expect(
-      parseMeetingPath("https://meet.example/acme/weekly-sync/extra"),
+      parseMeetingPath("https://meet.example/nkolosov/weekly-sync/extra"),
     ).toEqual({
       company: "",
       slug: "",
@@ -73,7 +81,7 @@ describe("parseMeetingPath", () => {
 
 describe("roomSlug", () => {
   test("creates a deterministic LiveKit room name scoped to its company", () => {
-    expect(roomSlug("acme", "weekly-sync")).toBe("acme--weekly-sync")
+    expect(roomSlug("nkolosov", "weekly-sync")).toBe("nkolosov--weekly-sync")
   })
 })
 

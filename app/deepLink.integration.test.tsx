@@ -10,10 +10,17 @@ import {
 
 interface FakeRoom {
   // Whether the fake connection remains live
-  connected: boolean
+  isConnected: boolean
   // Disconnects the fake room and reports the event while mounted
   disconnect: jest.Mock<Promise<void>, []>
 }
+
+interface LinkEvent {
+  // Deep link delivered by Expo Linking
+  url: string
+}
+
+type LinkListener = (event: LinkEvent) => void
 
 const rooms: FakeRoom[] = []
 
@@ -59,16 +66,12 @@ jest.mock("@livekit/react-native", () => {
       onDisconnectedRef.current = onDisconnected
       const room = React.useMemo(() => {
         const fake: FakeRoom = {
-          connected: true,
+          isConnected: true,
           disconnect: jest.fn<Promise<void>, []>(async () => {
-            if (!fake.connected) return
-            try {
-              await Promise.resolve()
-              fake.connected = false
-              onDisconnectedRef.current?.()
-            } catch (error) {
-              throw error
-            }
+            if (!fake.isConnected) return
+
+            fake.isConnected = false
+            onDisconnectedRef.current?.()
           }),
         }
         rooms.push(fake)
@@ -88,7 +91,7 @@ jest.mock("@livekit/react-native", () => {
 const mockLinking = jest.requireMock(
   "expo-linking",
 ) as typeof import("expo-linking")
-let listeners: ((event: { url: string }) => void)[] = []
+let listeners: LinkListener[] = []
 let app: ReturnType<typeof renderRouter>
 
 const renderApp = async (): Promise<void> => {
@@ -100,7 +103,7 @@ const renderApp = async (): Promise<void> => {
       "[company]/[slug]": require("./[company]/[slug]"),
       "+native-intent": require("./+native-intent"),
     },
-    { initialUrl: "/acme" },
+    { initialUrl: "/nkolosov" },
   )
   await app
 }
@@ -152,10 +155,10 @@ test("keeps the call alive for an equivalent company and room link", async () =>
   await renderApp()
   await joinRoom("room-a")
 
-  await openLink("nk-meet://Acme/Room-A")
+  await openLink("nk-meet://Nkolosov/Room-A")
 
   expect(rooms[0].disconnect).not.toHaveBeenCalled()
-  expect(app.getPathname()).toBe("/acme/room-a")
+  expect(app.getPathname()).toBe("/nkolosov/room-a")
   expect(screen.getByText("In call")).toBeVisible()
 })
 

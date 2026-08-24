@@ -5,7 +5,10 @@ import { useRoomContext } from "@livekit/react-native"
 import { Track } from "livekit-client"
 
 import { CameraDisabledIcon, CameraIcon } from "@/components/icons"
-import { DeviceDropdown } from "@/components/room/controls/DeviceDropdown"
+import {
+  DeviceDropdown,
+  type DeviceDropdownSection,
+} from "@/components/room/controls/DeviceDropdown"
 import { MediaDeviceButton } from "@/components/room/controls/MediaDeviceButton"
 import {
   initializeActiveMediaDevice,
@@ -108,6 +111,18 @@ export const CameraControl = ({
     [room, onCloseDropdown],
   )
 
+  const dropdownSections: DeviceDropdownSection[] = [
+    {
+      title: "Select camera",
+      items: videoDevices.map(device => ({
+        deviceId: device.deviceId,
+        label: device.label,
+        selected: selectedVideoDevice === device.deviceId,
+        onPress: () => handleDeviceSelect(device.deviceId),
+      })),
+    },
+  ]
+
   return (
     <>
       <View
@@ -131,17 +146,7 @@ export const CameraControl = ({
         {/* Camera dropdown list */}
         {isDropdownVisible && (
           <DeviceDropdown
-            sections={[
-              {
-                title: "Select camera",
-                items: videoDevices.map(device => ({
-                  deviceId: device.deviceId,
-                  label: device.label,
-                  selected: selectedVideoDevice === device.deviceId,
-                  onPress: () => handleDeviceSelect(device.deviceId),
-                })),
-              },
-            ]}
+            sections={dropdownSections}
             emptyMessage="No cameras found"
             positionStyle={dropdownPositionStyle}
           />

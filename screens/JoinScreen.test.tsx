@@ -8,14 +8,19 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react-native"
-import { SafeAreaProvider } from "react-native-safe-area-context"
+import { SafeAreaProvider, type Metrics } from "react-native-safe-area-context"
 
 import { BACKGROUND_COLORS, TEXT_COLORS } from "@/constants/colors"
 
 import { JoinScreen as ActualJoinScreen } from "./JoinScreen"
 
+const TEST_SAFE_AREA_METRICS: Metrics = {
+  frame: { x: 0, y: 0, width: 320, height: 640 },
+  insets: { top: 47, left: 20, right: 0, bottom: 34 },
+}
+
 const JoinScreen = ({
-  company = "acme",
+  company = "nkolosov",
   ...props
 }: Omit<ComponentProps<typeof ActualJoinScreen>, "company"> & {
   company?: string
@@ -147,7 +152,7 @@ test("prefills the participant name from a known recent room", async () => {
     />,
   )
 
-  expect(mockGetRecentRoom).toHaveBeenCalledWith("acme", "quiet-tiger-42")
+  expect(mockGetRecentRoom).toHaveBeenCalledWith("nkolosov", "quiet-tiger-42")
   expect(await screen.findByLabelText("Participant name")).toHaveProp(
     "value",
     "Ada",
@@ -156,7 +161,7 @@ test("prefills the participant name from a known recent room", async () => {
 
 test("loads and saves recent settings using the company and room identity", async () => {
   mockGetRecentRoom.mockResolvedValue({
-    company: "acme",
+    company: "nkolosov",
     slug: "quiet-tiger-42",
     participantName: "Ada",
     joinedAt: 100,
@@ -165,19 +170,19 @@ test("loads and saves recent settings using the company and room identity", asyn
 
   await render(
     <JoinScreen
-      company="acme"
+      company="nkolosov"
       roomSlug="quiet-tiger-42"
       onJoined={jest.fn()}
       onBack={jest.fn()}
     />,
   )
 
-  expect(mockGetRecentRoom).toHaveBeenCalledWith("acme", "quiet-tiger-42")
+  expect(mockGetRecentRoom).toHaveBeenCalledWith("nkolosov", "quiet-tiger-42")
   await fireEvent.press(screen.getByLabelText("Join room"))
 
   await waitFor(() => {
     expect(mockSaveRecentRoom).toHaveBeenCalledWith(
-      "acme",
+      "nkolosov",
       "quiet-tiger-42",
       "Ada",
       expect.any(Object),
@@ -190,7 +195,7 @@ test("requests a token for the company-scoped LiveKit room name", async () => {
 
   await render(
     <JoinScreen
-      company="acme"
+      company="nkolosov"
       roomSlug="quiet-tiger-42"
       onJoined={jest.fn()}
       onBack={jest.fn()}
@@ -201,7 +206,7 @@ test("requests a token for the company-scoped LiveKit room name", async () => {
 
   expect(mockFetchParticipantToken).toHaveBeenCalledWith(
     "Ada",
-    "acme--quiet-tiger-42",
+    "nkolosov--quiet-tiger-42",
   )
 })
 
@@ -395,7 +400,7 @@ test("replaces stale saved device ids before previewing and joining", async () =
   }
   expect(onJoined).toHaveBeenCalledWith("token-abc", expectedMedia)
   expect(mockSaveRecentRoom).toHaveBeenCalledWith(
-    "acme",
+    "nkolosov",
     "quiet-tiger-42",
     "Ada",
     expectedMedia,
@@ -448,7 +453,7 @@ test("leaves the name field empty for a room with no history", async () => {
     />,
   )
 
-  expect(mockGetRecentRoom).toHaveBeenCalledWith("acme", "quiet-tiger-42")
+  expect(mockGetRecentRoom).toHaveBeenCalledWith("nkolosov", "quiet-tiger-42")
   expect(screen.getByLabelText("Participant name")).toHaveProp("value", "")
 })
 
@@ -540,7 +545,7 @@ test("trims the participant name and reports a successful join", async () => {
 
   expect(mockFetchParticipantToken).toHaveBeenCalledWith(
     "Ada",
-    "acme--quiet-tiger-42",
+    "nkolosov--quiet-tiger-42",
   )
   expect(onJoined).toHaveBeenCalledWith("token-abc", {
     microphoneEnabled: false,
@@ -670,12 +675,7 @@ test("calls onBack when the back button is pressed", async () => {
 
 test("offsets the back button below the device's safe-area inset", async () => {
   await render(
-    <SafeAreaProvider
-      initialMetrics={{
-        frame: { x: 0, y: 0, width: 320, height: 640 },
-        insets: { top: 47, left: 20, right: 0, bottom: 34 },
-      }}
-    >
+    <SafeAreaProvider initialMetrics={TEST_SAFE_AREA_METRICS}>
       <JoinScreen
         roomSlug="quiet-tiger-42"
         onJoined={jest.fn()}
@@ -692,12 +692,7 @@ test("offsets the back button below the device's safe-area inset", async () => {
 
 test("aligns the compact brand with the back button", async () => {
   await render(
-    <SafeAreaProvider
-      initialMetrics={{
-        frame: { x: 0, y: 0, width: 320, height: 640 },
-        insets: { top: 47, left: 20, right: 0, bottom: 34 },
-      }}
-    >
+    <SafeAreaProvider initialMetrics={TEST_SAFE_AREA_METRICS}>
       <JoinScreen
         roomSlug="quiet-tiger-42"
         onJoined={jest.fn()}
@@ -769,7 +764,7 @@ test("saves the room to recent rooms after a successful join", async () => {
 
   await waitFor(() => {
     expect(mockSaveRecentRoom).toHaveBeenCalledWith(
-      "acme",
+      "nkolosov",
       "quiet-tiger-42",
       "Ada",
       {

@@ -113,9 +113,10 @@ test("uses the opaque badge and semantic placeholder color when a connected came
 })
 
 test("keeps a pre-join video participant's badge readable and muted status distinct", async () => {
+  const previewTrack = {} as never
   const view = await render(
     <ParticipantTile
-      previewTrack={{} as never}
+      previewTrack={previewTrack}
       displayName="Ada"
       isMicrophoneEnabled={false}
       width={240}

@@ -5,6 +5,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  type AccessibilityState,
 } from "react-native"
 
 import { SafeAreaView } from "react-native-safe-area-context"
@@ -50,28 +51,34 @@ export const GridPreview = () => {
         style={styles.presetRow}
         contentContainerStyle={styles.presetRowContent}
       >
-        {PRESET_COUNTS.map(preset => (
-          <TouchableOpacity
-            key={preset}
-            style={[
-              styles.presetButton,
-              preset === count ? styles.presetButtonActive : undefined,
-            ]}
-            onPress={() => setCount(preset)}
-            accessibilityLabel={`Show ${preset} ${preset === 1 ? "participant" : "participants"}`}
-            accessibilityRole="button"
-            accessibilityState={{ selected: preset === count }}
-          >
-            <Text
+        {PRESET_COUNTS.map(preset => {
+          const accessibilityState: AccessibilityState = {
+            selected: preset === count,
+          }
+
+          return (
+            <TouchableOpacity
+              key={preset}
               style={[
-                styles.presetButtonText,
-                preset === count ? styles.presetButtonActiveText : undefined,
+                styles.presetButton,
+                preset === count ? styles.presetButtonActive : undefined,
               ]}
+              onPress={() => setCount(preset)}
+              accessibilityLabel={`Show ${preset} ${preset === 1 ? "participant" : "participants"}`}
+              accessibilityRole="button"
+              accessibilityState={accessibilityState}
             >
-              {preset}
-            </Text>
-          </TouchableOpacity>
-        ))}
+              <Text
+                style={[
+                  styles.presetButtonText,
+                  preset === count ? styles.presetButtonActiveText : undefined,
+                ]}
+              >
+                {preset}
+              </Text>
+            </TouchableOpacity>
+          )
+        })}
       </ScrollView>
 
       <View style={styles.gridWrapper}>

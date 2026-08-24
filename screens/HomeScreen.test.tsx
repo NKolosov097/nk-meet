@@ -10,11 +10,11 @@ import type { RecentRoom } from "@/services/recentRooms"
 const mockPush = jest.fn()
 let mockRecentRooms: RecentRoom[] = []
 let mockConfigError: string | null = null
-let latestFocusEffect: (() => void) | undefined
+let latestFocusEffect: VoidFunction | undefined
 
 jest.mock("expo-router", () => ({
   useRouter: () => ({ push: mockPush }),
-  useFocusEffect: (effect: () => void) => {
+  useFocusEffect: (effect: VoidFunction) => {
     latestFocusEffect = effect
     jest.requireActual("react").useEffect(effect, [])
   },
@@ -46,24 +46,24 @@ beforeEach(() => {
 afterEach(() => jest.restoreAllMocks())
 
 test("opens a typed room within the selected company", async () => {
-  await render(<HomeScreen company="acme" />)
+  await render(<HomeScreen company="nkolosov" />)
 
   await fireEvent.changeText(screen.getByLabelText("Room code"), "Team Sync")
   await fireEvent.press(screen.getByLabelText("Join room"))
 
-  expect(mockPush).toHaveBeenCalledWith("/acme/team-sync")
+  expect(mockPush).toHaveBeenCalledWith("/nkolosov/team-sync")
 })
 
 test("opens a generated room within the selected company", async () => {
-  await render(<HomeScreen company="acme" />)
+  await render(<HomeScreen company="nkolosov" />)
 
   await fireEvent.press(screen.getByLabelText("Create room"))
 
-  expect(mockPush).toHaveBeenCalledWith("/acme/quiet-tiger-42")
+  expect(mockPush).toHaveBeenCalledWith("/nkolosov/quiet-tiger-42")
 })
 
 test("disables empty and invalid room codes without navigating", async () => {
-  await render(<HomeScreen company="acme" />)
+  await render(<HomeScreen company="nkolosov" />)
 
   expect(screen.getByLabelText("Join room")).toBeDisabled()
   expect(screen.getByLabelText("Join room")).toHaveProp(
@@ -77,7 +77,7 @@ test("disables empty and invalid room codes without navigating", async () => {
 })
 
 test("exposes the landing actions and headings to assistive technology", async () => {
-  await render(<HomeScreen company="acme" />)
+  await render(<HomeScreen company="nkolosov" />)
 
   expect(screen.getByText("NK Meet")).toHaveProp("accessibilityRole", "header")
   expect(screen.getByPlaceholderText("Enter a room code")).toHaveProp(
@@ -98,13 +98,13 @@ test("disables all room actions when configuration is invalid", async () => {
   mockConfigError = "Missing environment variables: EXPO_PUBLIC_LIVEKIT_URL"
   mockRecentRooms = [
     {
-      company: "acme",
+      company: "nkolosov",
       slug: "weekly-sync",
       participantName: "Grace",
       joinedAt: 100,
     },
   ]
-  await render(<HomeScreen company="acme" />)
+  await render(<HomeScreen company="nkolosov" />)
 
   expect(screen.getByText(mockConfigError)).toBeVisible()
   expect(screen.getByLabelText("Room code")).toBeDisabled()
@@ -119,7 +119,7 @@ test("disables all room actions when configuration is invalid", async () => {
     expect.objectContaining({ disabled: true }),
   )
   const recentRoom = await screen.findByLabelText(
-    "Rejoin weekly-sync as Grace in acme",
+    "Rejoin weekly-sync as Grace in NKolosov",
   )
   expect(recentRoom).toBeDisabled()
   expect(recentRoom).toHaveProp("accessibilityRole", "button")
@@ -130,7 +130,7 @@ test("disables all room actions when configuration is invalid", async () => {
 })
 
 test("does not show a recent-meetings section without history", async () => {
-  await render(<HomeScreen company="acme" />)
+  await render(<HomeScreen company="nkolosov" />)
 
   expect(screen.queryByText("Recent meetings")).not.toBeOnTheScreen()
 })
@@ -144,18 +144,18 @@ test("keeps recent meetings in their persisted newest-first order", async () => 
       joinedAt: 200,
     },
     {
-      company: "acme",
+      company: "nkolosov",
       slug: "room-a",
       participantName: "Ada",
       joinedAt: 100,
     },
   ]
-  await render(<HomeScreen company="acme" />)
+  await render(<HomeScreen company="nkolosov" />)
 
   const rows = await screen.findAllByLabelText(/^Rejoin /)
   expect(rows.map(row => row.props.accessibilityLabel)).toEqual([
     "Rejoin room-b as Grace in globex",
-    "Rejoin room-a as Ada in acme",
+    "Rejoin room-a as Ada in NKolosov",
   ])
 })
 
@@ -163,23 +163,23 @@ test("shows a relative time for a recent meeting", async () => {
   jest.spyOn(Date, "now").mockReturnValue(1_000_000)
   mockRecentRooms = [
     {
-      company: "acme",
+      company: "nkolosov",
       slug: "weekly-sync",
       participantName: "Grace",
       joinedAt: 1_000_000 - 12 * 60 * 1000,
     },
   ]
-  await render(<HomeScreen company="acme" />)
+  await render(<HomeScreen company="nkolosov" />)
 
   expect(await screen.findByText("12 min ago")).toBeVisible()
 })
 
 test("refreshes recent meetings when the company landing regains focus", async () => {
-  await render(<HomeScreen company="acme" />)
+  await render(<HomeScreen company="nkolosov" />)
 
   mockRecentRooms = [
     {
-      company: "acme",
+      company: "nkolosov",
       slug: "weekly-sync",
       participantName: "Grace",
       joinedAt: 100,
@@ -190,12 +190,12 @@ test("refreshes recent meetings when the company landing regains focus", async (
   })
 
   expect(
-    await screen.findByLabelText("Rejoin weekly-sync as Grace in acme"),
+    await screen.findByLabelText("Rejoin weekly-sync as Grace in NKolosov"),
   ).toBeVisible()
 })
 
 test("keeps the disabled Join label readable at AA contrast", async () => {
-  await render(<HomeScreen company="acme" />)
+  await render(<HomeScreen company="nkolosov" />)
 
   expect(screen.getByLabelText("Join room")).toHaveStyle({
     backgroundColor: "#4A4A4A",
@@ -212,7 +212,7 @@ test("shows a recent room's company and opens its stored company route", async (
       joinedAt: 100,
     },
   ]
-  await render(<HomeScreen company="acme" />)
+  await render(<HomeScreen company="nkolosov" />)
 
   expect(await screen.findByText("Recent meetings")).toHaveProp(
     "accessibilityRole",
@@ -257,7 +257,7 @@ test("groups recent meeting identity above participant and time details", async 
       joinedAt: Date.now(),
     },
   ]
-  await render(<HomeScreen company="acme" />)
+  await render(<HomeScreen company="nkolosov" />)
 
   expect(await screen.findByTestId("recent-room-identity")).toHaveStyle({
     flexDirection: "row",

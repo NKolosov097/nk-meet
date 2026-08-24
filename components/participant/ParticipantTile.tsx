@@ -24,8 +24,11 @@ interface ConnectedParticipantTileProps {
   width: number
   // Height of this tile, in pixels, as computed by the grid layout.
   height: number
+  // Connected tiles cannot receive pre-join preview tracks
   previewTrack?: never
+  // Connected tiles read the participant name from the LiveKit track
   displayName?: never
+  // Connected tiles read microphone state from the LiveKit participant
   isMicrophoneEnabled?: never
 }
 
@@ -40,6 +43,7 @@ interface PreviewParticipantTileProps {
   width: number
   // Height of the pre-join preview
   height: number
+  // Preview tiles cannot receive connected-participant LiveKit tracks
   trackRef?: never
 }
 

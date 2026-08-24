@@ -89,6 +89,7 @@ export const HomeScreen = ({ company }: HomeScreenProps) => {
   const renderRecentRoom = useCallback(
     ({ item }: { item: RecentRoom }) => {
       const displayCompany = companyDisplayName(item.company)
+      const recentRoomAccessibilityState = { disabled: isDisabled }
 
       return (
         <TouchableOpacity
@@ -100,7 +101,7 @@ export const HomeScreen = ({ company }: HomeScreenProps) => {
           disabled={isDisabled}
           accessibilityLabel={`Rejoin ${item.slug} as ${item.participantName} in ${displayCompany}`}
           accessibilityRole="button"
-          accessibilityState={{ disabled: isDisabled }}
+          accessibilityState={recentRoomAccessibilityState}
         >
           <View testID="recent-room-identity" style={styles.recentRoomIdentity}>
             <Text
@@ -134,6 +135,8 @@ export const HomeScreen = ({ company }: HomeScreenProps) => {
   )
 
   const isJoinDisabled = isDisabled || slugify(roomCode) === ""
+  const disabledAccessibilityState = { disabled: isDisabled }
+  const joinAccessibilityState = { disabled: isJoinDisabled }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -157,7 +160,7 @@ export const HomeScreen = ({ company }: HomeScreenProps) => {
             returnKeyType="go"
             onSubmitEditing={onJoinByCode}
             accessibilityLabel="Room code"
-            accessibilityState={{ disabled: isDisabled }}
+            accessibilityState={disabledAccessibilityState}
           />
         </View>
 
@@ -176,7 +179,7 @@ export const HomeScreen = ({ company }: HomeScreenProps) => {
           disabled={isJoinDisabled}
           accessibilityLabel="Join room"
           accessibilityRole="button"
-          accessibilityState={{ disabled: isJoinDisabled }}
+          accessibilityState={joinAccessibilityState}
         >
           <Text
             style={[
@@ -197,7 +200,7 @@ export const HomeScreen = ({ company }: HomeScreenProps) => {
           disabled={isDisabled}
           accessibilityLabel="Create room"
           accessibilityRole="button"
-          accessibilityState={{ disabled: isDisabled }}
+          accessibilityState={disabledAccessibilityState}
         >
           <Text
             style={[

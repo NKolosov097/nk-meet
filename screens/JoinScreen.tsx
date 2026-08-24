@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   useWindowDimensions,
   View,
+  type AccessibilityState,
 } from "react-native"
 
 import { StatusBar } from "expo-status-bar"
@@ -24,7 +25,10 @@ import {
   MicIcon,
 } from "@/components/icons"
 import { ParticipantTile } from "@/components/participant/ParticipantTile"
-import { DeviceDropdown } from "@/components/room/controls/DeviceDropdown"
+import {
+  DeviceDropdown,
+  type DeviceDropdownSection,
+} from "@/components/room/controls/DeviceDropdown"
 import { MediaDeviceButton } from "@/components/room/controls/MediaDeviceButton"
 import { BORDER_RADIUSES } from "@/constants/borderRadiuses"
 import {
@@ -37,7 +41,7 @@ import { fetchParticipantToken } from "@/services/livekitToken"
 import { getRecentRoom, saveRecentRoom } from "@/services/recentRooms"
 import { roomSlug as roomName } from "@/services/roomSlug"
 
-import type { PreJoinMediaSettings } from "@/types"
+import type { InputDeviceKind, PreJoinMediaSettings } from "@/types"
 
 interface InputDevice {
   // Browser-assigned identifier for the input device
@@ -45,7 +49,7 @@ interface InputDevice {
   // Human-readable name displayed to the participant
   label: string
   // Input category used to separate microphones from cameras
-  kind: "audioinput" | "videoinput"
+  kind: InputDeviceKind
 }
 
 interface JoinScreenProps {
@@ -83,7 +87,7 @@ export const JoinScreen = ({
   const [cameras, setCameras] = useState<InputDevice[]>([])
   const [microphoneDeviceId, setMicrophoneDeviceId] = useState<string>()
   const [cameraDeviceId, setCameraDeviceId] = useState<string>()
-  const [openDropdown, setOpenDropdown] = useState<"microphone" | "camera">()
+  const [openDeviceKind, setOpenDeviceKind] = useState<InputDeviceKind>()
   const [previewTrack, setPreviewTrack] = useState<LocalVideoTrack | null>(null)
   const [devicesLoaded, setDevicesLoaded] = useState(false)
   const [settingsLoaded, setSettingsLoaded] = useState(false)
@@ -273,6 +277,46 @@ export const JoinScreen = ({
   const areMediaControlsDisabled =
     isLoading || !initializationComplete || configError !== null
   const isJoinDisabled = areMediaControlsDisabled || name.trim() === ""
+  const nameInputAccessibilityState: AccessibilityState = {
+    disabled: areMediaControlsDisabled,
+  }
+  const joinAccessibilityState: AccessibilityState = {
+    disabled: isJoinDisabled,
+  }
+  const microphoneDropdownAccessibilityState: AccessibilityState = {
+    expanded: openDeviceKind === "audioinput",
+  }
+  const cameraDropdownAccessibilityState: AccessibilityState = {
+    expanded: openDeviceKind === "videoinput",
+  }
+  const microphoneDropdownSections: DeviceDropdownSection[] = [
+    {
+      title: "Select microphone",
+      items: microphones.map(device => ({
+        deviceId: device.deviceId,
+        label: device.label,
+        selected: microphoneDeviceId === device.deviceId,
+        onPress: () => {
+          setMicrophoneDeviceId(device.deviceId)
+          setOpenDeviceKind(undefined)
+        },
+      })),
+    },
+  ]
+  const cameraDropdownSections: DeviceDropdownSection[] = [
+    {
+      title: "Select camera",
+      items: cameras.map(device => ({
+        deviceId: device.deviceId,
+        label: device.label,
+        selected: cameraDeviceId === device.deviceId,
+        onPress: () => {
+          setCameraDeviceId(device.deviceId)
+          setOpenDeviceKind(undefined)
+        },
+      })),
+    },
+  ]
 
   return (
     <SafeAreaView style={styles.container}>
@@ -330,8 +374,8 @@ export const JoinScreen = ({
                 text="Microphone"
                 onToggle={() => setMicrophoneEnabled(enabled => !enabled)}
                 onToggleDropdown={() =>
-                  setOpenDropdown(current =>
-                    current === "microphone" ? undefined : "microphone",
+                  setOpenDeviceKind(current =>
+                    current === "audioinput" ? undefined : "audioinput",
                   )
                 }
                 toggleAccessibilityLabel={
@@ -342,27 +386,14 @@ export const JoinScreen = ({
                 dropdownAccessibilityLabel="Select microphone"
                 disabled={areMediaControlsDisabled}
                 dropdownDisabled={areMediaControlsDisabled}
-                isDropdownVisible={openDropdown === "microphone"}
-                dropdownAccessibilityState={{
-                  expanded: openDropdown === "microphone",
-                }}
+                isDropdownVisible={openDeviceKind === "audioinput"}
+                dropdownAccessibilityState={
+                  microphoneDropdownAccessibilityState
+                }
               />
-              {openDropdown === "microphone" && (
+              {openDeviceKind === "audioinput" && (
                 <DeviceDropdown
-                  sections={[
-                    {
-                      title: "Select microphone",
-                      items: microphones.map(device => ({
-                        deviceId: device.deviceId,
-                        label: device.label,
-                        selected: microphoneDeviceId === device.deviceId,
-                        onPress: () => {
-                          setMicrophoneDeviceId(device.deviceId)
-                          setOpenDropdown(undefined)
-                        },
-                      })),
-                    },
-                  ]}
+                  sections={microphoneDropdownSections}
                   emptyMessage="No audio devices found"
                   positionStyle={styles.preJoinDropdown}
                 />
@@ -375,8 +406,8 @@ export const JoinScreen = ({
                 text="Camera"
                 onToggle={() => setCameraEnabled(enabled => !enabled)}
                 onToggleDropdown={() =>
-                  setOpenDropdown(current =>
-                    current === "camera" ? undefined : "camera",
+                  setOpenDeviceKind(current =>
+                    current === "videoinput" ? undefined : "videoinput",
                   )
                 }
                 toggleAccessibilityLabel={
@@ -385,27 +416,12 @@ export const JoinScreen = ({
                 dropdownAccessibilityLabel="Select camera"
                 disabled={areMediaControlsDisabled}
                 dropdownDisabled={areMediaControlsDisabled}
-                isDropdownVisible={openDropdown === "camera"}
-                dropdownAccessibilityState={{
-                  expanded: openDropdown === "camera",
-                }}
+                isDropdownVisible={openDeviceKind === "videoinput"}
+                dropdownAccessibilityState={cameraDropdownAccessibilityState}
               />
-              {openDropdown === "camera" && (
+              {openDeviceKind === "videoinput" && (
                 <DeviceDropdown
-                  sections={[
-                    {
-                      title: "Select camera",
-                      items: cameras.map(device => ({
-                        deviceId: device.deviceId,
-                        label: device.label,
-                        selected: cameraDeviceId === device.deviceId,
-                        onPress: () => {
-                          setCameraDeviceId(device.deviceId)
-                          setOpenDropdown(undefined)
-                        },
-                      })),
-                    },
-                  ]}
+                  sections={cameraDropdownSections}
                   emptyMessage="No cameras found"
                   positionStyle={styles.preJoinDropdown}
                 />
@@ -429,7 +445,7 @@ export const JoinScreen = ({
               returnKeyType="go"
               onSubmitEditing={join}
               accessibilityLabel="Participant name"
-              accessibilityState={{ disabled: areMediaControlsDisabled }}
+              accessibilityState={nameInputAccessibilityState}
             />
           </View>
 
@@ -448,7 +464,7 @@ export const JoinScreen = ({
             disabled={isJoinDisabled}
             accessibilityLabel="Join room"
             accessibilityRole="button"
-            accessibilityState={{ disabled: isJoinDisabled }}
+            accessibilityState={joinAccessibilityState}
           >
             {isLoading ? (
               <ActivityIndicator color={TEXT_COLORS.onPrimary} />

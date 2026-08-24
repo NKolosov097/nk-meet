@@ -25,7 +25,7 @@ test("navigates from a company landing to a generated company room", async () =>
       "[company]/index": require("./[company]/index"),
       "[company]/[slug]": require("./[company]/[slug]"),
     },
-    { initialUrl: "/acme" },
+    { initialUrl: "/nkolosov" },
   )
 
   await fireEvent.press(screen.getByLabelText("Create room"))
@@ -40,7 +40,7 @@ test("navigates from a company landing to a typed company room", async () => {
       "[company]/index": require("./[company]/index"),
       "[company]/[slug]": require("./[company]/[slug]"),
     },
-    { initialUrl: "/acme" },
+    { initialUrl: "/nkolosov" },
   )
 
   await fireEvent.changeText(screen.getByLabelText("Room code"), "Team Sync")

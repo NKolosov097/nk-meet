@@ -1,4 +1,4 @@
-import type { StyleProp, ViewStyle } from "react-native"
+import type { AccessibilityState, StyleProp, ViewStyle } from "react-native"
 import {
   ScrollView,
   StyleSheet,
@@ -58,36 +58,42 @@ export const DeviceDropdown = ({
         {sections.map(section => (
           <View key={section.title}>
             <Text style={styles.sectionTitle}>{section.title}</Text>
-            {section.items.map(item => (
-              <TouchableOpacity
-                key={item.deviceId}
-                style={[
-                  styles.deviceItem,
-                  item.selected ? styles.selectedDevice : undefined,
-                ]}
-                accessibilityLabel={`${item.label} device`}
-                accessibilityRole="button"
-                accessibilityState={{ selected: item.selected }}
-                onPress={item.onPress}
-              >
-                <Text
+            {section.items.map(item => {
+              const accessibilityState: AccessibilityState = {
+                selected: item.selected,
+              }
+
+              return (
+                <TouchableOpacity
+                  key={item.deviceId}
                   style={[
-                    styles.deviceLabel,
-                    item.selected ? styles.selectedDeviceLabel : undefined,
+                    styles.deviceItem,
+                    item.selected ? styles.selectedDevice : undefined,
                   ]}
+                  accessibilityLabel={`${item.label} device`}
+                  accessibilityRole="button"
+                  accessibilityState={accessibilityState}
+                  onPress={item.onPress}
                 >
-                  {item.label}
-                </Text>
-                {item.selected && (
                   <Text
-                    style={styles.selectedDeviceIndicator}
-                    accessible={false}
+                    style={[
+                      styles.deviceLabel,
+                      item.selected ? styles.selectedDeviceLabel : undefined,
+                    ]}
                   >
-                    ✓
+                    {item.label}
                   </Text>
-                )}
-              </TouchableOpacity>
-            ))}
+                  {item.selected && (
+                    <Text
+                      style={styles.selectedDeviceIndicator}
+                      accessible={false}
+                    >
+                      ✓
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              )
+            })}
           </View>
         ))}
 

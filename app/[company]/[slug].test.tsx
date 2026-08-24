@@ -24,7 +24,7 @@ interface ActiveRoomStubProps {
   onForcedDisconnect: VoidFunction
 }
 
-let mockCompany: string | undefined = "acme"
+let mockCompany: string | undefined = "nkolosov"
 let mockSlug: string | undefined = "weekly-sync"
 let mockCanGoBack = true
 let mockActiveRoom: { company: string; slug: string } | null = null
@@ -135,7 +135,7 @@ const joinRoom = async (): Promise<void> => {
 }
 
 beforeEach(() => {
-  mockCompany = "acme"
+  mockCompany = "nkolosov"
   mockSlug = "weekly-sync"
   mockCanGoBack = true
   mockActiveRoom = null
@@ -164,7 +164,7 @@ test("joins the company-scoped LiveKit room and mounts ActiveRoom children", asy
 
   expect(mockFetchParticipantToken).toHaveBeenCalledWith(
     "Ada",
-    "acme--weekly-sync",
+    "nkolosov--weekly-sync",
   )
   expect(latestLiveKitProps).toMatchObject({
     serverUrl: "wss://integration.livekit.cloud",
@@ -180,7 +180,7 @@ test("joins the company-scoped LiveKit room and mounts ActiveRoom children", asy
       videoCaptureDefaults: expect.objectContaining({ deviceId: "camera-1" }),
     }),
   )
-  expect(screen.getByText("Active room: acme/weekly-sync")).toBeVisible()
+  expect(screen.getByText("Active room: nkolosov/weekly-sync")).toBeVisible()
 })
 
 test("passes selected media choices through to LiveKit", async () => {
@@ -195,9 +195,9 @@ test("passes selected media choices through to LiveKit", async () => {
 })
 
 test("uses the company identity when handling canonical duplicate routes", async () => {
-  mockCompany = "Acme"
+  mockCompany = "Nkolosov"
   mockSlug = "Weekly Sync"
-  mockActiveRoom = { company: "acme", slug: "weekly-sync" }
+  mockActiveRoom = { company: "nkolosov", slug: "weekly-sync" }
   await render(<RoomScreen />)
 
   expect(mockBack).toHaveBeenCalledTimes(1)
@@ -205,13 +205,13 @@ test("uses the company identity when handling canonical duplicate routes", async
 })
 
 test("does not dismiss a same-slug route for a different company", async () => {
-  mockCompany = "Acme"
+  mockCompany = "Nkolosov"
   mockSlug = "Weekly Sync"
   mockActiveRoom = { company: "globex", slug: "weekly-sync" }
   await render(<RoomScreen />)
 
   expect(mockBack).not.toHaveBeenCalled()
-  expect(mockReplace).toHaveBeenCalledWith("/acme/weekly-sync")
+  expect(mockReplace).toHaveBeenCalledWith("/nkolosov/weekly-sync")
   expect(screen.getByLabelText("Participant name")).toBeVisible()
 })
 
@@ -233,14 +233,14 @@ test("keeps navigation still when a link forced the disconnect", async () => {
 test("returns to its own company landing after back or disconnect", async () => {
   await render(<RoomScreen />)
   await fireEvent.press(screen.getByLabelText("Back to room selection"))
-  expect(mockReplace).toHaveBeenCalledWith("/acme")
+  expect(mockReplace).toHaveBeenCalledWith("/nkolosov")
   expect(mockBack).not.toHaveBeenCalled()
 
   mockReplace.mockReset()
   await joinRoom()
   await fireEvent.press(screen.getByLabelText("Disconnect room"))
 
-  expect(mockReplace).toHaveBeenCalledWith("/acme")
+  expect(mockReplace).toHaveBeenCalledWith("/nkolosov")
 })
 
 test("returns connection errors to the join form", async () => {

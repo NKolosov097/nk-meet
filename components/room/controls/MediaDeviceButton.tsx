@@ -50,6 +50,12 @@ export const MediaDeviceButton = ({
   dropdownAccessibilityState,
 }: MediaDeviceButtonProps) => {
   const hasText = text !== undefined
+  const toggleAccessibilityState: AccessibilityState = { disabled }
+  const dropdownButtonAccessibilityState: AccessibilityState = {
+    ...dropdownAccessibilityState,
+    disabled: dropdownDisabled,
+    expanded: isDropdownVisible,
+  }
 
   return (
     <View style={[styles.container, hasText ? styles.labeledContainer : null]}>
@@ -63,7 +69,7 @@ export const MediaDeviceButton = ({
         disabled={disabled}
         accessibilityLabel={toggleAccessibilityLabel}
         accessibilityRole="button"
-        accessibilityState={{ disabled }}
+        accessibilityState={toggleAccessibilityState}
       >
         <View
           testID="media-device-button-icon"
@@ -82,11 +88,7 @@ export const MediaDeviceButton = ({
         disabled={dropdownDisabled}
         accessibilityLabel={dropdownAccessibilityLabel}
         accessibilityRole="button"
-        accessibilityState={{
-          ...dropdownAccessibilityState,
-          disabled: dropdownDisabled,
-          expanded: isDropdownVisible,
-        }}
+        accessibilityState={dropdownButtonAccessibilityState}
       >
         <Text
           style={[

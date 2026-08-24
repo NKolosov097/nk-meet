@@ -1,5 +1,7 @@
 // Types for the LiveKit React Native application
 
+export type InputDeviceKind = "audioinput" | "videoinput"
+
 export interface ConnectionState {
   // Access token of the current session; null means "not in a room"
   token: string | null

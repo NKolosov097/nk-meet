@@ -57,6 +57,9 @@ export const PaginationBar = ({
     }
   }, [isVisible, opacity])
 
+  const previousAccessibilityState = { disabled: isFirstPage }
+  const nextAccessibilityState = { disabled: isLastPage }
+
   return (
     <Animated.View
       testID="pagination-bar"
@@ -74,7 +77,7 @@ export const PaginationBar = ({
           disabled={isFirstPage}
           accessibilityLabel="Previous page"
           accessibilityRole="button"
-          accessibilityState={{ disabled: isFirstPage }}
+          accessibilityState={previousAccessibilityState}
         >
           <ChevronLeftIcon color={TEXT_COLORS.paginationIcon} />
         </TouchableOpacity>
@@ -95,7 +98,7 @@ export const PaginationBar = ({
           disabled={isLastPage}
           accessibilityLabel="Next page"
           accessibilityRole="button"
-          accessibilityState={{ disabled: isLastPage }}
+          accessibilityState={nextAccessibilityState}
         >
           <ChevronRightIcon color={TEXT_COLORS.paginationIcon} />
         </TouchableOpacity>
