@@ -1,3 +1,5 @@
+// a11y:components/room/ControlBar.tsx
+// a11y:components/icons/DisconnectIcon.tsx
 import { Alert } from "react-native"
 
 import { act, fireEvent, render, waitFor } from "@testing-library/react-native"

@@ -8,10 +8,11 @@ type RgbaColor = {
 const HEX_COLOR_PATTERN = /^#([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})$/
 const RGBA_COLOR_PATTERN =
   /^rgba\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d+(?:\.\d+)?|\.\d+)\s*\)$/
+const RGBA_FUNCTION_NAME = "rgba"
 
 const unsupportedColorError = (color: string): Error =>
   new Error(
-    `Unsupported color format: ${color}. Use #RRGGBB or rgba(r, g, b, a).`,
+    `Unsupported color format: ${color}. Use #RRGGBB or ${RGBA_FUNCTION_NAME}(r, g, b, a).`,
   )
 
 const parseColor = (color: string): RgbaColor => {
@@ -94,7 +95,7 @@ export const compositeColor = (
     return `#${channelToHex(red)}${channelToHex(green)}${channelToHex(blue)}`
   }
 
-  return `rgba(${roundedChannel(red)}, ${roundedChannel(green)}, ${roundedChannel(blue)}, ${formattedAlpha(alpha)})`
+  return `${RGBA_FUNCTION_NAME}(${roundedChannel(red)}, ${roundedChannel(green)}, ${roundedChannel(blue)}, ${formattedAlpha(alpha)})`
 }
 
 export const contrastRatio = (

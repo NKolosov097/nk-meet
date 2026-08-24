@@ -1,3 +1,4 @@
+// a11y:components/room/ConfirmDisconnectModal.tsx
 import { fireEvent, render } from "@testing-library/react-native"
 
 import { BACKGROUND_COLORS, TEXT_COLORS } from "@/constants/colors"

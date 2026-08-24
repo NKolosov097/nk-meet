@@ -1,3 +1,4 @@
+// a11y:app/[company]/index.tsx
 import { render, screen } from "@testing-library/react-native"
 
 import CompanyHomeScreen from "./index"

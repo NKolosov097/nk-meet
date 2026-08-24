@@ -1,3 +1,4 @@
+// a11y:app/_layout.tsx
 import { render, screen } from "@testing-library/react-native"
 
 import RootLayout from "./_layout"

@@ -100,6 +100,7 @@ export const HomeScreen = ({ company }: HomeScreenProps) => {
           disabled={isDisabled}
           accessibilityLabel={`Rejoin ${item.slug} as ${item.participantName} in ${displayCompany}`}
           accessibilityRole="button"
+          accessibilityState={{ disabled: isDisabled }}
         >
           <View testID="recent-room-identity" style={styles.recentRoomIdentity}>
             <Text
@@ -156,6 +157,7 @@ export const HomeScreen = ({ company }: HomeScreenProps) => {
             returnKeyType="go"
             onSubmitEditing={onJoinByCode}
             accessibilityLabel="Room code"
+            accessibilityState={{ disabled: isDisabled }}
           />
         </View>
 
@@ -195,6 +197,7 @@ export const HomeScreen = ({ company }: HomeScreenProps) => {
           disabled={isDisabled}
           accessibilityLabel="Create room"
           accessibilityRole="button"
+          accessibilityState={{ disabled: isDisabled }}
         >
           <Text
             style={[

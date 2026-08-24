@@ -1,6 +1,6 @@
 export const BACKGROUND_COLORS = {
   danger: "#FF3B30",
-  secondary: "#333",
+  secondary: "#333333",
   tertiary: "rgba(0, 0, 0, 0.8)",
   background: "#111111",
   lightBackground: "#1e1e1e",
@@ -34,8 +34,14 @@ export const BORDER_COLORS = {
   danger: "#f44336",
   divider: "rgba(255, 255, 255, 0.15)",
   controlDivider: "rgba(255, 255, 255, 0.5)",
+  selectionIndicator: "#FFFFFF",
 }
 
 export const SHADOW_COLORS = {
   black: "#000000",
+}
+
+export const NATIVE_CONFIG_COLORS = {
+  adaptiveIconBackground: "#FFFFFF",
+  splashBackground: "#FFFFFF",
 }

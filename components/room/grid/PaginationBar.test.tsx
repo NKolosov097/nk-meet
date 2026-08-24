@@ -1,3 +1,6 @@
+// a11y:components/room/grid/PaginationBar.tsx
+// a11y:components/icons/ChevronLeftIcon.tsx
+// a11y:components/icons/ChevronRightIcon.tsx
 import { act, fireEvent, render } from "@testing-library/react-native"
 
 import { BORDER_COLORS, TEXT_COLORS } from "@/constants/colors"

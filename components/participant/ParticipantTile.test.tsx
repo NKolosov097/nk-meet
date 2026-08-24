@@ -1,4 +1,5 @@
-import type { ReactNode } from "react"
+// a11y:components/participant/ParticipantTile.tsx
+// a11y:components/icons/ParticipantPlaceholderIcon.tsx
 import { processColor } from "react-native"
 
 import { render } from "@testing-library/react-native"
@@ -14,25 +15,6 @@ import { ParticipantPlaceholderIcon } from "@/components/icons"
 import { BACKGROUND_COLORS, TEXT_COLORS } from "@/constants/colors"
 
 import { ParticipantTile } from "./ParticipantTile"
-
-jest.mock("expo-blur", () => ({
-  BlurView: ({
-    children,
-    style,
-  }: {
-    children?: ReactNode
-    style?: unknown
-  }) => {
-    const React = require("react")
-    const { View } = require("react-native")
-
-    return React.createElement(
-      View,
-      { testID: "participant-badge", style },
-      children,
-    )
-  },
-}))
 
 jest.mock("@livekit/react-native", () => ({
   isTrackReference: jest.fn(),

@@ -91,38 +91,40 @@ eas build --platform ios --profile development
 
 ## Usage
 
-1. Start the app
-2. Enter a room code to join an existing room, or tap "Create a new room"
+1. Open a company landing, such as `/acme`
+2. Enter a room code to join an existing room in that company, or tap "Create a new room"
 3. Enter your name
 4. Press "Join" — the app requests an access token and joins that room
 
 ### Room links
 
-Every room has a shareable link under the app's own URL scheme:
+Every company landing and room has a shareable link under the app's own URL scheme:
 
 ```
-nk-meet://<slug>
-nk-meet://team-sync
+nk-meet://<company>
+nk-meet://<company>/<room-slug>
+nk-meet://acme/team-sync
 ```
 
-Opening one takes the participant straight to that room's name-entry screen,
-skipping the home screen. The slug is canonicalized exactly like a typed room
-code (lowercased, anything else collapsed into `-`), so `nk-meet://Team Sync`
-and `nk-meet://team-sync` are the same room; a link that names no room
-redirects to the home screen. A link that arrives while a call is in progress
-disconnects that call first, unless it points at the room already open.
+Opening a company-only link shows that company's landing; a room link opens its
+name-entry screen. Company and room segments are canonicalized exactly like a
+typed room code (lowercased, anything else collapsed into `-`), so
+`nk-meet://Acme/Team Sync` and `nk-meet://acme/team-sync` select the same
+meeting. A link with extra path segments redirects to the safe root screen. A
+link that arrives while a call is in progress disconnects that call first,
+unless it selects the same company and room.
 
 Open a link by hand to test it:
 
 ```bash
 # Android (device or emulator)
-npx uri-scheme open "nk-meet://test-room" --android
+npx uri-scheme open "nk-meet://acme/test-room" --android
 
 # iOS simulator
-xcrun simctl openurl booted "nk-meet://test-room"
+xcrun simctl openurl booted "nk-meet://acme/test-room"
 ```
 
-The scheme is declared in `app.json` (`expo.scheme`), so it only reaches the
+The scheme is declared in `app.config.ts` (`scheme`), so it only reaches the
 native projects through `npx expo prebuild` — run it (or `npx expo prebuild
 --clean`) before expecting a link to open the app.
 
@@ -155,12 +157,12 @@ The project is configured with:
 ## Project structure
 
 ```
-native-meet/
+nk-meet/
 ├── app/                       # Expo Router routes and routing tests
 │   ├── _layout.tsx            # Root layout and active-room lifecycle
 │   ├── +native-intent.ts      # Incoming deep-link normalization
-│   ├── index.tsx              # Create or join a room
-│   └── [slug].tsx             # Room join flow and active call
+│   ├── index.tsx              # Redirect to the default company landing
+│   └── [company]/             # Company landing and company-scoped room routes
 ├── screens/
 │   └── JoinScreen.tsx         # Participant name and join form
 ├── components/

@@ -1,3 +1,5 @@
+// a11y:components/room/VideoConference.tsx
+// a11y:components/room/grid/ParticipantGrid.tsx
 import { act, fireEvent, render } from "@testing-library/react-native"
 
 import { ParticipantKind, Track } from "livekit-client"

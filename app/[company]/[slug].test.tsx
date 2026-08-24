@@ -1,3 +1,4 @@
+// a11y:app/[company]/[slug].tsx
 import type { PropsWithChildren } from "react"
 
 import {

@@ -1,3 +1,4 @@
+// a11y:screens/JoinScreen.tsx
 import type { ComponentProps } from "react"
 
 import {
@@ -328,6 +329,10 @@ test("keeps the form and media controls disabled until restoration completes", a
   )
 
   expect(screen.getByLabelText("Participant name")).toBeDisabled()
+  expect(screen.getByLabelText("Participant name")).toHaveProp(
+    "accessibilityState",
+    expect.objectContaining({ disabled: true }),
+  )
   expect(screen.getByLabelText("Join room")).toBeDisabled()
   expect(screen.getByLabelText("Turn on microphone")).toBeDisabled()
   expect(screen.getByLabelText("Turn on camera")).toBeDisabled()
@@ -342,6 +347,10 @@ test("keeps the form and media controls disabled until restoration completes", a
 
   await waitFor(() => {
     expect(screen.getByLabelText("Participant name")).toBeEnabled()
+    expect(screen.getByLabelText("Participant name")).toHaveProp(
+      "accessibilityState",
+      expect.objectContaining({ disabled: false }),
+    )
     expect(screen.getByLabelText("Join room")).toBeDisabled()
     expect(screen.getByLabelText("Turn on microphone")).toBeEnabled()
     expect(screen.getByLabelText("Turn on camera")).toBeEnabled()

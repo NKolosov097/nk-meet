@@ -130,6 +130,8 @@ const styles = StyleSheet.create({
   },
   selectedDevice: {
     backgroundColor: BACKGROUND_COLORS.primary,
+    borderColor: BORDER_COLORS.selectionIndicator,
+    borderWidth: 2,
   },
   deviceLabel: {
     fontSize: 14,

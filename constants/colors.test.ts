@@ -47,4 +47,23 @@ describe("semantic color palette", () => {
       contrastRatio(BORDER_COLORS.controlDivider, BACKGROUND_COLORS.elevated),
     ).toBeGreaterThanOrEqual(3)
   })
+
+  it("keeps selection indicators distinct from selected and unselected surfaces", () => {
+    expect(BORDER_COLORS.selectionIndicator).toEqual(expect.any(String))
+    expect(
+      contrastRatio(
+        BORDER_COLORS.selectionIndicator,
+        BACKGROUND_COLORS.primary,
+      ),
+    ).toBeGreaterThanOrEqual(3)
+    expect(
+      contrastRatio(
+        BORDER_COLORS.selectionIndicator,
+        BACKGROUND_COLORS.secondary,
+      ),
+    ).toBeGreaterThanOrEqual(3)
+    expect(
+      contrastRatio(BORDER_COLORS.selectionIndicator, BACKGROUND_COLORS.black),
+    ).toBeGreaterThanOrEqual(3)
+  })
 })

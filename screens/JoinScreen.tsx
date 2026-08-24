@@ -429,6 +429,7 @@ export const JoinScreen = ({
               returnKeyType="go"
               onSubmitEditing={join}
               accessibilityLabel="Participant name"
+              accessibilityState={{ disabled: areMediaControlsDisabled }}
             />
           </View>
 

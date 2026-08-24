@@ -1,3 +1,9 @@
+// a11y:components/room/controls/CameraControl.tsx
+// a11y:components/room/controls/MicrophoneControl.tsx
+// a11y:components/icons/CameraDisabledIcon.tsx
+// a11y:components/icons/CameraIcon.tsx
+// a11y:components/icons/MicDisabledIcon.tsx
+// a11y:components/icons/MicIcon.tsx
 import { Alert } from "react-native"
 
 import { act, fireEvent, render, waitFor } from "@testing-library/react-native"

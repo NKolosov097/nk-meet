@@ -10,7 +10,11 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context"
 
 import { BORDER_RADIUSES } from "@/constants/borderRadiuses"
-import { BACKGROUND_COLORS, TEXT_COLORS } from "@/constants/colors"
+import {
+  BACKGROUND_COLORS,
+  BORDER_COLORS,
+  TEXT_COLORS,
+} from "@/constants/colors"
 
 import { ControlBarPreview } from "./ControlBarPreview"
 import { GRID_GAP, GRID_PADDING } from "./gridLayout"
@@ -124,6 +128,8 @@ const styles = StyleSheet.create({
   },
   presetButtonActive: {
     backgroundColor: BACKGROUND_COLORS.primary,
+    borderColor: BORDER_COLORS.selectionIndicator,
+    borderWidth: 2,
   },
   presetButtonText: {
     color: TEXT_COLORS.light,

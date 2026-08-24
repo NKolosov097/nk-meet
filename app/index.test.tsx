@@ -1,3 +1,4 @@
+// a11y:app/index.tsx
 import { renderRouter, screen, waitFor } from "expo-router/testing-library"
 
 jest.mock("@react-native-async-storage/async-storage", () =>

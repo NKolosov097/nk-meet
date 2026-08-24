@@ -1,3 +1,4 @@
+// a11y:screens/HomeScreen.tsx
 import { act, fireEvent, render, screen } from "@testing-library/react-native"
 
 import { TEXT_COLORS } from "@/constants/colors"
@@ -107,14 +108,25 @@ test("disables all room actions when configuration is invalid", async () => {
 
   expect(screen.getByText(mockConfigError)).toBeVisible()
   expect(screen.getByLabelText("Room code")).toBeDisabled()
+  expect(screen.getByLabelText("Room code")).toHaveProp(
+    "accessibilityState",
+    expect.objectContaining({ disabled: true }),
+  )
   expect(screen.getByLabelText("Join room")).toBeDisabled()
   expect(screen.getByLabelText("Create room")).toBeDisabled()
-  expect(
-    await screen.findByLabelText("Rejoin weekly-sync as Grace in acme"),
-  ).toBeDisabled()
-  expect(
-    screen.getByLabelText("Rejoin weekly-sync as Grace in acme"),
-  ).toHaveProp("accessibilityRole", "button")
+  expect(screen.getByLabelText("Create room")).toHaveProp(
+    "accessibilityState",
+    expect.objectContaining({ disabled: true }),
+  )
+  const recentRoom = await screen.findByLabelText(
+    "Rejoin weekly-sync as Grace in acme",
+  )
+  expect(recentRoom).toBeDisabled()
+  expect(recentRoom).toHaveProp("accessibilityRole", "button")
+  expect(recentRoom).toHaveProp(
+    "accessibilityState",
+    expect.objectContaining({ disabled: true }),
+  )
 })
 
 test("does not show a recent-meetings section without history", async () => {
