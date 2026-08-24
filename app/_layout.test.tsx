@@ -1,3 +1,4 @@
+// a11y:app/_layout.tsx
 import { render, screen } from "@testing-library/react-native"
 
 import RootLayout from "./_layout"
@@ -43,33 +44,42 @@ afterAll(() => {
 
 type LinkHandler = (event: { url: string }) => void
 
-test("subscribes to incoming links and disconnects the active room", async () => {
+test("subscribes to incoming links and disconnects the active company room", async () => {
   await render(<RootLayout />)
 
   expect(mockAddEventListener).toHaveBeenCalledWith("url", expect.any(Function))
 
   const handler = mockAddEventListener.mock.calls[0][1] as LinkHandler
-  handler({ url: "nativemeet://room-b" })
+  handler({ url: "nk-meet://nkolosov/room-b" })
 
-  expect(mockDisconnectActiveRoom).toHaveBeenCalledWith("room-b")
+  expect(mockDisconnectActiveRoom).toHaveBeenCalledWith({
+    company: "nkolosov",
+    slug: "room-b",
+  })
 })
 
 test("passes the canonicalized slug of the incoming link", async () => {
   await render(<RootLayout />)
   const handler = mockAddEventListener.mock.calls[0][1] as LinkHandler
 
-  handler({ url: "nativemeet://Team%20Sync" })
+  handler({ url: "nk-meet://Nkolosov/Team%20Sync" })
 
-  expect(mockDisconnectActiveRoom).toHaveBeenCalledWith("team-sync")
+  expect(mockDisconnectActiveRoom).toHaveBeenCalledWith({
+    company: "nkolosov",
+    slug: "team-sync",
+  })
 })
 
 test("passes an empty slug for a link that names no room", async () => {
   await render(<RootLayout />)
   const handler = mockAddEventListener.mock.calls[0][1] as LinkHandler
 
-  handler({ url: "nativemeet://" })
+  handler({ url: "nk-meet://" })
 
-  expect(mockDisconnectActiveRoom).toHaveBeenCalledWith("")
+  expect(mockDisconnectActiveRoom).toHaveBeenCalledWith({
+    company: "",
+    slug: "",
+  })
 })
 
 test("unsubscribes on unmount", async () => {

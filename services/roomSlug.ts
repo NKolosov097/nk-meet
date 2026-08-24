@@ -40,15 +40,55 @@ const decodeSegment = (segment: string): string => {
   }
 }
 
-// Canonical slug an incoming deep link (`nativemeet://<slug>`) points at, run
-// through the same slugify() a typed room code goes through. Returns "" for
-// a link that names no room, e.g. "nativemeet://".
-export const roomSlugFromUrl = (url: string): string => {
-  const path = url.replace(/^[a-z][a-z\d+.-]*:\/\//i, "").split(/[?#]/)[0]
-  const [segment] = path.split("/").filter(part => part !== "")
+const urlSegments = (url: string): string[] => {
+  const urlWithoutQuery = url.split(/[?#]/)[0]
+  let path = urlWithoutQuery
 
-  return segment ? slugify(decodeSegment(segment)) : ""
+  try {
+    const parsed = new URL(urlWithoutQuery)
+    path =
+      parsed.protocol === "http:" || parsed.protocol === "https:"
+        ? parsed.pathname
+        : `${parsed.host}${parsed.pathname}`
+  } catch {
+    path = urlWithoutQuery.replace(/^[a-z][a-z\d+.-]*:/i, "")
+  }
+
+  return path
+    .split("/")
+    .filter(part => part !== "")
+    .map(segment => slugify(decodeSegment(segment)))
 }
+
+export interface RoomIdentity {
+  // Canonical company segment from a company landing or meeting link
+  company: string
+  // Canonical meeting segment; empty for a company landing link
+  slug: string
+}
+
+// Parses only the routes this app owns: /company and /company/room. Any
+// additional segments are rejected so a native link cannot target a different room.
+export const parseMeetingPath = (url: string): RoomIdentity => {
+  const segments = urlSegments(url)
+
+  if (segments.length === 0 || segments.length > 2 || !segments[0]) {
+    return { company: "", slug: "" }
+  }
+
+  if (segments.length === 2 && !segments[1]) {
+    return { company: "", slug: "" }
+  }
+
+  return { company: segments[0], slug: segments[1] ?? "" }
+}
+
+export const roomIdentityFromUrl = parseMeetingPath
+
+// LiveKit identifies rooms globally, so both canonical URL segments are joined
+// with a separator that slugify() cannot create from either source segment.
+export const roomSlug = (company: string, slug: string): string =>
+  company ? `${company}--${slug}` : slug
 
 export const generateRoomSlug = (): string => {
   const adjective =

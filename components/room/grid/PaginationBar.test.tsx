@@ -1,4 +1,9 @@
+// a11y:components/room/grid/PaginationBar.tsx
+// a11y:components/icons/ChevronLeftIcon.tsx
+// a11y:components/icons/ChevronRightIcon.tsx
 import { act, fireEvent, render } from "@testing-library/react-native"
+
+import { BORDER_COLORS, TEXT_COLORS } from "@/constants/colors"
 
 import { FADE_DURATION_MS, PaginationBar } from "./PaginationBar"
 
@@ -52,6 +57,11 @@ test("disables the previous button on the first page", async () => {
 
   const previousButton = view.getByLabelText("Previous page")
   expect(previousButton).toBeDisabled()
+  expect(previousButton).toHaveProp("accessibilityRole", "button")
+  expect(previousButton).toHaveProp(
+    "accessibilityState",
+    expect.objectContaining({ disabled: true }),
+  )
 
   await fireEvent.press(previousButton)
   expect(onPrevious).not.toHaveBeenCalled()
@@ -71,6 +81,11 @@ test("disables the next button on the last page", async () => {
 
   const nextButton = view.getByLabelText("Next page")
   expect(nextButton).toBeDisabled()
+  expect(nextButton).toHaveProp("accessibilityRole", "button")
+  expect(nextButton).toHaveProp(
+    "accessibilityState",
+    expect.objectContaining({ disabled: true }),
+  )
 
   await fireEvent.press(nextButton)
   expect(onNext).not.toHaveBeenCalled()
@@ -94,6 +109,34 @@ test("calls onPrevious and onNext when the buttons are enabled", async () => {
 
   expect(onPrevious).toHaveBeenCalledTimes(1)
   expect(onNext).toHaveBeenCalledTimes(1)
+  expect(view.getByLabelText("Previous page")).toHaveProp(
+    "accessibilityRole",
+    "button",
+  )
+  expect(view.getByLabelText("Previous page")).toHaveProp(
+    "accessibilityState",
+    expect.objectContaining({ disabled: false }),
+  )
+  expect(view.getByLabelText("Next page")).toHaveProp(
+    "accessibilityRole",
+    "button",
+  )
+  expect(view.getByLabelText("Next page")).toHaveProp(
+    "accessibilityState",
+    expect.objectContaining({ disabled: false }),
+  )
+  expect(
+    view.getByLabelText("Previous page").props.children[0].props.color,
+  ).toBe(TEXT_COLORS.paginationIcon)
+  expect(view.getByLabelText("Next page").props.children[0].props.color).toBe(
+    TEXT_COLORS.paginationIcon,
+  )
+  expect(view.getByLabelText("Previous page")).toHaveStyle({
+    borderRightColor: BORDER_COLORS.controlDivider,
+  })
+  expect(view.getByLabelText("Next page")).toHaveStyle({
+    borderLeftColor: BORDER_COLORS.controlDivider,
+  })
 })
 
 test("renders as an absolutely-positioned overlay so it never affects the grid's layout", async () => {

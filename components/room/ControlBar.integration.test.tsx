@@ -1,6 +1,10 @@
+// a11y:components/room/ControlBar.tsx
+// a11y:components/icons/DisconnectIcon.tsx
 import { Alert } from "react-native"
 
 import { act, fireEvent, render, waitFor } from "@testing-library/react-native"
+
+import { BACKGROUND_COLORS } from "@/constants/colors"
 
 import { ControlBar } from "./ControlBar"
 import { CameraControl } from "./controls/CameraControl"
@@ -382,6 +386,20 @@ test("shows a confirmation modal instead of disconnecting immediately", async ()
 
   expect(view.getByText("Disconnect?")).toBeVisible()
   expect(mockRoom.disconnect).not.toHaveBeenCalled()
+})
+
+test("uses the updated rounded-square shape for disconnect", async () => {
+  const view = await render(<ControlBar />)
+
+  const disconnectButton = view.getByLabelText("Disconnect from room")
+
+  expect(disconnectButton).toHaveStyle({
+    borderRadius: 8,
+  })
+  expect(disconnectButton).toHaveProp("accessibilityRole", "button")
+  expect(disconnectButton).toHaveStyle({
+    backgroundColor: BACKGROUND_COLORS.dangerAction,
+  })
 })
 
 test("disconnects the room after confirming", async () => {

@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage"
 
-const DEVICE_IDENTITY_KEY = "native-meet.device-identity"
+const DEVICE_IDENTITY_KEY = "nk-meet.device-identity"
 
 const randomChunk = (): string => Math.random().toString(36).slice(2, 10)
 

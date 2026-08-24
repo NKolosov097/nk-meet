@@ -1,5 +1,5 @@
 {
-  "name": "native-meet",
+  "name": "nk-meet",
   "version": "1.0.0",
   "packageManager": "pnpm@11.21.0",
   "main": "index.js",

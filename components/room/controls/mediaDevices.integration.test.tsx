@@ -1,8 +1,16 @@
+// a11y:components/room/controls/CameraControl.tsx
+// a11y:components/room/controls/MicrophoneControl.tsx
+// a11y:components/icons/CameraDisabledIcon.tsx
+// a11y:components/icons/CameraIcon.tsx
+// a11y:components/icons/MicDisabledIcon.tsx
+// a11y:components/icons/MicIcon.tsx
 import { Alert } from "react-native"
 
 import { act, fireEvent, render, waitFor } from "@testing-library/react-native"
 
 import { RoomEvent } from "livekit-client"
+
+import { TEXT_COLORS } from "@/constants/colors"
 
 import { CameraControl } from "./CameraControl"
 import { MicrophoneControl } from "./MicrophoneControl"
@@ -118,6 +126,7 @@ afterEach(() => {
 test("discovers only audio devices in the microphone dropdown", async () => {
   const view = await render(<MicrophoneControl {...microphoneProps()} />)
 
+  expect(await waitForText(view, "Select microphone")).toBeVisible()
   expect(await waitForText(view, "Desk microphone")).toBeVisible()
   expect(view.getByText("Desk speakers")).toBeVisible()
   expect(view.queryByText("Front camera")).not.toBeOnTheScreen()
@@ -126,9 +135,117 @@ test("discovers only audio devices in the microphone dropdown", async () => {
 test("discovers only cameras in the camera dropdown", async () => {
   const view = await render(<CameraControl {...cameraProps()} />)
 
+  expect(await waitForText(view, "Select camera")).toBeVisible()
   expect(await waitForText(view, "Front camera")).toBeVisible()
   expect(view.queryByText("Desk microphone")).not.toBeOnTheScreen()
   expect(view.queryByText("Desk speakers")).not.toBeOnTheScreen()
+})
+
+test("announces selected and unselected camera, microphone, and speaker rows", async () => {
+  enumeratedDevices = [
+    ...devices,
+    {
+      deviceId: "mic-2",
+      groupId: "audio",
+      kind: "audioinput",
+      label: "Travel microphone",
+      toJSON: jest.fn(),
+    },
+    {
+      deviceId: "speaker-2",
+      groupId: "audio",
+      kind: "audiooutput",
+      label: "Headset speakers",
+      toJSON: jest.fn(),
+    },
+    {
+      deviceId: "camera-2",
+      groupId: "video",
+      kind: "videoinput",
+      label: "Rear camera",
+      toJSON: jest.fn(),
+    },
+  ]
+  getActiveDevice.mockImplementation(kind => {
+    if (kind === "audioinput") return "mic-1"
+    if (kind === "videoinput") return "camera-1"
+
+    return undefined
+  })
+  const microphone = await render(<MicrophoneControl {...microphoneProps()} />)
+
+  await waitForText(microphone, "Desk microphone")
+  expect(microphone.getByLabelText("Desk microphone device")).toHaveProp(
+    "accessibilityRole",
+    "button",
+  )
+  expect(microphone.getByLabelText("Desk microphone device")).toHaveProp(
+    "accessibilityState",
+    expect.objectContaining({ selected: true }),
+  )
+  expect(microphone.getByText("Desk microphone")).toHaveStyle({
+    color: TEXT_COLORS.onPrimary,
+  })
+  expect(microphone.getByLabelText("Travel microphone device")).toHaveProp(
+    "accessibilityRole",
+    "button",
+  )
+  expect(microphone.getByLabelText("Travel microphone device")).toHaveProp(
+    "accessibilityState",
+    expect.objectContaining({ selected: false }),
+  )
+  expect(microphone.getByLabelText("Desk speakers device")).toHaveProp(
+    "accessibilityRole",
+    "button",
+  )
+  expect(microphone.getByLabelText("Desk speakers device")).toHaveProp(
+    "accessibilityState",
+    expect.objectContaining({ selected: false }),
+  )
+
+  await fireEvent.press(microphone.getByLabelText("Desk speakers device"))
+
+  await waitFor(() => {
+    expect(microphone.getByLabelText("Desk speakers device")).toHaveProp(
+      "accessibilityState",
+      expect.objectContaining({ selected: true }),
+    )
+  })
+  expect(microphone.getByText("Desk speakers")).toHaveStyle({
+    color: TEXT_COLORS.onPrimary,
+  })
+  expect(microphone.getByLabelText("Headset speakers device")).toHaveProp(
+    "accessibilityRole",
+    "button",
+  )
+  expect(microphone.getByLabelText("Headset speakers device")).toHaveProp(
+    "accessibilityState",
+    expect.objectContaining({ selected: false }),
+  )
+
+  await microphone.unmount()
+  const camera = await render(<CameraControl {...cameraProps()} />)
+
+  await waitForText(camera, "Front camera")
+  expect(camera.getByLabelText("Front camera device")).toHaveProp(
+    "accessibilityRole",
+    "button",
+  )
+  expect(camera.getByLabelText("Front camera device")).toHaveProp(
+    "accessibilityState",
+    expect.objectContaining({ selected: true }),
+  )
+  expect(camera.getByText("Front camera")).toHaveStyle({
+    color: TEXT_COLORS.onPrimary,
+  })
+  expect(camera.getByLabelText("Rear camera device")).toHaveProp(
+    "accessibilityRole",
+    "button",
+  )
+  expect(camera.getByLabelText("Rear camera device")).toHaveProp(
+    "accessibilityState",
+    expect.objectContaining({ selected: false }),
+  )
 })
 
 test("keeps the microphone control stable when device enumeration rejects", async () => {
@@ -410,6 +527,7 @@ test("sizes the microphone device overlay to cover the full window", async () =>
   const view = await render(<MicrophoneControl {...microphoneProps()} />)
 
   const overlay = view.getByLabelText("Close device list")
+  expect(overlay).toHaveProp("accessibilityRole", "button")
   const flattenedStyle = Object.assign({}, ...overlay.props.style)
 
   expect(flattenedStyle.width).toBeGreaterThan(0)
@@ -420,6 +538,7 @@ test("sizes the camera device overlay to cover the full window", async () => {
   const view = await render(<CameraControl {...cameraProps()} />)
 
   const overlay = view.getByLabelText("Close camera list")
+  expect(overlay).toHaveProp("accessibilityRole", "button")
   const flattenedStyle = Object.assign({}, ...overlay.props.style)
 
   expect(flattenedStyle.width).toBeGreaterThan(0)

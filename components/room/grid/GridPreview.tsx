@@ -5,12 +5,17 @@ import {
   Text,
   TouchableOpacity,
   View,
+  type AccessibilityState,
 } from "react-native"
 
 import { SafeAreaView } from "react-native-safe-area-context"
 
 import { BORDER_RADIUSES } from "@/constants/borderRadiuses"
-import { BACKGROUND_COLORS, TEXT_COLORS } from "@/constants/colors"
+import {
+  BACKGROUND_COLORS,
+  BORDER_COLORS,
+  TEXT_COLORS,
+} from "@/constants/colors"
 
 import { ControlBarPreview } from "./ControlBarPreview"
 import { GRID_GAP, GRID_PADDING } from "./gridLayout"
@@ -46,18 +51,34 @@ export const GridPreview = () => {
         style={styles.presetRow}
         contentContainerStyle={styles.presetRowContent}
       >
-        {PRESET_COUNTS.map(preset => (
-          <TouchableOpacity
-            key={preset}
-            style={[
-              styles.presetButton,
-              preset === count ? styles.presetButtonActive : undefined,
-            ]}
-            onPress={() => setCount(preset)}
-          >
-            <Text style={styles.presetButtonText}>{preset}</Text>
-          </TouchableOpacity>
-        ))}
+        {PRESET_COUNTS.map(preset => {
+          const accessibilityState: AccessibilityState = {
+            selected: preset === count,
+          }
+
+          return (
+            <TouchableOpacity
+              key={preset}
+              style={[
+                styles.presetButton,
+                preset === count ? styles.presetButtonActive : undefined,
+              ]}
+              onPress={() => setCount(preset)}
+              accessibilityLabel={`Show ${preset} ${preset === 1 ? "participant" : "participants"}`}
+              accessibilityRole="button"
+              accessibilityState={accessibilityState}
+            >
+              <Text
+                style={[
+                  styles.presetButtonText,
+                  preset === count ? styles.presetButtonActiveText : undefined,
+                ]}
+              >
+                {preset}
+              </Text>
+            </TouchableOpacity>
+          )
+        })}
       </ScrollView>
 
       <View style={styles.gridWrapper}>
@@ -114,10 +135,15 @@ const styles = StyleSheet.create({
   },
   presetButtonActive: {
     backgroundColor: BACKGROUND_COLORS.primary,
+    borderColor: BORDER_COLORS.selectionIndicator,
+    borderWidth: 2,
   },
   presetButtonText: {
     color: TEXT_COLORS.light,
     fontWeight: "600",
+  },
+  presetButtonActiveText: {
+    color: TEXT_COLORS.onPrimary,
   },
   gridWrapper: {
     flex: 1,

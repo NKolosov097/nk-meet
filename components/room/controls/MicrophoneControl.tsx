@@ -1,30 +1,22 @@
 import React, { useCallback, useEffect, useState } from "react"
-import {
-  Alert,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  ScrollView,
-  Pressable,
-} from "react-native"
+import { Alert, Pressable, StyleSheet, View } from "react-native"
 
 import { useRoomContext } from "@livekit/react-native"
 import { Track } from "livekit-client"
 
 import { MicDisabledIcon, MicIcon } from "@/components/icons"
 import {
+  DeviceDropdown,
+  type DeviceDropdownSection,
+} from "@/components/room/controls/DeviceDropdown"
+import { MediaDeviceButton } from "@/components/room/controls/MediaDeviceButton"
+import {
   initializeActiveMediaDevice,
   subscribeToMediaDevicesChanged,
   useActiveMediaDevice,
 } from "@/components/room/controls/useActiveMediaDevice"
 import { useBoundedDeviceDropdownLayout } from "@/components/room/controls/useBoundedDeviceDropdownLayout"
-import { BORDER_RADIUSES } from "@/constants/borderRadiuses"
-import {
-  BACKGROUND_COLORS,
-  TEXT_COLORS,
-  SHADOW_COLORS,
-} from "@/constants/colors"
+import { BACKGROUND_COLORS } from "@/constants/colors"
 
 interface AudioDevice {
   // Browser-assigned identifier for this device
@@ -48,6 +40,8 @@ interface MicrophoneControlProps {
   onToggleDropdown: VoidFunction
   // Closes the microphone device dropdown
   onCloseDropdown: VoidFunction
+  // Optional label displayed between the state icon and dropdown
+  text?: string
 }
 
 export const MicrophoneControl = ({
@@ -57,6 +51,7 @@ export const MicrophoneControl = ({
   isDropdownVisible,
   onToggleDropdown,
   onCloseDropdown,
+  text,
 }: MicrophoneControlProps) => {
   const room = useRoomContext()
   const [audioDevices, setAudioDevices] = useState<AudioDevice[]>([])
@@ -143,6 +138,42 @@ export const MicrophoneControl = ({
     device => device.kind === "audiooutput",
   )
   const hasInputAndOutput = inputDevices.length > 0 && outputDevices.length > 0
+  const dropdownSections: DeviceDropdownSection[] = hasInputAndOutput
+    ? [
+        {
+          title: "Select speakers",
+          items: outputDevices.map(device => ({
+            deviceId: device.deviceId,
+            label: device.label,
+            selected: selectedOutputDevice === device.deviceId,
+            onPress: () => handleDeviceSelect(device.deviceId, device.kind),
+          })),
+        },
+        {
+          title: "Select microphone",
+          items: inputDevices.map(device => ({
+            deviceId: device.deviceId,
+            label: device.label,
+            selected: selectedInputDevice === device.deviceId,
+            onPress: () => handleDeviceSelect(device.deviceId, device.kind),
+          })),
+        },
+      ]
+    : [
+        {
+          title: "Select microphone",
+          items: audioDevices.map(device => ({
+            deviceId: device.deviceId,
+            label: `${device.label} (${device.kind === "audioinput" ? "Input" : "Output"})`,
+            selected:
+              (device.kind === "audioinput" &&
+                selectedInputDevice === device.deviceId) ||
+              (device.kind === "audiooutput" &&
+                selectedOutputDevice === device.deviceId),
+            onPress: () => handleDeviceSelect(device.deviceId, device.kind),
+          })),
+        },
+      ]
 
   return (
     <>
@@ -151,117 +182,26 @@ export const MicrophoneControl = ({
         style={styles.container}
         onLayout={onContainerLayout}
       >
-        {/* Microphone button */}
-        <TouchableOpacity
-          style={[
-            styles.micButton,
-            disabled ? styles.micButtonDisabled : undefined,
-          ]}
-          onPress={onToggleMute}
+        <MediaDeviceButton
+          icon={isMuted ? <MicDisabledIcon /> : <MicIcon />}
+          text={text}
+          onToggle={onToggleMute}
+          onToggleDropdown={onToggleDropdown}
+          toggleAccessibilityLabel={
+            isMuted ? "Unmute microphone" : "Mute microphone"
+          }
+          dropdownAccessibilityLabel="Select audio device"
           disabled={disabled}
-          accessibilityLabel={isMuted ? "Unmute microphone" : "Mute microphone"}
-        >
-          {isMuted ? <MicDisabledIcon /> : <MicIcon />}
-        </TouchableOpacity>
-
-        {/* Dropdown list button */}
-        <TouchableOpacity
-          style={styles.dropdownButton}
-          onPress={onToggleDropdown}
-          accessibilityLabel="Select audio device"
-        >
-          <Text
-            style={[
-              styles.dropdownArrow,
-              isDropdownVisible ? styles.dropdownArrowUp : undefined,
-            ]}
-          >
-            ▼
-          </Text>
-        </TouchableOpacity>
+          isDropdownVisible={isDropdownVisible}
+        />
 
         {/* Device dropdown list */}
         {isDropdownVisible && (
-          <View style={[styles.dropdownContainer, dropdownPositionStyle]}>
-            <ScrollView style={styles.deviceList}>
-              {hasInputAndOutput ? (
-                <>
-                  {/* Output devices section */}
-                  <Text style={styles.sectionTitle}>Select speakers</Text>
-                  {outputDevices.map(device => (
-                    <TouchableOpacity
-                      key={device.deviceId}
-                      style={[
-                        styles.deviceItem,
-                        selectedOutputDevice === device.deviceId
-                          ? styles.selectedDevice
-                          : undefined,
-                      ]}
-                      onPress={() =>
-                        handleDeviceSelect(device.deviceId, "audiooutput")
-                      }
-                    >
-                      <Text style={styles.deviceLabel}>{device.label}</Text>
-                    </TouchableOpacity>
-                  ))}
-
-                  {/* Input devices section */}
-                  <Text
-                    style={[styles.sectionTitle, styles.sectionTitleSecond]}
-                  >
-                    Select microphone
-                  </Text>
-                  {inputDevices.map(device => (
-                    <TouchableOpacity
-                      key={device.deviceId}
-                      style={[
-                        styles.deviceItem,
-                        selectedInputDevice === device.deviceId
-                          ? styles.selectedDevice
-                          : undefined,
-                      ]}
-                      onPress={() =>
-                        handleDeviceSelect(device.deviceId, "audioinput")
-                      }
-                    >
-                      <Text style={styles.deviceLabel}>{device.label}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </>
-              ) : (
-                <>
-                  {/* Combined list of all audio devices */}
-                  <Text style={styles.sectionTitle}>Select microphone</Text>
-                  {audioDevices.map(device => (
-                    <TouchableOpacity
-                      key={device.deviceId}
-                      style={[
-                        styles.deviceItem,
-                        (device.kind === "audioinput" &&
-                          selectedInputDevice === device.deviceId) ||
-                        (device.kind === "audiooutput" &&
-                          selectedOutputDevice === device.deviceId)
-                          ? styles.selectedDevice
-                          : undefined,
-                      ]}
-                      onPress={() =>
-                        handleDeviceSelect(device.deviceId, device.kind)
-                      }
-                    >
-                      <Text style={styles.deviceLabel}>
-                        {device.label} (
-                        {device.kind === "audioinput" ? "Input" : "Output"})
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </>
-              )}
-
-              {audioDevices.length === 0 && (
-                <Text style={styles.noDevicesText}>No audio devices found</Text>
-              )}
-            </ScrollView>
-          </View>
+          <DeviceDropdown
+            sections={dropdownSections}
+            emptyMessage="No audio devices found"
+            positionStyle={dropdownPositionStyle}
+          />
         )}
       </View>
 
@@ -271,6 +211,7 @@ export const MicrophoneControl = ({
           style={[styles.overlay, overlayStyle]}
           onPress={handleOutsidePress}
           accessibilityLabel="Close device list"
+          accessibilityRole="button"
         />
       )}
     </>
@@ -286,95 +227,9 @@ const styles = StyleSheet.create({
     position: "relative",
     zIndex: 1000,
   },
-  micButton: {
-    backgroundColor: BACKGROUND_COLORS.secondary,
-    width: 50,
-    height: 50,
-    borderTopLeftRadius: BORDER_RADIUSES.pill,
-    borderBottomLeftRadius: BORDER_RADIUSES.pill,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  micButtonDisabled: {
-    opacity: 0.4,
-  },
-  dropdownButton: {
-    backgroundColor: BACKGROUND_COLORS.secondary,
-    width: 30,
-    height: 50,
-    borderTopRightRadius: BORDER_RADIUSES.pill,
-    borderBottomRightRadius: BORDER_RADIUSES.pill,
-    marginLeft: -5,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  dropdownArrow: {
-    color: TEXT_COLORS.light,
-    fontSize: 12,
-    fontWeight: "bold",
-  },
-  dropdownArrowUp: {
-    transform: [{ rotate: "180deg" }],
-  },
-  dropdownContainer: {
-    position: "absolute",
-    bottom: 55,
-    backgroundColor: BACKGROUND_COLORS.secondary,
-    borderRadius: BORDER_RADIUSES.large,
-    maxHeight: 400,
-    shadowColor: SHADOW_COLORS.black,
-    shadowOffset: {
-      width: 0,
-      height: -4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-    zIndex: 1001,
-  },
-  deviceList: {
-    maxHeight: 350,
-    borderRadius: BORDER_RADIUSES.large,
-    overflow: "hidden",
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: TEXT_COLORS.light,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: BACKGROUND_COLORS.lightBackground,
-  },
-  sectionTitleSecond: {
-    marginTop: 0,
-  },
-  deviceItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: BACKGROUND_COLORS.lightBackground,
-  },
   overlay: {
     position: "absolute",
     backgroundColor: BACKGROUND_COLORS.transparent,
     zIndex: 999,
-  },
-  selectedDevice: {
-    backgroundColor: BACKGROUND_COLORS.primary,
-  },
-  deviceLabel: {
-    fontSize: 14,
-    color: TEXT_COLORS.light,
-    flex: 1,
-  },
-  noDevicesText: {
-    fontSize: 14,
-    color: TEXT_COLORS.light,
-    textAlign: "center",
-    paddingVertical: 20,
-    fontStyle: "italic",
   },
 })

@@ -2,16 +2,15 @@ import { useEffect, useState } from "react"
 
 import { Room, RoomEvent, Track } from "livekit-client"
 
+import type { InputDeviceKind } from "@/types"
+
 export type InputDeviceSource = Track.Source.Camera | Track.Source.Microphone
 
 export type ActiveDeviceTarget = InputDeviceSource
 
-type ActiveMediaDeviceKind = "audioinput" | "videoinput"
 type AvailableMediaDevice = Pick<MediaDeviceInfo, "deviceId">
 
-const getMediaDeviceKind = (
-  target: ActiveDeviceTarget,
-): ActiveMediaDeviceKind => {
+const getMediaDeviceKind = (target: ActiveDeviceTarget): InputDeviceKind => {
   switch (target) {
     case Track.Source.Camera:
       return "videoinput"
