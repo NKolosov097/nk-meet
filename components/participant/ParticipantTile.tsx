@@ -1,8 +1,6 @@
 import { useMemo } from "react"
 import { StyleSheet, Text, View } from "react-native"
 
-import { BlurView } from "expo-blur"
-
 import {
   isTrackReference,
   useTrackMutedIndicator,
@@ -17,8 +15,6 @@ import { BORDER_RADIUSES } from "@/constants/borderRadiuses"
 import { BACKGROUND_COLORS, TEXT_COLORS } from "@/constants/colors"
 
 const MIC_ICON_SIZE = 16
-const BLUR_INTENSITY = 40
-const BADGE_BACKGROUND = "rgba(0, 0, 0, 0.25)"
 const BADGE_INSET = 4
 
 interface ConnectedParticipantTileProps {
@@ -69,7 +65,10 @@ const ConnectedParticipantTile = ({
   const badge = (
     <>
       {isMicrophoneMuted && (
-        <MicDisabledIcon size={MIC_ICON_SIZE} color={TEXT_COLORS.danger} />
+        <MicDisabledIcon
+          size={MIC_ICON_SIZE}
+          color={TEXT_COLORS.participantStatusDanger}
+        />
       )}
 
       <Text
@@ -96,23 +95,17 @@ const ConnectedParticipantTile = ({
         />
       ) : (
         <View style={styles.placeholderView}>
-          <ParticipantPlaceholderIcon size={placeholderSize} />
+          <ParticipantPlaceholderIcon
+            size={placeholderSize}
+            color={TEXT_COLORS.placeholder}
+          />
         </View>
       )}
 
       <View style={styles.badgeAnchor}>
-        {hasVideo ? (
-          <BlurView
-            style={[styles.badge, styles.badgeOnVideo]}
-            intensity={BLUR_INTENSITY}
-            tint="dark"
-            experimentalBlurMethod="dimezisBlurView"
-          >
-            {badge}
-          </BlurView>
-        ) : (
-          <View style={styles.badge}>{badge}</View>
-        )}
+        <View testID="participant-badge" style={styles.badge}>
+          {badge}
+        </View>
       </View>
     </View>
   )
@@ -147,13 +140,19 @@ const PreviewParticipantTile = ({
         <VideoTrack style={styles.videoView} trackRef={trackRef} mirror />
       ) : (
         <View style={styles.placeholderView}>
-          <ParticipantPlaceholderIcon size={placeholderSize} />
+          <ParticipantPlaceholderIcon
+            size={placeholderSize}
+            color={TEXT_COLORS.placeholder}
+          />
         </View>
       )}
       <View style={styles.badgeAnchor}>
-        <View style={styles.badge}>
+        <View testID="participant-badge" style={styles.badge}>
           {!isMicrophoneEnabled && (
-            <MicDisabledIcon size={MIC_ICON_SIZE} color={TEXT_COLORS.danger} />
+            <MicDisabledIcon
+              size={MIC_ICON_SIZE}
+              color={TEXT_COLORS.participantStatusDanger}
+            />
           )}
           <Text style={styles.participantName} numberOfLines={1}>
             {displayName || "You"} (You)
@@ -199,11 +198,9 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 8,
     paddingVertical: 4,
-  },
-  badgeOnVideo: {
     borderRadius: BORDER_RADIUSES.small,
     overflow: "hidden",
-    backgroundColor: BADGE_BACKGROUND,
+    backgroundColor: BACKGROUND_COLORS.participantBadge,
   },
   participantName: {
     flexShrink: 1,
