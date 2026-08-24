@@ -27,7 +27,7 @@ export const ActiveRoom = ({
   useRegisterActiveRoomDisconnect(company, roomSlug, onForcedDisconnect)
 
   return (
-    <SafeAreaView style={styles.roomContainer}>
+    <SafeAreaView testID="active-room" style={styles.roomContainer}>
       <VideoConference />
       <ControlBar />
       <StatusBar style="light" />

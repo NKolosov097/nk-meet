@@ -54,8 +54,18 @@ export const GridPreview = () => {
               preset === count ? styles.presetButtonActive : undefined,
             ]}
             onPress={() => setCount(preset)}
+            accessibilityLabel={`Show ${preset} ${preset === 1 ? "participant" : "participants"}`}
+            accessibilityRole="button"
+            accessibilityState={{ selected: preset === count }}
           >
-            <Text style={styles.presetButtonText}>{preset}</Text>
+            <Text
+              style={[
+                styles.presetButtonText,
+                preset === count ? styles.presetButtonActiveText : undefined,
+              ]}
+            >
+              {preset}
+            </Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -118,6 +128,9 @@ const styles = StyleSheet.create({
   presetButtonText: {
     color: TEXT_COLORS.light,
     fontWeight: "600",
+  },
+  presetButtonActiveText: {
+    color: TEXT_COLORS.onPrimary,
   },
   gridWrapper: {
     flex: 1,

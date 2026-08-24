@@ -9,7 +9,12 @@ import { BACKGROUND_COLORS, TEXT_COLORS } from "@/constants/colors"
 // doesn't have — this just reserves the same footprint so the grid preview reflects
 // the real available height.
 export const ControlBarPreview = () => (
-  <View style={styles.controlsContainer}>
+  <View
+    testID="control-bar-preview"
+    style={styles.controlsContainer}
+    accessibilityElementsHidden
+    importantForAccessibility="no-hide-descendants"
+  >
     <View style={styles.controlButton}>
       <MicIcon />
     </View>
@@ -18,8 +23,11 @@ export const ControlBarPreview = () => (
       <CameraIcon />
     </View>
 
-    <View style={[styles.controlButton, styles.disconnectButton]}>
-      <DisconnectIcon />
+    <View
+      testID="control-bar-preview-disconnect"
+      style={[styles.controlButton, styles.disconnectButton]}
+    >
+      <DisconnectIcon color={TEXT_COLORS.onDanger} />
     </View>
   </View>
 )
@@ -42,6 +50,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   disconnectButton: {
-    backgroundColor: TEXT_COLORS.danger,
+    backgroundColor: BACKGROUND_COLORS.dangerAction,
   },
 })
