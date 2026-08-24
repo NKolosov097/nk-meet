@@ -68,10 +68,10 @@ test("keeps the call alive when the link targets the active company and room", a
 })
 
 test("disconnects a same-slug call when the link selects another company", async () => {
-  const roomA = registration("nkolosov", "room-a")
+  const roomA = registration("nkolosov-1", "room-a")
   registerActiveRoom(roomA)
 
-  await disconnectActiveRoom({ company: "globex", slug: "room-a" })
+  await disconnectActiveRoom({ company: "nkolosov-2", slug: "room-a" })
 
   expect(roomA.disconnect).toHaveBeenCalledTimes(1)
 })

@@ -2,6 +2,7 @@
 
 - In TypeScript, use `VoidFunction` instead of writing out `() => void`.
 - Do not use double type assertions such as `as unknown as SomeType`; model the value correctly or use a typed fixture/builder.
+- In tests, use `nkolosov` for one company and `nkolosov-1` / `nkolosov-2` when a scenario needs distinct companies.
 - Do not create inline object or array literals in JSX props except for `style`; assign them to named variables first. This applies to production code and tests.
 - In `interface` declarations, add a one-line comment above each field explaining what it holds.
 - Comments must be 1-3 lines maximum. If it needs more, it belongs in a doc, not a comment block.

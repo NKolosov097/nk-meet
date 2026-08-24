@@ -94,7 +94,7 @@ const mockLinking = jest.requireMock(
 let listeners: LinkListener[] = []
 let app: ReturnType<typeof renderRouter>
 
-const renderApp = async (): Promise<void> => {
+const renderApp = async (company = "nkolosov"): Promise<void> => {
   app = renderRouter(
     {
       _layout: require("./_layout"),
@@ -103,7 +103,7 @@ const renderApp = async (): Promise<void> => {
       "[company]/[slug]": require("./[company]/[slug]"),
       "+native-intent": require("./+native-intent"),
     },
-    { initialUrl: "/nkolosov" },
+    { initialUrl: `/${company}` },
   )
   await app
 }
@@ -140,13 +140,13 @@ beforeEach(() => {
 afterEach(() => jest.restoreAllMocks())
 
 test("tears down the active call before a link opens another company room", async () => {
-  await renderApp()
+  await renderApp("nkolosov-1")
   await joinRoom("room-a")
 
-  await openLink("nk-meet://globex/room-a")
+  await openLink("nk-meet://nkolosov-2/room-a")
 
   await waitFor(() => expect(rooms[0].disconnect).toHaveBeenCalled())
-  expect(app.getPathname()).toBe("/globex/room-a")
+  expect(app.getPathname()).toBe("/nkolosov-2/room-a")
   expect(screen.getByText("Room: room-a")).toBeVisible()
   expect(screen.queryByText("In call")).not.toBeOnTheScreen()
 })
@@ -163,12 +163,12 @@ test("keeps the call alive for an equivalent company and room link", async () =>
 })
 
 test("routes a company-only deep link to its landing after teardown", async () => {
-  await renderApp()
+  await renderApp("nkolosov-1")
   await joinRoom("room-a")
 
-  await openLink("nk-meet:/globex")
+  await openLink("nk-meet:/nkolosov-2")
 
   await waitFor(() => expect(rooms[0].disconnect).toHaveBeenCalled())
-  expect(app.getPathname()).toBe("/globex")
+  expect(app.getPathname()).toBe("/nkolosov-2")
   expect(screen.getByLabelText("Room code")).toBeVisible()
 })

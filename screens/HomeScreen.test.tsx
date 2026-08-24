@@ -138,24 +138,24 @@ test("does not show a recent-meetings section without history", async () => {
 test("keeps recent meetings in their persisted newest-first order", async () => {
   mockRecentRooms = [
     {
-      company: "globex",
+      company: "nkolosov-2",
       slug: "room-b",
       participantName: "Grace",
       joinedAt: 200,
     },
     {
-      company: "nkolosov",
+      company: "nkolosov-1",
       slug: "room-a",
       participantName: "Ada",
       joinedAt: 100,
     },
   ]
-  await render(<HomeScreen company="nkolosov" />)
+  await render(<HomeScreen company="nkolosov-1" />)
 
   const rows = await screen.findAllByLabelText(/^Rejoin /)
   expect(rows.map(row => row.props.accessibilityLabel)).toEqual([
-    "Rejoin room-b as Grace in globex",
-    "Rejoin room-a as Ada in NKolosov",
+    "Rejoin room-b as Grace in nkolosov-2",
+    "Rejoin room-a as Ada in nkolosov-1",
   ])
 })
 
@@ -206,25 +206,27 @@ test("keeps the disabled Join label readable at AA contrast", async () => {
 test("shows a recent room's company and opens its stored company route", async () => {
   mockRecentRooms = [
     {
-      company: "globex",
+      company: "nkolosov-2",
       slug: "weekly-sync",
       participantName: "Grace",
       joinedAt: 100,
     },
   ]
-  await render(<HomeScreen company="nkolosov" />)
+  await render(<HomeScreen company="nkolosov-1" />)
 
   expect(await screen.findByText("Recent meetings")).toHaveProp(
     "accessibilityRole",
     "header",
   )
-  expect(await screen.findByText("globex")).toBeVisible()
+  expect(await screen.findByText("nkolosov-2")).toBeVisible()
   await fireEvent.press(
-    screen.getByLabelText("Rejoin weekly-sync as Grace in globex"),
+    screen.getByLabelText("Rejoin weekly-sync as Grace in nkolosov-2"),
   )
 
-  expect(screen.getByTestId("recent-room-company")).toHaveTextContent("globex")
-  expect(mockPush).toHaveBeenCalledWith("/globex/weekly-sync")
+  expect(screen.getByTestId("recent-room-company")).toHaveTextContent(
+    "nkolosov-2",
+  )
+  expect(mockPush).toHaveBeenCalledWith("/nkolosov-2/weekly-sync")
 })
 
 test("displays the branded default company name", async () => {
@@ -251,13 +253,13 @@ test("displays the branded default company name", async () => {
 test("groups recent meeting identity above participant and time details", async () => {
   mockRecentRooms = [
     {
-      company: "globex",
+      company: "nkolosov-2",
       slug: "weekly-sync",
       participantName: "Grace",
       joinedAt: Date.now(),
     },
   ]
-  await render(<HomeScreen company="nkolosov" />)
+  await render(<HomeScreen company="nkolosov-1" />)
 
   expect(await screen.findByTestId("recent-room-identity")).toHaveStyle({
     flexDirection: "row",

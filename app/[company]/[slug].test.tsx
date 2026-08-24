@@ -206,13 +206,13 @@ test("uses the company identity when handling canonical duplicate routes", async
 })
 
 test("does not dismiss a same-slug route for a different company", async () => {
-  mockCompany = "Nkolosov"
+  mockCompany = "nkolosov-1"
   mockSlug = "Weekly Sync"
-  mockActiveRoom = { company: "globex", slug: "weekly-sync" }
+  mockActiveRoom = { company: "nkolosov-2", slug: "weekly-sync" }
   await render(<RoomScreen />)
 
   expect(mockBack).not.toHaveBeenCalled()
-  expect(mockReplace).toHaveBeenCalledWith("/nkolosov/weekly-sync")
+  expect(mockReplace).toHaveBeenCalledWith("/nkolosov-1/weekly-sync")
   expect(screen.getByLabelText("Participant name")).toBeVisible()
 })
 

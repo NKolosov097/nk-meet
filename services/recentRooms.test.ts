@@ -298,13 +298,13 @@ test("keeps the same slug separate for different companies", async () => {
   mockGetItem.mockResolvedValue(
     JSON.stringify([
       {
-        company: "nkolosov",
+        company: "nkolosov-1",
         slug: "weekly-sync",
         participantName: "Ada",
         joinedAt: 1,
       },
       {
-        company: "globex",
+        company: "nkolosov-2",
         slug: "weekly-sync",
         participantName: "Grace",
         joinedAt: 2,
@@ -313,8 +313,8 @@ test("keeps the same slug separate for different companies", async () => {
   )
   const { getRecentRoom } = loadRecentRooms()
 
-  await expect(getRecentRoom("globex", "weekly-sync")).resolves.toEqual({
-    company: "globex",
+  await expect(getRecentRoom("nkolosov-2", "weekly-sync")).resolves.toEqual({
+    company: "nkolosov-2",
     slug: "weekly-sync",
     participantName: "Grace",
     joinedAt: 2,
@@ -325,7 +325,7 @@ test("does not overwrite a same-slug room in another company", async () => {
   mockGetItem.mockResolvedValue(
     JSON.stringify([
       {
-        company: "globex",
+        company: "nkolosov-2",
         slug: "weekly-sync",
         participantName: "Grace",
         joinedAt: 2,
@@ -334,17 +334,17 @@ test("does not overwrite a same-slug room in another company", async () => {
   )
   const { saveRecentRoom } = loadRecentRooms()
 
-  await saveRecentRoom("nkolosov", "weekly-sync", "Ada")
+  await saveRecentRoom("nkolosov-1", "weekly-sync", "Ada")
 
   const [, savedJson] = mockSetItem.mock.calls[0]
   expect(JSON.parse(savedJson)).toEqual([
     expect.objectContaining({
-      company: "nkolosov",
+      company: "nkolosov-1",
       slug: "weekly-sync",
       participantName: "Ada",
     }),
     {
-      company: "globex",
+      company: "nkolosov-2",
       slug: "weekly-sync",
       participantName: "Grace",
       joinedAt: 2,
