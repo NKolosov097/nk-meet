@@ -25,9 +25,15 @@ jest.mock("@livekit/react-native", () => ({
 
     return React.createElement(View, { testID: "participant-video" })
   },
+  VideoView: () => {
+    const React = require("react")
+    const { View } = require("react-native")
+
+    return React.createElement(View, { testID: "participant-video" })
+  },
 }))
 
-const mockIsTrackReference = isTrackReference as unknown as jest.Mock
+const mockIsTrackReference = jest.mocked(isTrackReference)
 const mockUseTrackMutedIndicator = useTrackMutedIndicator as jest.Mock
 
 const connectedTrack = {
@@ -38,7 +44,7 @@ const connectedTrack = {
   },
   publication: { track: {} },
   source: Track.Source.Camera,
-} as unknown as TrackReferenceOrPlaceholder
+} as TrackReferenceOrPlaceholder
 
 type RenderedNativeNode = {
   type: string

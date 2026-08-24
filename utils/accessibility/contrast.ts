@@ -10,11 +10,13 @@ const RGBA_COLOR_PATTERN =
   /^rgba\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d+(?:\.\d+)?|\.\d+)\s*\)$/
 const RGBA_FUNCTION_NAME = "rgba"
 
+// Creates a consistent validation error for unsupported color strings.
 const unsupportedColorError = (color: string): Error =>
   new Error(
     `Unsupported color format: ${color}. Use #RRGGBB or ${RGBA_FUNCTION_NAME}(r, g, b, a).`,
   )
 
+// Parses supported hex and rgba strings into numeric color channels.
 const parseColor = (color: string): RgbaColor => {
   const hexMatch = color.match(HEX_COLOR_PATTERN)
 
@@ -42,15 +44,20 @@ const parseColor = (color: string): RgbaColor => {
   return { red, green, blue, alpha }
 }
 
+// Converts an RGB channel to a two-character uppercase hex value.
 const channelToHex = (channel: number): string =>
   Math.round(channel).toString(16).padStart(2, "0").toUpperCase()
 
+// Rounds a composited color channel to the nearest integer.
 const roundedChannel = (channel: number): number => Math.round(channel)
 
+// Limits alpha precision while omitting unnecessary trailing zeroes.
 const formattedAlpha = (alpha: number): string =>
   Number(alpha.toFixed(3)).toString()
 
+// Calculates WCAG relative luminance from an RGB color.
 const relativeLuminance = ({ red, green, blue }: RgbaColor): number => {
+  // Converts a gamma-encoded sRGB channel to its linear-light value.
   const linearize = (channel: number): number => {
     const normalized = channel / 255
 
@@ -66,6 +73,7 @@ const relativeLuminance = ({ red, green, blue }: RgbaColor): number => {
   )
 }
 
+// Composites a foreground color over a background and returns a CSS color.
 export const compositeColor = (
   foreground: string,
   background: string,
@@ -75,6 +83,7 @@ export const compositeColor = (
   const alpha =
     foregroundColor.alpha + backgroundColor.alpha * (1 - foregroundColor.alpha)
 
+  // Blends one foreground channel with its matching background channel.
   const composeChannel = (
     foregroundChannel: number,
     backgroundChannel: number,
@@ -98,6 +107,7 @@ export const compositeColor = (
   return `${RGBA_FUNCTION_NAME}(${roundedChannel(red)}, ${roundedChannel(green)}, ${roundedChannel(blue)}, ${formattedAlpha(alpha)})`
 }
 
+// Calculates the WCAG contrast ratio against an opaque background.
 export const contrastRatio = (
   foreground: string,
   background: string,

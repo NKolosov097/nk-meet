@@ -34,6 +34,7 @@ jest.mock("@/services/livekitToken", () => ({
 
 jest.mock("@livekit/react-native", () => ({
   VideoTrack: () => null,
+  VideoView: () => null,
   isTrackReference: (trackRef: { publication?: unknown }) =>
     Boolean(trackRef.publication),
   useTrackMutedIndicator: () => ({ isMuted: false }),

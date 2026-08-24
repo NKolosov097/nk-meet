@@ -1,11 +1,10 @@
-import { useMemo } from "react"
 import { StyleSheet, Text, View } from "react-native"
 
 import {
   isTrackReference,
   useTrackMutedIndicator,
   VideoTrack,
-  type TrackReference,
+  VideoView,
   type TrackReferenceOrPlaceholder,
 } from "@livekit/react-native"
 import { Track, type LocalVideoTrack } from "livekit-client"
@@ -49,6 +48,11 @@ interface PreviewParticipantTileProps {
 
 type ParticipantTileProps =
   ConnectedParticipantTileProps | PreviewParticipantTileProps
+
+// Identifies the pre-join variant by its required preview track value.
+const isPreviewParticipantTile = (
+  props: ParticipantTileProps,
+): props is PreviewParticipantTileProps => props.previewTrack !== undefined
 
 const ConnectedParticipantTile = ({
   trackRef,
@@ -122,17 +126,6 @@ const PreviewParticipantTile = ({
   width,
   height,
 }: PreviewParticipantTileProps) => {
-  const trackRef = useMemo(
-    () =>
-      previewTrack
-        ? ({
-            participant: { identity: "prejoin", isLocal: true },
-            publication: { track: previewTrack },
-            source: Track.Source.Camera,
-          } as unknown as TrackReference)
-        : undefined,
-    [previewTrack],
-  )
   const placeholderSize = Math.min(width, height) * 0.5
 
   return (
@@ -140,8 +133,8 @@ const PreviewParticipantTile = ({
       accessibilityLabel="Pre-join participant preview"
       style={[styles.participantContainer, { width, height }]}
     >
-      {trackRef ? (
-        <VideoTrack style={styles.videoView} trackRef={trackRef} mirror />
+      {previewTrack ? (
+        <VideoView style={styles.videoView} videoTrack={previewTrack} mirror />
       ) : (
         <View style={styles.placeholderView}>
           <ParticipantPlaceholderIcon
@@ -168,10 +161,10 @@ const PreviewParticipantTile = ({
 }
 
 export const ParticipantTile = (props: ParticipantTileProps) =>
-  props.trackRef !== undefined ? (
-    <ConnectedParticipantTile {...props} />
+  isPreviewParticipantTile(props) ? (
+    <PreviewParticipantTile {...props} />
   ) : (
-    <PreviewParticipantTile {...(props as PreviewParticipantTileProps)} />
+    <ConnectedParticipantTile {...props} />
   )
 
 const styles = StyleSheet.create({
