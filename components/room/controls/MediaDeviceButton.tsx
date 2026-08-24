@@ -33,8 +33,6 @@ interface MediaDeviceButtonProps {
   dropdownDisabled?: boolean
   // Whether the related device list is currently visible
   isDropdownVisible: boolean
-  // Additional state exposed by the main button
-  toggleAccessibilityState?: AccessibilityState
   // Additional state exposed by the dropdown button
   dropdownAccessibilityState?: AccessibilityState
 }
@@ -49,7 +47,6 @@ export const MediaDeviceButton = ({
   disabled,
   dropdownDisabled = false,
   isDropdownVisible,
-  toggleAccessibilityState,
   dropdownAccessibilityState,
 }: MediaDeviceButtonProps) => {
   const hasText = text !== undefined
@@ -66,7 +63,7 @@ export const MediaDeviceButton = ({
         disabled={disabled}
         accessibilityLabel={toggleAccessibilityLabel}
         accessibilityRole="button"
-        accessibilityState={{ ...toggleAccessibilityState, disabled }}
+        accessibilityState={{ disabled }}
       >
         <View
           testID="media-device-button-icon"

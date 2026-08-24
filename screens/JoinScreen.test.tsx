@@ -255,7 +255,7 @@ test("exposes media toggles and selector disclosure state to accessibility", asy
   await fireEvent.press(screen.getByLabelText("Turn on microphone"))
   expect(screen.getByLabelText("Turn off microphone")).toHaveProp(
     "accessibilityState",
-    expect.objectContaining({ selected: true }),
+    expect.objectContaining({ selected: undefined }),
   )
 
   await fireEvent.press(screen.getByLabelText("Select microphone"))

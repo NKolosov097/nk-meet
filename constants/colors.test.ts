@@ -1,6 +1,6 @@
 import { contrastRatio } from "../utils/accessibility/contrast"
 
-import { BACKGROUND_COLORS, TEXT_COLORS } from "./colors"
+import { BACKGROUND_COLORS, BORDER_COLORS, TEXT_COLORS } from "./colors"
 
 describe("semantic color palette", () => {
   it("provides accessible action and placeholder colors", () => {
@@ -37,5 +37,14 @@ describe("semantic color palette", () => {
     expect(
       contrastRatio(TEXT_COLORS.disabled, BACKGROUND_COLORS.disabled),
     ).toBeGreaterThanOrEqual(4.5)
+  })
+
+  it("keeps meaningful control dividers visible on room control surfaces", () => {
+    expect(
+      contrastRatio(BORDER_COLORS.controlDivider, "#333333"),
+    ).toBeGreaterThanOrEqual(3)
+    expect(
+      contrastRatio(BORDER_COLORS.controlDivider, BACKGROUND_COLORS.elevated),
+    ).toBeGreaterThanOrEqual(3)
   })
 })

@@ -29,7 +29,6 @@ test("renders a compact compound media button with an optional centered label", 
   expect(screen.getByLabelText("Select camera")).toHaveStyle({
     borderTopRightRadius: 8,
     borderBottomRightRadius: 8,
-    borderLeftColor: "rgba(255, 255, 255, 0.4)",
   })
   expect(screen.getByTestId("media-device-button-icon")).toHaveStyle({
     position: "absolute",

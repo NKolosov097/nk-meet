@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: BORDER_COLORS.divider,
+    borderBottomColor: BORDER_COLORS.controlDivider,
   },
   selectedDevice: {
     backgroundColor: BACKGROUND_COLORS.primary,

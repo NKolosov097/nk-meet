@@ -343,7 +343,6 @@ export const JoinScreen = ({
                 disabled={areMediaControlsDisabled}
                 dropdownDisabled={areMediaControlsDisabled}
                 isDropdownVisible={openDropdown === "microphone"}
-                toggleAccessibilityState={{ selected: microphoneEnabled }}
                 dropdownAccessibilityState={{
                   expanded: openDropdown === "microphone",
                 }}
@@ -387,7 +386,6 @@ export const JoinScreen = ({
                 disabled={areMediaControlsDisabled}
                 dropdownDisabled={areMediaControlsDisabled}
                 isDropdownVisible={openDropdown === "camera"}
-                toggleAccessibilityState={{ selected: cameraEnabled }}
                 dropdownAccessibilityState={{
                   expanded: openDropdown === "camera",
                 }}

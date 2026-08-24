@@ -33,7 +33,7 @@ export const BORDER_COLORS = {
   lightBorder: "#ddd",
   danger: "#f44336",
   divider: "rgba(255, 255, 255, 0.15)",
-  controlDivider: "rgba(255, 255, 255, 0.4)",
+  controlDivider: "rgba(255, 255, 255, 0.5)",
 }
 
 export const SHADOW_COLORS = {

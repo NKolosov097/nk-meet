@@ -1,18 +1,11 @@
 import React, { useCallback, useEffect, useState } from "react"
-import {
-  Alert,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native"
+import { Alert, Pressable, StyleSheet, View } from "react-native"
 
 import { useRoomContext } from "@livekit/react-native"
 import { Track } from "livekit-client"
 
 import { CameraDisabledIcon, CameraIcon } from "@/components/icons"
+import { DeviceDropdown } from "@/components/room/controls/DeviceDropdown"
 import { MediaDeviceButton } from "@/components/room/controls/MediaDeviceButton"
 import {
   initializeActiveMediaDevice,
@@ -20,12 +13,7 @@ import {
   useActiveMediaDevice,
 } from "@/components/room/controls/useActiveMediaDevice"
 import { useBoundedDeviceDropdownLayout } from "@/components/room/controls/useBoundedDeviceDropdownLayout"
-import { BORDER_RADIUSES } from "@/constants/borderRadiuses"
-import {
-  BACKGROUND_COLORS,
-  TEXT_COLORS,
-  SHADOW_COLORS,
-} from "@/constants/colors"
+import { BACKGROUND_COLORS } from "@/constants/colors"
 
 interface VideoDevice {
   // Browser-assigned identifier for this device
@@ -142,30 +130,21 @@ export const CameraControl = ({
 
         {/* Camera dropdown list */}
         {isDropdownVisible && (
-          <View style={[styles.dropdownContainer, dropdownPositionStyle]}>
-            <ScrollView style={styles.deviceList}>
-              <Text style={styles.sectionTitle}>Select camera</Text>
-
-              {videoDevices.map(device => (
-                <TouchableOpacity
-                  key={device.deviceId}
-                  style={[
-                    styles.deviceItem,
-                    selectedVideoDevice === device.deviceId
-                      ? styles.selectedDevice
-                      : undefined,
-                  ]}
-                  onPress={() => handleDeviceSelect(device.deviceId)}
-                >
-                  <Text style={styles.deviceLabel}>{device.label}</Text>
-                </TouchableOpacity>
-              ))}
-
-              {videoDevices.length === 0 && (
-                <Text style={styles.noDevicesText}>No cameras found</Text>
-              )}
-            </ScrollView>
-          </View>
+          <DeviceDropdown
+            sections={[
+              {
+                title: "Select camera",
+                items: videoDevices.map(device => ({
+                  deviceId: device.deviceId,
+                  label: device.label,
+                  selected: selectedVideoDevice === device.deviceId,
+                  onPress: () => handleDeviceSelect(device.deviceId),
+                })),
+              },
+            ]}
+            emptyMessage="No cameras found"
+            positionStyle={dropdownPositionStyle}
+          />
         )}
       </View>
 
@@ -175,6 +154,7 @@ export const CameraControl = ({
           style={[styles.overlay, overlayStyle]}
           onPress={handleOutsidePress}
           accessibilityLabel="Close camera list"
+          accessibilityRole="button"
         />
       )}
     </>
@@ -190,62 +170,9 @@ const styles = StyleSheet.create({
     position: "relative",
     zIndex: 999,
   },
-  dropdownContainer: {
-    position: "absolute",
-    bottom: 49,
-    backgroundColor: BACKGROUND_COLORS.lightBackground,
-    borderRadius: BORDER_RADIUSES.large,
-    maxHeight: 400,
-    shadowColor: SHADOW_COLORS.black,
-    shadowOffset: {
-      width: 0,
-      height: -4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-    zIndex: 1000,
-  },
-  deviceList: {
-    maxHeight: 350,
-    borderRadius: BORDER_RADIUSES.large,
-    overflow: "hidden",
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: TEXT_COLORS.light,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: BACKGROUND_COLORS.lightBackground,
-  },
-  deviceItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: BACKGROUND_COLORS.tertiary,
-  },
   overlay: {
     position: "absolute",
     backgroundColor: BACKGROUND_COLORS.transparent,
     zIndex: 998,
-  },
-  selectedDevice: {
-    backgroundColor: BACKGROUND_COLORS.primary,
-  },
-  deviceLabel: {
-    fontSize: 14,
-    color: TEXT_COLORS.light,
-    flex: 1,
-  },
-  noDevicesText: {
-    fontSize: 14,
-    color: TEXT_COLORS.light,
-    textAlign: "center",
-    paddingVertical: 20,
-    fontStyle: "italic",
   },
 })

@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react-native"
 
-import { TEXT_COLORS } from "@/constants/colors"
+import { BORDER_COLORS, TEXT_COLORS } from "@/constants/colors"
 
 import { DeviceDropdown } from "./DeviceDropdown"
 
@@ -40,6 +40,9 @@ test("announces selected and unselected device rows as buttons", async () => {
   )
   expect(screen.getByText("Desk microphone")).toHaveStyle({
     color: TEXT_COLORS.onPrimary,
+  })
+  expect(screen.getByLabelText("Desk microphone device")).toHaveStyle({
+    borderBottomColor: BORDER_COLORS.controlDivider,
   })
   expect(screen.getByLabelText("Headset microphone device")).toHaveProp(
     "accessibilityRole",
