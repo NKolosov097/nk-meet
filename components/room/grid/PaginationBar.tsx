@@ -73,8 +73,10 @@ export const PaginationBar = ({
           onPress={onPrevious}
           disabled={isFirstPage}
           accessibilityLabel="Previous page"
+          accessibilityRole="button"
+          accessibilityState={{ disabled: isFirstPage }}
         >
-          <ChevronLeftIcon color={BACKGROUND_COLORS.primary} />
+          <ChevronLeftIcon color={TEXT_COLORS.paginationIcon} />
         </TouchableOpacity>
 
         <View style={styles.textContainer}>
@@ -92,8 +94,10 @@ export const PaginationBar = ({
           onPress={onNext}
           disabled={isLastPage}
           accessibilityLabel="Next page"
+          accessibilityRole="button"
+          accessibilityState={{ disabled: isLastPage }}
         >
-          <ChevronRightIcon color={BACKGROUND_COLORS.primary} />
+          <ChevronRightIcon color={TEXT_COLORS.paginationIcon} />
         </TouchableOpacity>
       </View>
     </Animated.View>
@@ -114,7 +118,7 @@ const styles = StyleSheet.create({
     backgroundColor: BACKGROUND_COLORS.elevated,
     borderRadius: BORDER_RADIUSES.medium,
     borderWidth: 1,
-    borderColor: BORDER_COLORS.divider,
+    borderColor: BORDER_COLORS.controlDivider,
     overflow: "hidden",
   },
   button: {
@@ -127,13 +131,13 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: BORDER_RADIUSES.medium,
     borderBottomLeftRadius: BORDER_RADIUSES.medium,
     borderRightWidth: 1,
-    borderRightColor: BORDER_COLORS.divider,
+    borderRightColor: BORDER_COLORS.controlDivider,
   },
   buttonRight: {
     borderTopRightRadius: BORDER_RADIUSES.medium,
     borderBottomRightRadius: BORDER_RADIUSES.medium,
     borderLeftWidth: 1,
-    borderLeftColor: BORDER_COLORS.divider,
+    borderLeftColor: BORDER_COLORS.controlDivider,
   },
   buttonDisabled: {
     opacity: 0.4,

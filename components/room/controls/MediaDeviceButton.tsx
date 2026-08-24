@@ -66,7 +66,7 @@ export const MediaDeviceButton = ({
         disabled={disabled}
         accessibilityLabel={toggleAccessibilityLabel}
         accessibilityRole="button"
-        accessibilityState={{ disabled, ...toggleAccessibilityState }}
+        accessibilityState={{ ...toggleAccessibilityState, disabled }}
       >
         <View
           testID="media-device-button-icon"
@@ -86,8 +86,9 @@ export const MediaDeviceButton = ({
         accessibilityLabel={dropdownAccessibilityLabel}
         accessibilityRole="button"
         accessibilityState={{
-          disabled: dropdownDisabled,
           ...dropdownAccessibilityState,
+          disabled: dropdownDisabled,
+          expanded: isDropdownVisible,
         }}
       >
         <Text
@@ -128,8 +129,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: BACKGROUND_COLORS.secondary,
-    borderTopLeftRadius: BORDER_RADIUSES.pill,
-    borderBottomLeftRadius: BORDER_RADIUSES.pill,
+    borderTopLeftRadius: BORDER_RADIUSES.medium,
+    borderBottomLeftRadius: BORDER_RADIUSES.medium,
   },
   labeledToggleButton: {
     flex: 1,
@@ -166,9 +167,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: BACKGROUND_COLORS.secondary,
     borderLeftWidth: 1,
-    borderLeftColor: BORDER_COLORS.lightBorder,
-    borderTopRightRadius: BORDER_RADIUSES.pill,
-    borderBottomRightRadius: BORDER_RADIUSES.pill,
+    borderLeftColor: BORDER_COLORS.controlDivider,
+    borderTopRightRadius: BORDER_RADIUSES.medium,
+    borderBottomRightRadius: BORDER_RADIUSES.medium,
   },
   disabledButton: {
     opacity: 0.4,

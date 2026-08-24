@@ -115,8 +115,9 @@ export const ControlBar = () => {
           style={[styles.controlButton, styles.disconnectButton]}
           onPress={requestDisconnect}
           accessibilityLabel="Disconnect from room"
+          accessibilityRole="button"
         >
-          <DisconnectIcon />
+          <DisconnectIcon color={TEXT_COLORS.onDanger} />
         </TouchableOpacity>
       </View>
 
@@ -142,11 +143,11 @@ const styles = StyleSheet.create({
     backgroundColor: BACKGROUND_COLORS.secondary,
     width: 50,
     height: 50,
-    borderRadius: BORDER_RADIUSES.pill,
+    borderRadius: BORDER_RADIUSES.medium,
     justifyContent: "center",
     alignItems: "center",
   },
   disconnectButton: {
-    backgroundColor: TEXT_COLORS.danger,
+    backgroundColor: BACKGROUND_COLORS.dangerAction,
   },
 })

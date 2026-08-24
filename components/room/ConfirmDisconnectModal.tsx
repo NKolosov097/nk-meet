@@ -29,6 +29,7 @@ export const ConfirmDisconnectModal = ({
           style={styles.backdrop}
           onPress={onCancel}
           accessibilityLabel="Close disconnect confirmation"
+          accessibilityRole="button"
         />
 
         <View style={styles.card}>
@@ -39,6 +40,7 @@ export const ConfirmDisconnectModal = ({
               style={[styles.button, styles.cancelButton]}
               onPress={onCancel}
               accessibilityLabel="Cancel"
+              accessibilityRole="button"
             >
               <Text style={styles.buttonText}>Cancel</Text>
             </Pressable>
@@ -47,8 +49,11 @@ export const ConfirmDisconnectModal = ({
               style={[styles.button, styles.disconnectButton]}
               onPress={onConfirm}
               accessibilityLabel="Confirm disconnect"
+              accessibilityRole="button"
             >
-              <Text style={styles.buttonText}>Disconnect</Text>
+              <Text style={[styles.buttonText, styles.disconnectButtonText]}>
+                Disconnect
+              </Text>
             </Pressable>
           </View>
         </View>
@@ -102,11 +107,14 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   disconnectButton: {
-    backgroundColor: TEXT_COLORS.danger,
+    backgroundColor: BACKGROUND_COLORS.dangerAction,
     marginLeft: 8,
   },
   buttonText: {
     color: TEXT_COLORS.light,
     fontWeight: "600",
+  },
+  disconnectButtonText: {
+    color: TEXT_COLORS.onDanger,
   },
 })

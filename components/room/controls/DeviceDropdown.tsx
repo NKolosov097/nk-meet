@@ -70,7 +70,14 @@ export const DeviceDropdown = ({
                 accessibilityState={{ selected: item.selected }}
                 onPress={item.onPress}
               >
-                <Text style={styles.deviceLabel}>{item.label}</Text>
+                <Text
+                  style={[
+                    styles.deviceLabel,
+                    item.selected ? styles.selectedDeviceLabel : undefined,
+                  ]}
+                >
+                  {item.label}
+                </Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -128,6 +135,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: TEXT_COLORS.light,
     flex: 1,
+  },
+  selectedDeviceLabel: {
+    color: TEXT_COLORS.onPrimary,
   },
   noDevicesText: {
     fontSize: 14,

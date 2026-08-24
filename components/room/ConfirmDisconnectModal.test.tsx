@@ -1,5 +1,7 @@
 import { fireEvent, render } from "@testing-library/react-native"
 
+import { BACKGROUND_COLORS, TEXT_COLORS } from "@/constants/colors"
+
 import { ConfirmDisconnectModal } from "./ConfirmDisconnectModal"
 
 test("does not render its content when not visible", async () => {
@@ -26,6 +28,24 @@ test("shows the confirmation card when visible", async () => {
   expect(view.getByText("Disconnect?")).toBeVisible()
   expect(view.getByLabelText("Cancel")).toBeVisible()
   expect(view.getByLabelText("Confirm disconnect")).toBeVisible()
+  expect(view.getByLabelText("Close disconnect confirmation")).toHaveProp(
+    "accessibilityRole",
+    "button",
+  )
+  expect(view.getByLabelText("Cancel")).toHaveProp(
+    "accessibilityRole",
+    "button",
+  )
+  expect(view.getByLabelText("Confirm disconnect")).toHaveProp(
+    "accessibilityRole",
+    "button",
+  )
+  expect(view.getByLabelText("Confirm disconnect")).toHaveStyle({
+    backgroundColor: BACKGROUND_COLORS.dangerAction,
+  })
+  expect(view.getByText("Disconnect")).toHaveStyle({
+    color: TEXT_COLORS.onDanger,
+  })
 })
 
 test("calls onConfirm when the Disconnect button is pressed", async () => {
