@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import {
   ActivityIndicator,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -346,17 +347,26 @@ export const JoinScreen = ({
 
       <ScrollView
         testID="join-screen-scroll"
-        contentContainerStyle={[
-          styles.content,
-          { paddingTop: insets.top + 80 },
-        ]}
+        contentContainerStyle={[styles.content]}
         keyboardShouldPersistTaps="handled"
       >
-        <Text accessibilityRole="header" style={styles.subtitle}>
-          Room: {roomSlug}
-        </Text>
+        <View
+          testID="prejoin-media-group"
+          style={[styles.preJoinMediaGroup, { paddingTop: insets.top + 80 }]}
+        >
+          <Text accessibilityRole="header" style={styles.subtitle}>
+            Room: {roomSlug}
+          </Text>
 
-        <View testID="prejoin-media-group" style={styles.preJoinMediaGroup}>
+          {openDeviceKind !== undefined && (
+            <Pressable
+              style={styles.preJoinDropdownOverlay}
+              onPress={() => setOpenDeviceKind(undefined)}
+              accessibilityLabel="Close device list"
+              accessibilityRole="button"
+            />
+          )}
+
           <View style={styles.previewContainer}>
             <ParticipantTile
               previewTrack={previewTrack}
@@ -372,7 +382,10 @@ export const JoinScreen = ({
               <MediaDeviceButton
                 icon={microphoneEnabled ? <MicIcon /> : <MicDisabledIcon />}
                 text="Microphone"
-                onToggle={() => setMicrophoneEnabled(enabled => !enabled)}
+                onToggle={() => {
+                  setOpenDeviceKind(undefined)
+                  setMicrophoneEnabled(enabled => !enabled)
+                }}
                 onToggleDropdown={() =>
                   setOpenDeviceKind(current =>
                     current === "audioinput" ? undefined : "audioinput",
@@ -404,7 +417,10 @@ export const JoinScreen = ({
               <MediaDeviceButton
                 icon={cameraEnabled ? <CameraIcon /> : <CameraDisabledIcon />}
                 text="Camera"
-                onToggle={() => setCameraEnabled(enabled => !enabled)}
+                onToggle={() => {
+                  setOpenDeviceKind(undefined)
+                  setCameraEnabled(enabled => !enabled)
+                }}
                 onToggleDropdown={() =>
                   setOpenDeviceKind(current =>
                     current === "videoinput" ? undefined : "videoinput",
@@ -428,57 +444,56 @@ export const JoinScreen = ({
               )}
             </View>
           </View>
-        </View>
-
-        <View testID="join-form-group" style={styles.joinFormGroup}>
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Your name:</Text>
-            <TextInput
-              style={styles.input}
-              value={name}
-              onChangeText={setName}
-              placeholder="Enter your name"
-              placeholderTextColor={TEXT_COLORS.placeholderOnLight}
-              autoCapitalize="words"
-              autoCorrect={false}
-              editable={!areMediaControlsDisabled}
-              returnKeyType="go"
-              onSubmitEditing={join}
-              accessibilityLabel="Participant name"
-              accessibilityState={nameInputAccessibilityState}
-            />
-          </View>
-
-          {message && (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>{message}</Text>
+          <View testID="join-form-group" style={styles.joinFormGroup}>
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Your name:</Text>
+              <TextInput
+                style={styles.input}
+                value={name}
+                onChangeText={setName}
+                placeholder="Enter your name"
+                placeholderTextColor={TEXT_COLORS.placeholderOnLight}
+                autoCapitalize="words"
+                autoCorrect={false}
+                editable={!areMediaControlsDisabled}
+                returnKeyType="go"
+                onSubmitEditing={join}
+                accessibilityLabel="Participant name"
+                accessibilityState={nameInputAccessibilityState}
+              />
             </View>
-          )}
 
-          <TouchableOpacity
-            style={[
-              styles.joinButton,
-              isJoinDisabled ? styles.joinButtonDisabled : undefined,
-            ]}
-            onPress={join}
-            disabled={isJoinDisabled}
-            accessibilityLabel="Join room"
-            accessibilityRole="button"
-            accessibilityState={joinAccessibilityState}
-          >
-            {isLoading ? (
-              <ActivityIndicator color={TEXT_COLORS.onPrimary} />
-            ) : (
-              <Text
-                style={[
-                  styles.joinButtonText,
-                  isJoinDisabled ? styles.joinButtonTextDisabled : undefined,
-                ]}
-              >
-                Join
-              </Text>
+            {message && (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{message}</Text>
+              </View>
             )}
-          </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.joinButton,
+                isJoinDisabled ? styles.joinButtonDisabled : undefined,
+              ]}
+              onPress={join}
+              disabled={isJoinDisabled}
+              accessibilityLabel="Join room"
+              accessibilityRole="button"
+              accessibilityState={joinAccessibilityState}
+            >
+              {isLoading ? (
+                <ActivityIndicator color={TEXT_COLORS.onPrimary} />
+              ) : (
+                <Text
+                  style={[
+                    styles.joinButtonText,
+                    isJoinDisabled ? styles.joinButtonTextDisabled : undefined,
+                  ]}
+                >
+                  Join
+                </Text>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
 
@@ -511,18 +526,20 @@ const styles = StyleSheet.create({
   },
   content: {
     flexGrow: 1,
-    padding: 20,
     justifyContent: "flex-start",
   },
   previewContainer: {
     alignItems: "center",
   },
   preJoinMediaGroup: {
-    gap: 12,
+    flexGrow: 1,
+    position: "relative",
   },
   mediaControls: {
     flexDirection: "row",
     gap: 12,
+    marginTop: 12,
+    marginHorizontal: 20,
     zIndex: 2,
   },
   controlWrapper: { flex: 1 },
@@ -530,9 +547,19 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
   },
+  preJoinDropdownOverlay: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    zIndex: 1,
+  },
   joinFormGroup: {
     gap: 12,
     marginTop: 28,
+    marginHorizontal: 20,
+    marginBottom: 20,
   },
   title: {
     fontSize: 22,
@@ -551,6 +578,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: "center",
     marginBottom: 20,
+    marginHorizontal: 20,
     color: TEXT_COLORS.placeholder,
   },
   inputContainer: {
