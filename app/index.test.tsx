@@ -18,4 +18,9 @@ test("routes the root path to the default company landing", async () => {
 
   await waitFor(() => expect(app.getPathname()).toBe("/nkolosov"))
   expect(screen.getByLabelText("Room code")).toBeVisible()
+  expect(screen.getByText("NK Meet")).toHaveProp("accessibilityRole", "header")
+  expect(screen.getByLabelText("Join room")).toHaveProp(
+    "accessibilityRole",
+    "button",
+  )
 })

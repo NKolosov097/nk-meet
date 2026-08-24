@@ -1,5 +1,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react-native"
 
+import { TEXT_COLORS } from "@/constants/colors"
+
 import { HomeScreen } from "./HomeScreen"
 
 import type { RecentRoom } from "@/services/recentRooms"
@@ -63,10 +65,32 @@ test("disables empty and invalid room codes without navigating", async () => {
   await render(<HomeScreen company="acme" />)
 
   expect(screen.getByLabelText("Join room")).toBeDisabled()
+  expect(screen.getByLabelText("Join room")).toHaveProp(
+    "accessibilityState",
+    expect.objectContaining({ disabled: true }),
+  )
   await fireEvent.changeText(screen.getByLabelText("Room code"), "!!!")
 
   expect(screen.getByLabelText("Join room")).toBeDisabled()
   expect(mockPush).not.toHaveBeenCalled()
+})
+
+test("exposes the landing actions and headings to assistive technology", async () => {
+  await render(<HomeScreen company="acme" />)
+
+  expect(screen.getByText("NK Meet")).toHaveProp("accessibilityRole", "header")
+  expect(screen.getByPlaceholderText("Enter a room code")).toHaveProp(
+    "placeholderTextColor",
+    TEXT_COLORS.placeholderOnLight,
+  )
+  expect(screen.getByLabelText("Join room")).toHaveProp(
+    "accessibilityRole",
+    "button",
+  )
+  expect(screen.getByLabelText("Create room")).toHaveProp(
+    "accessibilityRole",
+    "button",
+  )
 })
 
 test("disables all room actions when configuration is invalid", async () => {
@@ -88,6 +112,9 @@ test("disables all room actions when configuration is invalid", async () => {
   expect(
     await screen.findByLabelText("Rejoin weekly-sync as Grace in acme"),
   ).toBeDisabled()
+  expect(
+    screen.getByLabelText("Rejoin weekly-sync as Grace in acme"),
+  ).toHaveProp("accessibilityRole", "button")
 })
 
 test("does not show a recent-meetings section without history", async () => {
@@ -175,6 +202,10 @@ test("shows a recent room's company and opens its stored company route", async (
   ]
   await render(<HomeScreen company="acme" />)
 
+  expect(await screen.findByText("Recent meetings")).toHaveProp(
+    "accessibilityRole",
+    "header",
+  )
   expect(await screen.findByText("globex")).toBeVisible()
   await fireEvent.press(
     screen.getByLabelText("Rejoin weekly-sync as Grace in globex"),

@@ -99,6 +99,7 @@ export const HomeScreen = ({ company }: HomeScreenProps) => {
           onPress={() => joinRoom(item.company, item.slug)}
           disabled={isDisabled}
           accessibilityLabel={`Rejoin ${item.slug} as ${item.participantName} in ${displayCompany}`}
+          accessibilityRole="button"
         >
           <View testID="recent-room-identity" style={styles.recentRoomIdentity}>
             <Text
@@ -136,7 +137,9 @@ export const HomeScreen = ({ company }: HomeScreenProps) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>NK Meet</Text>
+        <Text accessibilityRole="header" style={styles.title}>
+          NK Meet
+        </Text>
         <Text style={styles.brandBy}>by NKolosov</Text>
 
         <View style={styles.inputContainer}>
@@ -146,7 +149,7 @@ export const HomeScreen = ({ company }: HomeScreenProps) => {
             value={roomCode}
             onChangeText={setRoomCode}
             placeholder="Enter a room code"
-            placeholderTextColor={TEXT_COLORS.placeholder}
+            placeholderTextColor={TEXT_COLORS.placeholderOnLight}
             autoCapitalize="none"
             autoCorrect={false}
             editable={!isDisabled}
@@ -170,6 +173,8 @@ export const HomeScreen = ({ company }: HomeScreenProps) => {
           onPress={onJoinByCode}
           disabled={isJoinDisabled}
           accessibilityLabel="Join room"
+          accessibilityRole="button"
+          accessibilityState={{ disabled: isJoinDisabled }}
         >
           <Text
             style={[
@@ -189,6 +194,7 @@ export const HomeScreen = ({ company }: HomeScreenProps) => {
           onPress={onCreateRoom}
           disabled={isDisabled}
           accessibilityLabel="Create room"
+          accessibilityRole="button"
         >
           <Text
             style={[
@@ -203,7 +209,9 @@ export const HomeScreen = ({ company }: HomeScreenProps) => {
 
       {recentRooms.length > 0 && (
         <>
-          <Text style={styles.recentRoomsLabel}>Recent meetings</Text>
+          <Text accessibilityRole="header" style={styles.recentRoomsLabel}>
+            Recent meetings
+          </Text>
           <FlatList
             style={styles.recentRoomsList}
             data={recentRooms}
@@ -279,7 +287,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   joinButtonDisabled: { backgroundColor: BACKGROUND_COLORS.disabled },
-  joinButtonText: { color: TEXT_COLORS.light, fontSize: 18, fontWeight: "600" },
+  joinButtonText: {
+    color: TEXT_COLORS.onPrimary,
+    fontSize: 18,
+    fontWeight: "600",
+  },
   joinButtonTextDisabled: { color: TEXT_COLORS.disabled },
   recentRoomsLabel: {
     fontSize: 16,

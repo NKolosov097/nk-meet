@@ -9,7 +9,7 @@ import {
 } from "@testing-library/react-native"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 
-import { BACKGROUND_COLORS } from "@/constants/colors"
+import { BACKGROUND_COLORS, TEXT_COLORS } from "@/constants/colors"
 
 import { JoinScreen as ActualJoinScreen } from "./JoinScreen"
 
@@ -419,6 +419,10 @@ test("keeps Join disabled until a non-whitespace name is entered", async () => {
   )
 
   expect(screen.getByLabelText("Join room")).toBeDisabled()
+  expect(screen.getByLabelText("Join room")).toHaveProp(
+    "accessibilityState",
+    expect.objectContaining({ disabled: true }),
+  )
   expect(screen.getByLabelText("Participant name")).toBeEnabled()
   expect(screen.getByLabelText("Turn on microphone")).toBeEnabled()
   expect(screen.getByLabelText("Turn on camera")).toBeEnabled()
@@ -429,6 +433,34 @@ test("keeps Join disabled until a non-whitespace name is entered", async () => {
   expect(screen.getByLabelText("Join room")).toBeEnabled()
   await fireEvent.changeText(screen.getByLabelText("Participant name"), "   ")
   expect(screen.getByLabelText("Join room")).toBeDisabled()
+})
+
+test("exposes join form actions, headings, and its readable placeholder", async () => {
+  await render(
+    <JoinScreen
+      roomSlug="quiet-tiger-42"
+      onJoined={jest.fn()}
+      onBack={jest.fn()}
+    />,
+  )
+
+  expect(screen.getByText("NK Meet")).toHaveProp("accessibilityRole", "header")
+  expect(screen.getByText("Room: quiet-tiger-42")).toHaveProp(
+    "accessibilityRole",
+    "header",
+  )
+  expect(screen.getByPlaceholderText("Enter your name")).toHaveProp(
+    "placeholderTextColor",
+    TEXT_COLORS.placeholderOnLight,
+  )
+  expect(screen.getByLabelText("Back to room selection")).toHaveProp(
+    "accessibilityRole",
+    "button",
+  )
+  expect(screen.getByLabelText("Join room")).toHaveProp(
+    "accessibilityRole",
+    "button",
+  )
 })
 
 test("does not request a token or show an error for an empty submit", async () => {

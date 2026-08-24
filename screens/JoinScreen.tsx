@@ -284,6 +284,7 @@ export const JoinScreen = ({
         onPress={onBack}
         hitSlop={10}
         accessibilityLabel="Back to room selection"
+        accessibilityRole="button"
       >
         <ChevronLeftIcon />
       </TouchableOpacity>
@@ -293,7 +294,9 @@ export const JoinScreen = ({
         pointerEvents="none"
         style={[styles.header, { top: insets.top + 20 }]}
       >
-        <Text style={styles.title}>NK Meet</Text>
+        <Text accessibilityRole="header" style={styles.title}>
+          NK Meet
+        </Text>
         <Text style={styles.brandBy}>by NKolosov</Text>
       </View>
 
@@ -305,7 +308,9 @@ export const JoinScreen = ({
         ]}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.subtitle}>Room: {roomSlug}</Text>
+        <Text accessibilityRole="header" style={styles.subtitle}>
+          Room: {roomSlug}
+        </Text>
 
         <View testID="prejoin-media-group" style={styles.preJoinMediaGroup}>
           <View style={styles.previewContainer}>
@@ -419,7 +424,7 @@ export const JoinScreen = ({
               value={name}
               onChangeText={setName}
               placeholder="Enter your name"
-              placeholderTextColor={TEXT_COLORS.placeholder}
+              placeholderTextColor={TEXT_COLORS.placeholderOnLight}
               autoCapitalize="words"
               autoCorrect={false}
               editable={!areMediaControlsDisabled}
@@ -443,9 +448,11 @@ export const JoinScreen = ({
             onPress={join}
             disabled={isJoinDisabled}
             accessibilityLabel="Join room"
+            accessibilityRole="button"
+            accessibilityState={{ disabled: isJoinDisabled }}
           >
             {isLoading ? (
-              <ActivityIndicator color={TEXT_COLORS.light} />
+              <ActivityIndicator color={TEXT_COLORS.onPrimary} />
             ) : (
               <Text
                 style={[
@@ -576,7 +583,7 @@ const styles = StyleSheet.create({
     backgroundColor: BACKGROUND_COLORS.disabled,
   },
   joinButtonText: {
-    color: TEXT_COLORS.light,
+    color: TEXT_COLORS.onPrimary,
     fontSize: 18,
     fontWeight: "600",
   },
