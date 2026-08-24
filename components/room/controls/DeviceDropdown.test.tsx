@@ -1,7 +1,12 @@
 // a11y:components/room/controls/DeviceDropdown.tsx
 import { useState } from "react"
 
-import { fireEvent, render, screen } from "@testing-library/react-native"
+import {
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react-native"
 
 import { BORDER_COLORS, TEXT_COLORS } from "@/constants/colors"
 
@@ -89,23 +94,22 @@ test("announces selected and unselected device rows as buttons", async () => {
 test("moves the visible selection indicator to the newly selected device", async () => {
   await render(<DeviceDropdownSelectionHarness />)
 
-  expect(screen.getByLabelText("Desk microphone device")).toHaveStyle({
-    borderColor: BORDER_COLORS.selectionIndicator,
-    borderWidth: 2,
-  })
+  const deskMicrophone = screen.getByLabelText("Desk microphone device")
+  const headsetMicrophone = screen.getByLabelText("Headset microphone device")
 
-  await fireEvent.press(screen.getByLabelText("Headset microphone device"))
+  expect(within(deskMicrophone).getByText("✓")).toBeOnTheScreen()
+  expect(within(headsetMicrophone).queryByText("✓")).not.toBeOnTheScreen()
 
-  expect(screen.getByLabelText("Desk microphone device")).toHaveProp(
+  await fireEvent.press(headsetMicrophone)
+
+  expect(deskMicrophone).toHaveProp(
     "accessibilityState",
     expect.objectContaining({ selected: false }),
   )
-  expect(screen.getByLabelText("Headset microphone device")).toHaveProp(
+  expect(headsetMicrophone).toHaveProp(
     "accessibilityState",
     expect.objectContaining({ selected: true }),
   )
-  expect(screen.getByLabelText("Headset microphone device")).toHaveStyle({
-    borderColor: BORDER_COLORS.selectionIndicator,
-    borderWidth: 2,
-  })
+  expect(within(deskMicrophone).queryByText("✓")).not.toBeOnTheScreen()
+  expect(within(headsetMicrophone).getByText("✓")).toBeOnTheScreen()
 })

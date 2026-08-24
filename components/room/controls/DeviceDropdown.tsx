@@ -78,6 +78,14 @@ export const DeviceDropdown = ({
                 >
                   {item.label}
                 </Text>
+                {item.selected && (
+                  <Text
+                    style={styles.selectedDeviceIndicator}
+                    accessible={false}
+                  >
+                    ✓
+                  </Text>
+                )}
               </TouchableOpacity>
             ))}
           </View>
@@ -130,8 +138,6 @@ const styles = StyleSheet.create({
   },
   selectedDevice: {
     backgroundColor: BACKGROUND_COLORS.primary,
-    borderColor: BORDER_COLORS.selectionIndicator,
-    borderWidth: 2,
   },
   deviceLabel: {
     fontSize: 14,
@@ -140,6 +146,13 @@ const styles = StyleSheet.create({
   },
   selectedDeviceLabel: {
     color: TEXT_COLORS.onPrimary,
+  },
+  selectedDeviceIndicator: {
+    color: TEXT_COLORS.onPrimary,
+    fontSize: 18,
+    fontWeight: "700",
+    lineHeight: 20,
+    marginLeft: 12,
   },
   noDevicesText: {
     fontSize: 14,
