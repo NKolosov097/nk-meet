@@ -91,7 +91,7 @@ eas build --platform ios --profile development
 
 ## Usage
 
-1. Open a company landing, such as `/acme`
+1. Open a company landing, such as `/nkolosov`
 2. Enter a room code to join an existing room in that company, or tap "Create a new room"
 3. Enter your name
 4. Press "Join" — the app requests an access token and joins that room
@@ -103,13 +103,13 @@ Every company landing and room has a shareable link under the app's own URL sche
 ```
 nk-meet://<company>
 nk-meet://<company>/<room-slug>
-nk-meet://acme/team-sync
+nk-meet://nkolosov/team-sync
 ```
 
 Opening a company-only link shows that company's landing; a room link opens its
 name-entry screen. Company and room segments are canonicalized exactly like a
 typed room code (lowercased, anything else collapsed into `-`), so
-`nk-meet://Acme/Team Sync` and `nk-meet://acme/team-sync` select the same
+`nk-meet://NKolosov/Team Sync` and `nk-meet://nkolosov/team-sync` select the same
 meeting. A link with extra path segments redirects to the safe root screen. A
 link that arrives while a call is in progress disconnects that call first,
 unless it selects the same company and room.
@@ -118,10 +118,10 @@ Open a link by hand to test it:
 
 ```bash
 # Android (device or emulator)
-npx uri-scheme open "nk-meet://acme/test-room" --android
+npx uri-scheme open "nk-meet://nkolosov/test-room" --android
 
 # iOS simulator
-xcrun simctl openurl booted "nk-meet://acme/test-room"
+xcrun simctl openurl booted "nk-meet://nkolosov/test-room"
 ```
 
 The scheme is declared in `app.config.ts` (`scheme`), so it only reaches the
