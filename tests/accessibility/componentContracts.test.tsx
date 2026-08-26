@@ -42,6 +42,10 @@ jest.mock("@/components/room/useRegisterActiveRoomDisconnect", () => ({
   useRegisterActiveRoomDisconnect: jest.fn(),
 }))
 
+jest.mock("@/components/room/useSharedMeetingStartedAt", () => ({
+  useSharedMeetingStartedAt: () => Date.now(),
+}))
+
 type CoverageKind = "contract" | "decorative" | "structural"
 
 type VisualComponentContract = {
@@ -109,6 +113,12 @@ export const VISUAL_COMPONENT_CONTRACTS: readonly VisualComponentContract[] = [
     kind: "structural",
     rationale:
       "Provides the room surface while covered VideoConference and ControlBar children own its interactive visuals.",
+  },
+  {
+    contractId: "a11y:components/room/MeetingInfoBanner.tsx",
+    source: "components/room/MeetingInfoBanner.tsx",
+    owner: "components/room/ActiveRoom.test.tsx",
+    kind: "contract",
   },
   {
     contractId: "a11y:components/room/ConfirmDisconnectModal.tsx",

@@ -2,6 +2,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react-native"
 
 import { TEXT_COLORS } from "@/constants/colors"
+import { DEFAULT_COMPANY_ID } from "@/constants/company"
 
 import { HomeScreen } from "./HomeScreen"
 
@@ -46,7 +47,7 @@ beforeEach(() => {
 afterEach(() => jest.restoreAllMocks())
 
 test("opens a typed room within the selected company", async () => {
-  await render(<HomeScreen company="nkolosov" />)
+  await render(<HomeScreen company={DEFAULT_COMPANY_ID} />)
 
   await fireEvent.changeText(screen.getByLabelText("Room code"), "Team Sync")
   await fireEvent.press(screen.getByLabelText("Join room"))
@@ -54,8 +55,8 @@ test("opens a typed room within the selected company", async () => {
   expect(mockPush).toHaveBeenCalledWith("/nkolosov/team-sync")
 })
 
-test("opens a generated room within the selected company", async () => {
-  await render(<HomeScreen company="nkolosov" />)
+test("opens every generated room within the default company", async () => {
+  await render(<HomeScreen company="acme" />)
 
   await fireEvent.press(screen.getByLabelText("Create room"))
 
@@ -63,7 +64,7 @@ test("opens a generated room within the selected company", async () => {
 })
 
 test("disables empty and invalid room codes without navigating", async () => {
-  await render(<HomeScreen company="nkolosov" />)
+  await render(<HomeScreen company={DEFAULT_COMPANY_ID} />)
 
   expect(screen.getByLabelText("Join room")).toBeDisabled()
   expect(screen.getByLabelText("Join room")).toHaveProp(
@@ -77,7 +78,7 @@ test("disables empty and invalid room codes without navigating", async () => {
 })
 
 test("exposes the landing actions and headings to assistive technology", async () => {
-  await render(<HomeScreen company="nkolosov" />)
+  await render(<HomeScreen company={DEFAULT_COMPANY_ID} />)
 
   expect(screen.getByText("NK Meet")).toHaveProp("accessibilityRole", "header")
   expect(screen.getByPlaceholderText("Enter a room code")).toHaveProp(
@@ -104,7 +105,7 @@ test("disables all room actions when configuration is invalid", async () => {
       joinedAt: 100,
     },
   ]
-  await render(<HomeScreen company="nkolosov" />)
+  await render(<HomeScreen company={DEFAULT_COMPANY_ID} />)
 
   expect(screen.getByText(mockConfigError)).toBeVisible()
   expect(screen.getByLabelText("Room code")).toBeDisabled()
@@ -130,7 +131,7 @@ test("disables all room actions when configuration is invalid", async () => {
 })
 
 test("does not show a recent-meetings section without history", async () => {
-  await render(<HomeScreen company="nkolosov" />)
+  await render(<HomeScreen company={DEFAULT_COMPANY_ID} />)
 
   expect(screen.queryByText("Recent meetings")).not.toBeOnTheScreen()
 })
@@ -169,13 +170,13 @@ test("shows a relative time for a recent meeting", async () => {
       joinedAt: 1_000_000 - 12 * 60 * 1000,
     },
   ]
-  await render(<HomeScreen company="nkolosov" />)
+  await render(<HomeScreen company={DEFAULT_COMPANY_ID} />)
 
   expect(await screen.findByText("12 min ago")).toBeVisible()
 })
 
 test("refreshes recent meetings when the company landing regains focus", async () => {
-  await render(<HomeScreen company="nkolosov" />)
+  await render(<HomeScreen company={DEFAULT_COMPANY_ID} />)
 
   mockRecentRooms = [
     {
@@ -195,7 +196,7 @@ test("refreshes recent meetings when the company landing regains focus", async (
 })
 
 test("keeps the disabled Join label readable at AA contrast", async () => {
-  await render(<HomeScreen company="nkolosov" />)
+  await render(<HomeScreen company={DEFAULT_COMPANY_ID} />)
 
   expect(screen.getByLabelText("Join room")).toHaveStyle({
     backgroundColor: "#4A4A4A",
@@ -238,7 +239,7 @@ test("displays the branded default company name", async () => {
       joinedAt: 100,
     },
   ]
-  await render(<HomeScreen company="nkolosov" />)
+  await render(<HomeScreen company={DEFAULT_COMPANY_ID} />)
 
   expect(await screen.findByTestId("recent-room-company")).toHaveTextContent(
     "NKolosov",

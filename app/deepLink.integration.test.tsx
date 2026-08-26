@@ -8,6 +8,8 @@ import {
   waitFor,
 } from "expo-router/testing-library"
 
+import { DEFAULT_COMPANY_ID } from "@/constants/company"
+
 interface FakeRoom {
   // Whether the fake connection remains live
   isConnected: boolean
@@ -48,6 +50,9 @@ jest.mock("@/components/room/ControlBar", () => {
 
   return { ControlBar: () => React.createElement(Text, null, "In call") }
 })
+jest.mock("@/components/room/useSharedMeetingStartedAt", () => ({
+  useSharedMeetingStartedAt: () => Date.now(),
+}))
 
 jest.mock("@livekit/react-native", () => {
   const React = jest.requireActual("react")
@@ -94,7 +99,7 @@ const mockLinking = jest.requireMock(
 let listeners: LinkListener[] = []
 let app: ReturnType<typeof renderRouter>
 
-const renderApp = async (company = "nkolosov"): Promise<void> => {
+const renderApp = async (company = DEFAULT_COMPANY_ID): Promise<void> => {
   app = renderRouter(
     {
       _layout: require("./_layout"),
