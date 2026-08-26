@@ -19,7 +19,7 @@ import {
   BORDER_COLORS,
   TEXT_COLORS,
 } from "@/constants/colors"
-import { companyDisplayName } from "@/constants/company"
+import { companyDisplayName, DEFAULT_COMPANY_ID } from "@/constants/company"
 import { configError } from "@/constants/env"
 import { getRecentRooms, type RecentRoom } from "@/services/recentRooms"
 import { generateRoomSlug, slugify } from "@/services/roomSlug"
@@ -81,8 +81,8 @@ export const HomeScreen = ({ company }: HomeScreenProps) => {
   }, [company, roomCode, joinRoom])
 
   const onCreateRoom = useCallback((): void => {
-    joinRoom(company, generateRoomSlug())
-  }, [company, joinRoom])
+    joinRoom(DEFAULT_COMPANY_ID, generateRoomSlug())
+  }, [joinRoom])
 
   const isDisabled = configError !== null
 
