@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from "@testing-library/react-native"
 
-import { RoomEvent } from "livekit-client"
+import { RoomEvent, type RemoteParticipant, type Room } from "livekit-client"
 
 import {
   MEETING_STARTED_AT_ATTRIBUTE,
@@ -13,7 +13,21 @@ const mockOff = jest.fn()
 const localAttributes: Record<string, string> = {}
 const remoteAttributes: Record<string, string> = {}
 
-const mockRoom = {
+interface MockRoom {
+  // Local participant state and attribute publisher used by the hook.
+  localParticipant: Pick<
+    Room["localParticipant"],
+    "attributes" | "setAttributes"
+  >
+  // Remote participant attributes used to select the earliest timestamp.
+  remoteParticipants: Map<string, Pick<RemoteParticipant, "attributes">>
+  // Room event subscription mock.
+  on: jest.Mock
+  // Room event unsubscription mock.
+  off: jest.Mock
+}
+
+const mockRoom: MockRoom = {
   localParticipant: {
     attributes: localAttributes,
     setAttributes: mockSetAttributes,
@@ -70,7 +84,7 @@ test("resynchronizes on participant attribute changes", async () => {
   )
   const attributeListener = attributeListeners[
     attributeListeners.length - 1
-  ]?.[1] as (() => void) | undefined
+  ]?.[1] as VoidFunction | undefined
 
   remoteAttributes[MEETING_STARTED_AT_ATTRIBUTE] = "1000"
   act(() => attributeListener?.())

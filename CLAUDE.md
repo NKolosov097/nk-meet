@@ -1,6 +1,7 @@
 # Project Conventions
 
 - In TypeScript, use `VoidFunction` instead of writing out `() => void`.
+- Prefer `interface` over `type` when either can represent the same TypeScript shape.
 - Do not use double type assertions such as `as unknown as SomeType`; model the value correctly or use a typed fixture/builder.
 - In tests, use `nkolosov` for one company and `nkolosov-1` / `nkolosov-2` when a scenario needs distinct companies.
 - Do not create inline object or array literals in JSX props except for `style`; assign them to named variables first. This applies to production code and tests.
