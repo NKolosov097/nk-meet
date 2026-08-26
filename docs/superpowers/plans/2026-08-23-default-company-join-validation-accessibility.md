@@ -433,6 +433,6 @@ Skip this commit when verification required no corrections.
 
 ## Future TODO
 
-- [ ] Replace the participant-attribute meeting timestamp with a backend-authoritative `startedAt` value returned with room data.
+- [ ] Replace the best-effort participant timestamp and client-clock calculation with a backend-authoritative `startedAt` and server-time offset.
 - [ ] Add a persistent banner that communicates the current room connection state.
 - [ ] Build custom toast notifications for errors, with an extensible foundation for success, info, and warning variants.

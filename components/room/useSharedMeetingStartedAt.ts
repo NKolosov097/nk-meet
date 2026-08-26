@@ -19,6 +19,7 @@ const earliestStartedAt = (participants: Participant[]): number | undefined => {
 }
 
 export const useSharedMeetingStartedAt = (): number => {
+  // Client clocks make this a best-effort baseline until the backend supplies server time.
   const room = useRoomContext()
   const [startedAt, setStartedAt] = useState<number>(() => {
     const participants = [

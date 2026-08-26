@@ -28,6 +28,7 @@ export const MeetingInfoBanner = ({
   startedAt,
 }: MeetingInfoBannerProps) => {
   const [now, setNow] = useState<number>(() => Date.now())
+  const elapsedTime = formatElapsedTime(now - startedAt)
 
   useEffect(() => {
     setNow(Date.now())
@@ -41,10 +42,16 @@ export const MeetingInfoBanner = ({
         style={styles.roomName}
         accessibilityRole="header"
         numberOfLines={1}
+        ellipsizeMode="tail"
       >
         {roomSlug}
       </Text>
-      <Text style={styles.duration}>{formatElapsedTime(now - startedAt)}</Text>
+      <Text
+        style={styles.duration}
+        accessibilityLabel={`Elapsed time: ${elapsedTime}`}
+      >
+        {elapsedTime}
+      </Text>
     </View>
   )
 }

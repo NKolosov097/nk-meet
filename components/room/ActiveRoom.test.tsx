@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react-native"
 
-import { BACKGROUND_COLORS } from "@/constants/colors"
+import { BACKGROUND_COLORS, TEXT_COLORS } from "@/constants/colors"
 import { DEFAULT_COMPANY_ID } from "@/constants/company"
 
 import { ActiveRoom } from "./ActiveRoom"
@@ -81,5 +81,17 @@ test("keeps the meeting name and duration in one compact transparent row", async
     justifyContent: "space-between",
     paddingHorizontal: 12,
     paddingVertical: 4,
+  })
+  expect(screen.getByRole("header", { name: "weekly-sync" })).toHaveProp(
+    "ellipsizeMode",
+    "tail",
+  )
+  expect(screen.getByRole("header", { name: "weekly-sync" })).toHaveStyle({
+    color: TEXT_COLORS.light,
+    flex: 1,
+  })
+  expect(screen.getByLabelText("Elapsed time: 01:10")).toHaveStyle({
+    color: TEXT_COLORS.placeholder,
+    flexShrink: 0,
   })
 })
