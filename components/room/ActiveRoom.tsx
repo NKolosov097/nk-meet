@@ -7,7 +7,9 @@ import { SafeAreaView } from "react-native-safe-area-context"
 import { BACKGROUND_COLORS } from "@/constants/colors"
 
 import { ControlBar } from "./ControlBar"
+import { MeetingInfoBanner } from "./MeetingInfoBanner"
 import { useRegisterActiveRoomDisconnect } from "./useRegisterActiveRoomDisconnect"
+import { useSharedMeetingStartedAt } from "./useSharedMeetingStartedAt"
 import { VideoConference } from "./VideoConference"
 
 interface ActiveRoomProps {
@@ -25,9 +27,11 @@ export const ActiveRoom = ({
   onForcedDisconnect,
 }: ActiveRoomProps) => {
   useRegisterActiveRoomDisconnect(company, roomSlug, onForcedDisconnect)
+  const startedAt = useSharedMeetingStartedAt()
 
   return (
     <SafeAreaView testID="active-room" style={styles.roomContainer}>
+      <MeetingInfoBanner roomSlug={roomSlug} startedAt={startedAt} />
       <VideoConference />
       <ControlBar />
       <StatusBar style="light" />
