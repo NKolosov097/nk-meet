@@ -1,7 +1,6 @@
 import { StyleSheet, Text, View } from "react-native"
 
-import { BORDER_RADIUSES } from "@/constants/borderRadiuses"
-import { BACKGROUND_COLORS, TEXT_COLORS } from "@/constants/colors"
+import { TEXT_COLORS } from "@/constants/colors"
 import { companyDisplayName } from "@/constants/company"
 import { COMPANY_ICONS } from "@/constants/companyIcons"
 
@@ -63,8 +62,6 @@ const styles = StyleSheet.create({
   },
   fallback: {
     aspectRatio: 1,
-    backgroundColor: BACKGROUND_COLORS.secondary,
-    borderRadius: BORDER_RADIUSES.medium,
     justifyContent: "center",
     alignItems: "center",
   },

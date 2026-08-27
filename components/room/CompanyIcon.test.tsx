@@ -6,9 +6,16 @@ import { render } from "@testing-library/react-native"
 
 import { BACKGROUND_COLORS, TEXT_COLORS } from "@/constants/colors"
 import { DEFAULT_COMPANY_ID } from "@/constants/company"
-import { contrastRatio } from "@/utils/accessibility/contrast"
+import { compositeColor, contrastRatio } from "@/utils/accessibility/contrast"
 
 import { CompanyIcon } from "./CompanyIcon"
+
+// The icon paints no background of its own, so it sits directly on the
+// room's backing (ControlBar's tertiary bar over the room's black surface).
+const CONTROL_BAR_BACKING = compositeColor(
+  BACKGROUND_COLORS.tertiary,
+  BACKGROUND_COLORS.black,
+)
 
 type RenderedNode = {
   type: string
@@ -41,17 +48,6 @@ test("renders the registered NKolosov icon as an accessible, readable image", as
   expect(icon).toHaveProp("accessibilityRole", "image")
   expect(icon).toHaveStyle({ height: 50, aspectRatio: 1 })
 
-  const rectNodes = renderedNodesOfType(view.toJSON(), "RNSVGRect")
-  expect(rectNodes).toEqual(
-    expect.arrayContaining([
-      expect.objectContaining({
-        props: expect.objectContaining({
-          fill: nativeColor(BACKGROUND_COLORS.secondary),
-        }),
-      }),
-    ]),
-  )
-
   const textNodes = renderedNodesOfType(view.toJSON(), "RNSVGText")
   expect(textNodes).toEqual(
     expect.arrayContaining([
@@ -63,7 +59,7 @@ test("renders the registered NKolosov icon as an accessible, readable image", as
     ]),
   )
   expect(
-    contrastRatio(TEXT_COLORS.light, BACKGROUND_COLORS.secondary),
+    contrastRatio(TEXT_COLORS.light, CONTROL_BAR_BACKING),
   ).toBeGreaterThanOrEqual(3)
 })
 
@@ -72,14 +68,10 @@ test("falls back to initials for a company without a registered icon", async () 
   const icon = view.getByLabelText("nkolosov-1 company")
 
   expect(icon).toHaveProp("accessibilityRole", "image")
-  expect(icon).toHaveStyle({
-    height: 50,
-    aspectRatio: 1,
-    backgroundColor: BACKGROUND_COLORS.secondary,
-  })
+  expect(icon).toHaveStyle({ height: 50, aspectRatio: 1 })
   expect(view.getByText("N1")).toBeVisible()
   expect(
-    contrastRatio(TEXT_COLORS.light, BACKGROUND_COLORS.secondary),
+    contrastRatio(TEXT_COLORS.light, CONTROL_BAR_BACKING),
   ).toBeGreaterThanOrEqual(3)
 })
 
