@@ -11,6 +11,9 @@ interface CompanyIconProps {
 }
 
 const ICON_HEIGHT = 50
+// Splits on non-alphanumeric runs ("acme-corp"), lower/digit-to-upper
+// transitions ("NKolosov" -> "N", "Kolosov"), and acronym-to-word
+// transitions ("XMLParser" -> "XML", "Parser").
 const WORD_BOUNDARY_PATTERN =
   /[^a-zA-Z0-9]+|(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])/
 
