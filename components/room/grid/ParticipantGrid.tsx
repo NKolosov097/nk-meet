@@ -10,6 +10,7 @@ import type { TrackReferenceOrPlaceholder } from "@livekit/react-native"
 import { ParticipantTile } from "@/components/participant/ParticipantTile"
 
 import { GRID_GAP, GRID_PADDING } from "./gridLayout"
+import { getTrackKey } from "./trackKey"
 
 interface ParticipantGridProps {
   // The current page's participant/placeholder tracks to render as tiles.
@@ -39,7 +40,7 @@ export const ParticipantGrid = ({
     >
       {tracks.map(track => (
         <ParticipantTile
-          key={`${track.participant.identity}-${track.source}`}
+          key={getTrackKey(track)}
           trackRef={track}
           width={tileWidth}
           height={tileHeight}
