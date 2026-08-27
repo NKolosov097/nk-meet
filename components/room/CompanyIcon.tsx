@@ -45,7 +45,7 @@ export const CompanyIcon = ({ company }: CompanyIconProps) => {
 
   return (
     <View
-      style={[styles.wrapper, styles.fallback, { aspectRatio: 1 }]}
+      style={[styles.wrapper, styles.fallback]}
       accessibilityRole="image"
       accessibilityLabel={label}
     >
@@ -59,6 +59,7 @@ const styles = StyleSheet.create({
     height: ICON_HEIGHT,
   },
   fallback: {
+    aspectRatio: 1,
     backgroundColor: BACKGROUND_COLORS.secondary,
     borderRadius: BORDER_RADIUSES.medium,
     justifyContent: "center",

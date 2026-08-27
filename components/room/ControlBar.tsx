@@ -8,8 +8,8 @@ import { DisconnectIcon } from "@/components/icons"
 import { BORDER_RADIUSES } from "@/constants/borderRadiuses"
 import { BACKGROUND_COLORS, TEXT_COLORS } from "@/constants/colors"
 
-import { ConfirmDisconnectModal } from "./ConfirmDisconnectModal"
 import { CompanyIcon } from "./CompanyIcon"
+import { ConfirmDisconnectModal } from "./ConfirmDisconnectModal"
 import { CameraControl } from "./controls/CameraControl"
 import { MicrophoneControl } from "./controls/MicrophoneControl"
 
@@ -95,7 +95,7 @@ export const ControlBar = ({ company }: ControlBarProps) => {
 
   return (
     <>
-      <View style={styles.controlsContainer}>
+      <View style={styles.controlsContainer} testID="control-bar-row">
         {/* Company icon identifying which company/tenant this room belongs to */}
         <CompanyIcon company={company} />
 

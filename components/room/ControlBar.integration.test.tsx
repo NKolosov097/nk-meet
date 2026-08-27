@@ -35,6 +35,48 @@ type PressTarget = {
   }
 }
 
+interface RenderedNode {
+  // Native component type name, e.g. "View" or "RCTView"
+  type: string
+  // Props applied to this rendered node
+  props: Record<string, unknown>
+  // Rendered child nodes and text content
+  children?: unknown[]
+}
+
+// Locates the first rendered node carrying the given testID, depth-first.
+const findNodeByTestId = (
+  node: unknown,
+  testID: string,
+): RenderedNode | undefined => {
+  if (!node || typeof node !== "object") return undefined
+
+  const renderedNode = node as RenderedNode
+  if (renderedNode.props.testID === testID) return renderedNode
+
+  for (const child of renderedNode.children ?? []) {
+    const match = findNodeByTestId(child, testID)
+    if (match) return match
+  }
+
+  return undefined
+}
+
+// Collects accessibilityLabel values from a rendered tree in document order.
+const accessibilityLabelsInOrder = (node: unknown): string[] => {
+  if (!node || typeof node !== "object") return []
+
+  const renderedNode = node as RenderedNode
+  const label = renderedNode.props.accessibilityLabel
+  const descendantLabels = (renderedNode.children ?? []).flatMap(child =>
+    accessibilityLabelsInOrder(child),
+  )
+
+  return typeof label === "string"
+    ? [label, ...descendantLabels]
+    : descendantLabels
+}
+
 const noop: VoidFunction = () => undefined
 const company = DEFAULT_COMPANY_ID
 
@@ -475,6 +517,16 @@ test("coordinates audio and camera device dropdowns", async () => {
 
 test("renders the company icon as the first control", async () => {
   const view = await render(<ControlBar company={company} />)
+  const row = findNodeByTestId(view.toJSON(), "control-bar-row")
 
-  expect(view.getByLabelText("NKolosov company")).toBeVisible()
+  if (!row) {
+    throw new Error("control-bar-row not found in rendered tree")
+  }
+
+  const labels = accessibilityLabelsInOrder(row)
+
+  expect(labels[0]).toBe("NKolosov company")
+  expect(labels).toEqual(
+    expect.arrayContaining(["Mute microphone", "Disconnect from room"]),
+  )
 })
