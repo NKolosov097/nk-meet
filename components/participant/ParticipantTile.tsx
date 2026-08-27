@@ -31,11 +31,9 @@ interface ConnectedParticipantTileProps {
   width: number
   // Height of this tile, in pixels, as computed by the grid layout.
   height: number
-  // True when this tile is the one currently shown fullscreen; selects
-  // the collapse icon instead of the expand icon.
+  // True when this tile is shown fullscreen; selects the collapse icon.
   isSpotlighted?: boolean
-  // Shows the expand/collapse button when provided; omitted hides it
-  // (e.g. no manual control while a screen share is forcing the view).
+  // Shows the expand/collapse button when provided; omitted hides it.
   onToggleSpotlight?: VoidFunction
   // Connected tiles cannot receive pre-join preview tracks
   previewTrack?: never
