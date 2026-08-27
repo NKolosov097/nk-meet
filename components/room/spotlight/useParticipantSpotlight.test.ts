@@ -6,10 +6,7 @@ import { getTrackKey } from "@/components/room/grid/trackKey"
 
 import { useParticipantSpotlight } from "./useParticipantSpotlight"
 
-const track = (
-  identity: string,
-  source: Track.Source = Track.Source.Camera,
-) =>
+const track = (identity: string, source: Track.Source = Track.Source.Camera) =>
   ({
     participant: { identity, name: identity, isLocal: false },
     source,

@@ -28,8 +28,7 @@ export const useParticipantSpotlight = (
 
   const screenShareTrack = useMemo(
     () =>
-      tracks.find(track => track.source === Track.Source.ScreenShare) ??
-      null,
+      tracks.find(track => track.source === Track.Source.ScreenShare) ?? null,
     [tracks],
   )
   const isScreenShareActive = screenShareTrack !== null
