@@ -1,8 +1,10 @@
 // a11y:components/participant/ParticipantTile.tsx
 // a11y:components/icons/ParticipantPlaceholderIcon.tsx
+// a11y:components/icons/ExpandIcon.tsx
+// a11y:components/icons/CollapseIcon.tsx
 import { processColor } from "react-native"
 
-import { render } from "@testing-library/react-native"
+import { fireEvent, render } from "@testing-library/react-native"
 
 import {
   isTrackReference,
@@ -176,4 +178,56 @@ test("defaults the placeholder icon to an opaque meaningful semantic color", asy
     expect(path.fill).toEqual(svgColor(TEXT_COLORS.placeholder))
     expect(path.fillOpacity).toBeUndefined()
   }
+})
+
+test("shows an expand button that spotlights this tile", async () => {
+  mockIsTrackReference.mockReturnValue(true)
+  mockUseTrackMutedIndicator.mockReturnValue({ isMuted: false })
+  const onToggleSpotlight = jest.fn()
+
+  const view = await render(
+    <ParticipantTile
+      trackRef={connectedTrack}
+      width={240}
+      height={135}
+      onToggleSpotlight={onToggleSpotlight}
+    />,
+  )
+
+  await fireEvent.press(view.getByLabelText("Expand video"))
+
+  expect(onToggleSpotlight).toHaveBeenCalledTimes(1)
+})
+
+test("shows a collapse button with a readable icon when this tile is spotlighted", async () => {
+  mockIsTrackReference.mockReturnValue(true)
+  mockUseTrackMutedIndicator.mockReturnValue({ isMuted: false })
+
+  const view = await render(
+    <ParticipantTile
+      trackRef={connectedTrack}
+      width={240}
+      height={135}
+      isSpotlighted
+      onToggleSpotlight={jest.fn()}
+    />,
+  )
+
+  expect(view.getByLabelText("Collapse video")).toBeOnTheScreen()
+  expect(svgPathProps(view.toJSON())).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ fill: svgColor(TEXT_COLORS.light) }),
+    ]),
+  )
+})
+
+test("omits the spotlight button when no handler is given", async () => {
+  mockIsTrackReference.mockReturnValue(true)
+  mockUseTrackMutedIndicator.mockReturnValue({ isMuted: false })
+
+  const view = await render(
+    <ParticipantTile trackRef={connectedTrack} width={240} height={135} />,
+  )
+
+  expect(view.queryByLabelText("Expand video")).not.toBeOnTheScreen()
 })

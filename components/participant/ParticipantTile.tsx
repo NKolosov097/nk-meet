@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native"
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
 
 import {
   isTrackReference,
@@ -9,12 +9,20 @@ import {
 } from "@livekit/react-native"
 import { Track, type LocalVideoTrack } from "livekit-client"
 
-import { MicDisabledIcon, ParticipantPlaceholderIcon } from "@/components/icons"
+import {
+  CollapseIcon,
+  ExpandIcon,
+  MicDisabledIcon,
+  ParticipantPlaceholderIcon,
+} from "@/components/icons"
 import { BORDER_RADIUSES } from "@/constants/borderRadiuses"
 import { BACKGROUND_COLORS, TEXT_COLORS } from "@/constants/colors"
 
 const MIC_ICON_SIZE = 16
 const BADGE_INSET = 4
+const SPOTLIGHT_ICON_SIZE = 16
+const SPOTLIGHT_BUTTON_SIZE = 28
+const SPOTLIGHT_HIT_SLOP = { top: 8, right: 8, bottom: 8, left: 8 }
 
 interface ConnectedParticipantTileProps {
   // The participant's camera/screen-share track, or a placeholder.
@@ -23,6 +31,12 @@ interface ConnectedParticipantTileProps {
   width: number
   // Height of this tile, in pixels, as computed by the grid layout.
   height: number
+  // True when this tile is the one currently shown fullscreen; selects
+  // the collapse icon instead of the expand icon.
+  isSpotlighted?: boolean
+  // Shows the expand/collapse button when provided; omitted hides it
+  // (e.g. no manual control while a screen share is forcing the view).
+  onToggleSpotlight?: VoidFunction
   // Connected tiles cannot receive pre-join preview tracks
   previewTrack?: never
   // Connected tiles read the participant name from the LiveKit track
@@ -58,6 +72,8 @@ const ConnectedParticipantTile = ({
   trackRef,
   width,
   height,
+  isSpotlighted = false,
+  onToggleSpotlight,
 }: ConnectedParticipantTileProps) => {
   const { participant } = trackRef
   const { isMuted: isVideoMuted } = useTrackMutedIndicator(trackRef)
@@ -90,6 +106,10 @@ const ConnectedParticipantTile = ({
     </>
   )
 
+  const spotlightAccessibilityLabel = isSpotlighted
+    ? "Collapse video"
+    : "Expand video"
+
   return (
     <View
       testID={`participant-tile-${participant.identity}`}
@@ -115,6 +135,26 @@ const ConnectedParticipantTile = ({
           {badge}
         </View>
       </View>
+
+      {onToggleSpotlight && (
+        <TouchableOpacity
+          testID="participant-spotlight-button"
+          style={styles.spotlightButton}
+          onPress={onToggleSpotlight}
+          accessibilityRole="button"
+          accessibilityLabel={spotlightAccessibilityLabel}
+          hitSlop={SPOTLIGHT_HIT_SLOP}
+        >
+          {isSpotlighted ? (
+            <CollapseIcon
+              size={SPOTLIGHT_ICON_SIZE}
+              color={TEXT_COLORS.light}
+            />
+          ) : (
+            <ExpandIcon size={SPOTLIGHT_ICON_SIZE} color={TEXT_COLORS.light} />
+          )}
+        </TouchableOpacity>
+      )}
     </View>
   )
 }
@@ -187,6 +227,17 @@ const styles = StyleSheet.create({
     left: BADGE_INSET,
     right: BADGE_INSET,
     flexDirection: "row",
+  },
+  spotlightButton: {
+    position: "absolute",
+    top: BADGE_INSET,
+    left: BADGE_INSET,
+    width: SPOTLIGHT_BUTTON_SIZE,
+    height: SPOTLIGHT_BUTTON_SIZE,
+    borderRadius: BORDER_RADIUSES.pill,
+    backgroundColor: BACKGROUND_COLORS.participantBadge,
+    justifyContent: "center",
+    alignItems: "center",
   },
   badge: {
     flex: 1,

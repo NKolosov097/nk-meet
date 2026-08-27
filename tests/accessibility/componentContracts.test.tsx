@@ -229,6 +229,22 @@ export const VISUAL_COMPONENT_CONTRACTS: readonly VisualComponentContract[] = [
       "Direction is announced by the owning labeled button; the SVG has no independent semantics.",
   },
   {
+    contractId: "a11y:components/icons/CollapseIcon.tsx",
+    source: "components/icons/CollapseIcon.tsx",
+    owner: "components/participant/ParticipantTile.test.tsx",
+    kind: "decorative",
+    rationale:
+      "State is announced by the owning spotlight button; the SVG has no independent semantics.",
+  },
+  {
+    contractId: "a11y:components/icons/ExpandIcon.tsx",
+    source: "components/icons/ExpandIcon.tsx",
+    owner: "components/participant/ParticipantTile.test.tsx",
+    kind: "decorative",
+    rationale:
+      "State is announced by the owning spotlight button; the SVG has no independent semantics.",
+  },
+  {
     contractId: "a11y:components/icons/DisconnectIcon.tsx",
     source: "components/icons/DisconnectIcon.tsx",
     owner: "components/room/ControlBar.integration.test.tsx",
