@@ -24,8 +24,7 @@ interface ParticipantSpotlightProps {
   expandedTrack: TrackReferenceOrPlaceholder
   // Every other track, shown in the bottom carousel.
   carouselTracks: TrackReferenceOrPlaceholder[]
-  // False while an active screen share forces this view; hides manual
-  // expand/collapse controls.
+  // False while an active screen share forces this view, hiding manual controls.
   canManuallySelect: boolean
   // Spotlights the track with the given key.
   onSelect: (key: string) => void

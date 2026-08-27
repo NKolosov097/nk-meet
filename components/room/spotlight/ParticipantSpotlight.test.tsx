@@ -41,11 +41,12 @@ const track = (
 test("renders the expanded track fullscreen and the rest in the carousel", async () => {
   const ada = track("ada")
   const grace = track("grace")
+  const carouselTracks = [grace]
 
   const view = await render(
     <ParticipantSpotlight
       expandedTrack={ada}
-      carouselTracks={[grace]}
+      carouselTracks={carouselTracks}
       canManuallySelect
       onSelect={jest.fn()}
       onCollapse={jest.fn()}
@@ -63,11 +64,12 @@ test("tapping a carousel tile swaps the spotlight", async () => {
   const ada = track("ada")
   const grace = track("grace")
   const onSelect = jest.fn()
+  const carouselTracks = [grace]
 
   const view = await render(
     <ParticipantSpotlight
       expandedTrack={ada}
-      carouselTracks={[grace]}
+      carouselTracks={carouselTracks}
       canManuallySelect
       onSelect={onSelect}
       onCollapse={jest.fn()}
@@ -82,11 +84,12 @@ test("tapping a carousel tile swaps the spotlight", async () => {
 test("collapsing the fullscreen tile returns to grid view", async () => {
   const ada = track("ada")
   const onCollapse = jest.fn()
+  const noCarouselTracks: TrackReferenceOrPlaceholder[] = []
 
   const view = await render(
     <ParticipantSpotlight
       expandedTrack={ada}
-      carouselTracks={[]}
+      carouselTracks={noCarouselTracks}
       canManuallySelect
       onSelect={jest.fn()}
       onCollapse={onCollapse}
@@ -101,11 +104,12 @@ test("collapsing the fullscreen tile returns to grid view", async () => {
 test("hides manual controls while a screen share forces the view", async () => {
   const share = track("grace", Track.Source.ScreenShare)
   const ada = track("ada")
+  const carouselTracks = [ada]
 
   const view = await render(
     <ParticipantSpotlight
       expandedTrack={share}
-      carouselTracks={[ada]}
+      carouselTracks={carouselTracks}
       canManuallySelect={false}
       onSelect={jest.fn()}
       onCollapse={jest.fn()}
