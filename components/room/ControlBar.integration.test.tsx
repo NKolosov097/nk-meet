@@ -5,6 +5,7 @@ import { Alert } from "react-native"
 import { act, fireEvent, render, waitFor } from "@testing-library/react-native"
 
 import { BACKGROUND_COLORS } from "@/constants/colors"
+import { DEFAULT_COMPANY_ID } from "@/constants/company"
 
 import { ControlBar } from "./ControlBar"
 import { CameraControl } from "./controls/CameraControl"
@@ -35,6 +36,7 @@ type PressTarget = {
 }
 
 const noop: VoidFunction = () => undefined
+const company = DEFAULT_COMPANY_ID
 
 const pressTwice = async (target: PressTarget): Promise<void> => {
   // RNTL's public fireEvent.press awaits the async handler, so invoking it
@@ -104,7 +106,7 @@ afterEach(() => {
 })
 
 test("updates toggle direction after hook state changes on the same ControlBar instance", async () => {
-  const view = await render(<ControlBar />)
+  const view = await render(<ControlBar company={company} />)
 
   await fireEvent.press(view.getByLabelText("Mute microphone"))
   await fireEvent.press(view.getByLabelText("Turn on camera"))
@@ -118,7 +120,7 @@ test("updates toggle direction after hook state changes on the same ControlBar i
 
   mockMicrophoneEnabled = false
   mockCameraEnabled = true
-  await view.rerender(<ControlBar />)
+  await view.rerender(<ControlBar company={company} />)
 
   await fireEvent.press(view.getByLabelText("Unmute microphone"))
   await fireEvent.press(view.getByLabelText("Turn off camera"))
@@ -138,7 +140,7 @@ test("ignores concurrent microphone toggles until the current toggle finishes", 
   mockLocalParticipant.setMicrophoneEnabled.mockReturnValue(
     pendingToggle.promise,
   )
-  const view = await render(<ControlBar />)
+  const view = await render(<ControlBar company={company} />)
 
   await pressTwice(view.getByLabelText("Mute microphone"))
 
@@ -159,7 +161,7 @@ test("disables the microphone button while its toggle is pending", async () => {
   mockLocalParticipant.setMicrophoneEnabled.mockReturnValue(
     pendingToggle.promise,
   )
-  const view = await render(<ControlBar />)
+  const view = await render(<ControlBar company={company} />)
   const button = view.getByLabelText("Mute microphone")
 
   await act(async () => {
@@ -188,7 +190,7 @@ test("re-enables the microphone button after a failed toggle", async () => {
     rejectToggle = reject
   })
   mockLocalParticipant.setMicrophoneEnabled.mockReturnValue(pendingToggle)
-  const view = await render(<ControlBar />)
+  const view = await render(<ControlBar company={company} />)
   const button = view.getByLabelText("Mute microphone")
 
   await act(async () => {
@@ -242,7 +244,7 @@ test("dims the microphone button when disabled", async () => {
 test("ignores concurrent camera toggles until the current toggle finishes", async () => {
   const pendingToggle = createDeferred()
   mockLocalParticipant.setCameraEnabled.mockReturnValue(pendingToggle.promise)
-  const view = await render(<ControlBar />)
+  const view = await render(<ControlBar company={company} />)
 
   await pressTwice(view.getByLabelText("Turn on camera"))
 
@@ -261,7 +263,7 @@ test("ignores concurrent camera toggles until the current toggle finishes", asyn
 test("disables the camera button while its toggle is pending", async () => {
   const pendingToggle = createDeferred()
   mockLocalParticipant.setCameraEnabled.mockReturnValue(pendingToggle.promise)
-  const view = await render(<ControlBar />)
+  const view = await render(<ControlBar company={company} />)
   const button = view.getByLabelText("Turn on camera")
 
   await act(async () => {
@@ -290,7 +292,7 @@ test("re-enables the camera button after a failed toggle", async () => {
     rejectToggle = reject
   })
   mockLocalParticipant.setCameraEnabled.mockReturnValue(pendingToggle)
-  const view = await render(<ControlBar />)
+  const view = await render(<ControlBar company={company} />)
   const button = view.getByLabelText("Turn on camera")
 
   await act(async () => {
@@ -347,7 +349,7 @@ test("alerts when the microphone toggle fails", async () => {
   mockLocalParticipant.setMicrophoneEnabled.mockRejectedValue(
     new Error("microphone failed"),
   )
-  const view = await render(<ControlBar />)
+  const view = await render(<ControlBar company={company} />)
 
   await fireEvent.press(view.getByLabelText("Mute microphone"))
 
@@ -366,7 +368,7 @@ test("alerts when the camera toggle fails", async () => {
   mockLocalParticipant.setCameraEnabled.mockRejectedValue(
     new Error("camera failed"),
   )
-  const view = await render(<ControlBar />)
+  const view = await render(<ControlBar company={company} />)
 
   await fireEvent.press(view.getByLabelText("Turn on camera"))
 
@@ -380,7 +382,7 @@ test("alerts when the camera toggle fails", async () => {
 })
 
 test("shows a confirmation modal instead of disconnecting immediately", async () => {
-  const view = await render(<ControlBar />)
+  const view = await render(<ControlBar company={company} />)
 
   await fireEvent.press(view.getByLabelText("Disconnect from room"))
 
@@ -389,7 +391,7 @@ test("shows a confirmation modal instead of disconnecting immediately", async ()
 })
 
 test("uses the updated rounded-square shape for disconnect", async () => {
-  const view = await render(<ControlBar />)
+  const view = await render(<ControlBar company={company} />)
 
   const disconnectButton = view.getByLabelText("Disconnect from room")
 
@@ -403,7 +405,7 @@ test("uses the updated rounded-square shape for disconnect", async () => {
 })
 
 test("disconnects the room after confirming", async () => {
-  const view = await render(<ControlBar />)
+  const view = await render(<ControlBar company={company} />)
 
   await fireEvent.press(view.getByLabelText("Disconnect from room"))
   await fireEvent.press(view.getByLabelText("Confirm disconnect"))
@@ -414,7 +416,7 @@ test("disconnects the room after confirming", async () => {
 })
 
 test("does not disconnect when the confirmation is canceled", async () => {
-  const view = await render(<ControlBar />)
+  const view = await render(<ControlBar company={company} />)
 
   await fireEvent.press(view.getByLabelText("Disconnect from room"))
   await fireEvent.press(view.getByLabelText("Cancel"))
@@ -424,7 +426,7 @@ test("does not disconnect when the confirmation is canceled", async () => {
 })
 
 test("does not disconnect when tapping outside the confirmation", async () => {
-  const view = await render(<ControlBar />)
+  const view = await render(<ControlBar company={company} />)
 
   await fireEvent.press(view.getByLabelText("Disconnect from room"))
   await fireEvent.press(view.getByLabelText("Close disconnect confirmation"))
@@ -437,7 +439,7 @@ test("keeps controls available after a disconnect failure", async () => {
   const error = new Error("disconnect failed")
   const consoleError = jest.spyOn(console, "error").mockImplementation()
   mockRoom.disconnect.mockRejectedValue(error)
-  const view = await render(<ControlBar />)
+  const view = await render(<ControlBar company={company} />)
 
   await fireEvent.press(view.getByLabelText("Disconnect from room"))
   await fireEvent.press(view.getByLabelText("Confirm disconnect"))
@@ -452,7 +454,7 @@ test("keeps controls available after a disconnect failure", async () => {
 })
 
 test("coordinates audio and camera device dropdowns", async () => {
-  const view = await render(<ControlBar />)
+  const view = await render(<ControlBar company={company} />)
 
   await fireEvent.press(view.getByLabelText("Select audio device"))
 
@@ -469,4 +471,10 @@ test("coordinates audio and camera device dropdowns", async () => {
 
   expect(view.queryByLabelText("Close camera list")).not.toBeOnTheScreen()
   expect(view.queryByText("No cameras found")).not.toBeOnTheScreen()
+})
+
+test("renders the company icon as the first control", async () => {
+  const view = await render(<ControlBar company={company} />)
+
+  expect(view.getByLabelText("NKolosov company")).toBeVisible()
 })

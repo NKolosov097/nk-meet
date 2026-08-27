@@ -33,7 +33,7 @@ export const ActiveRoom = ({
     <SafeAreaView testID="active-room" style={styles.roomContainer}>
       <MeetingInfoBanner roomSlug={roomSlug} startedAt={startedAt} />
       <VideoConference />
-      <ControlBar />
+      <ControlBar company={company} />
       <StatusBar style="light" />
     </SafeAreaView>
   )

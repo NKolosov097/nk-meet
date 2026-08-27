@@ -440,6 +440,11 @@ test("ControlBarPreview is decorative and renders the covered control icons", as
       includeHiddenElements: true,
     })
 
+    expect(
+      view.getByTestId("control-bar-preview-company", {
+        includeHiddenElements: true,
+      }),
+    ).toBeOnTheScreen()
     expect(preview.props.accessibilityElementsHidden).toBe(true)
     expect(preview.props.importantForAccessibility).toBe("no-hide-descendants")
     expect(
