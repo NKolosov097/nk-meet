@@ -1,10 +1,11 @@
 import { useCallback, useState } from "react"
 import {
-  ScrollView,
+  FlatList,
   StyleSheet,
   TouchableOpacity,
   View,
   type LayoutChangeEvent,
+  type ListRenderItem,
 } from "react-native"
 
 import type { TrackReferenceOrPlaceholder } from "@livekit/react-native"
@@ -18,6 +19,12 @@ import {
   CAROUSEL_TILE_HEIGHT,
   CAROUSEL_TILE_WIDTH,
 } from "./spotlightLayout"
+
+// Carousel tiles mounted up front; covers a typical viewport at
+// CAROUSEL_TILE_WIDTH without eagerly mounting every live video track.
+const CAROUSEL_INITIAL_NUM_TO_RENDER = 4
+// Number of viewport-sized windows kept mounted around the visible one.
+const CAROUSEL_WINDOW_SIZE = 3
 
 interface ParticipantSpotlightProps {
   // The track shown fullscreen.
@@ -57,6 +64,37 @@ export const ParticipantSpotlight = ({
     setMainAreaSize({ width, height })
   }, [])
 
+  const renderCarouselTile: ListRenderItem<TrackReferenceOrPlaceholder> =
+    useCallback(
+      ({ item: track }) => {
+        const key = getTrackKey(track)
+        const participantLabel =
+          track.participant.name || track.participant.identity
+        const carouselTileLabel = `Show ${participantLabel} fullscreen`
+        const onPress = () => onSelect(key)
+        const tile = (
+          <ParticipantTile
+            trackRef={track}
+            width={CAROUSEL_TILE_WIDTH}
+            height={CAROUSEL_TILE_HEIGHT}
+          />
+        )
+
+        return canManuallySelect ? (
+          <TouchableOpacity
+            onPress={onPress}
+            accessibilityRole="button"
+            accessibilityLabel={carouselTileLabel}
+          >
+            {tile}
+          </TouchableOpacity>
+        ) : (
+          <View>{tile}</View>
+        )
+      },
+      [canManuallySelect, onSelect],
+    )
+
   return (
     <View style={styles.container} testID="participant-spotlight">
       <View style={styles.mainArea} onLayout={onMainAreaLayout}>
@@ -71,40 +109,19 @@ export const ParticipantSpotlight = ({
       </View>
 
       {carouselTracks.length > 0 && (
-        <ScrollView
+        <FlatList
           horizontal
           showsHorizontalScrollIndicator={false}
           style={styles.carousel}
           contentContainerStyle={styles.carouselContent}
           testID="participant-carousel"
-        >
-          {carouselTracks.map(track => {
-            const key = getTrackKey(track)
-            const participantLabel =
-              track.participant.name || track.participant.identity
-            const carouselTileLabel = `Show ${participantLabel} fullscreen`
-            const tile = (
-              <ParticipantTile
-                trackRef={track}
-                width={CAROUSEL_TILE_WIDTH}
-                height={CAROUSEL_TILE_HEIGHT}
-              />
-            )
-
-            return canManuallySelect ? (
-              <TouchableOpacity
-                key={key}
-                onPress={() => onSelect(key)}
-                accessibilityRole="button"
-                accessibilityLabel={carouselTileLabel}
-              >
-                {tile}
-              </TouchableOpacity>
-            ) : (
-              <View key={key}>{tile}</View>
-            )
-          })}
-        </ScrollView>
+          data={carouselTracks}
+          keyExtractor={getTrackKey}
+          renderItem={renderCarouselTile}
+          initialNumToRender={CAROUSEL_INITIAL_NUM_TO_RENDER}
+          windowSize={CAROUSEL_WINDOW_SIZE}
+          removeClippedSubviews
+        />
       )}
     </View>
   )

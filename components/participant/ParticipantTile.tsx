@@ -83,6 +83,7 @@ const ConnectedParticipantTile = ({
   const hasVideo =
     isTrackReference(trackRef) && !isVideoMuted && !!trackRef.publication.track
   const placeholderSize = Math.min(width, height) * 0.5
+  const displayName = participant.name || participant.identity
 
   const badge = (
     <>
@@ -98,15 +99,15 @@ const ConnectedParticipantTile = ({
         numberOfLines={1}
         ellipsizeMode="tail"
       >
-        {participant.name || participant.identity}
+        {displayName}
         {participant.isLocal ? " (You)" : ""}
       </Text>
     </>
   )
 
   const spotlightAccessibilityLabel = isSpotlighted
-    ? "Collapse video"
-    : "Expand video"
+    ? `Collapse ${displayName} video`
+    : `Expand ${displayName} video`
 
   return (
     <View

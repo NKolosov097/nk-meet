@@ -194,7 +194,7 @@ test("shows an expand button that spotlights this tile", async () => {
     />,
   )
 
-  await fireEvent.press(view.getByLabelText("Expand video"))
+  await fireEvent.press(view.getByLabelText("Expand Ada video"))
 
   expect(onToggleSpotlight).toHaveBeenCalledTimes(1)
 })
@@ -213,7 +213,7 @@ test("shows a collapse button with a readable icon when this tile is spotlighted
     />,
   )
 
-  expect(view.getByLabelText("Collapse video")).toBeOnTheScreen()
+  expect(view.getByLabelText("Collapse Ada video")).toBeOnTheScreen()
   expect(svgPathProps(view.toJSON())).toEqual(
     expect.arrayContaining([
       expect.objectContaining({ fill: svgColor(TEXT_COLORS.light) }),
@@ -229,5 +229,5 @@ test("omits the spotlight button when no handler is given", async () => {
     <ParticipantTile trackRef={connectedTrack} width={240} height={135} />,
   )
 
-  expect(view.queryByLabelText("Expand video")).not.toBeOnTheScreen()
+  expect(view.queryByLabelText("Expand Ada video")).not.toBeOnTheScreen()
 })
