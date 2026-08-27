@@ -8,13 +8,19 @@ import { DisconnectIcon } from "@/components/icons"
 import { BORDER_RADIUSES } from "@/constants/borderRadiuses"
 import { BACKGROUND_COLORS, TEXT_COLORS } from "@/constants/colors"
 
+import { CompanyIcon } from "./CompanyIcon"
 import { ConfirmDisconnectModal } from "./ConfirmDisconnectModal"
 import { CameraControl } from "./controls/CameraControl"
 import { MicrophoneControl } from "./controls/MicrophoneControl"
 
 type DeviceDropdownSource = Track.Source.Camera | Track.Source.Microphone
 
-export const ControlBar = () => {
+interface ControlBarProps {
+  // Canonical company id whose icon is shown alongside the room controls
+  company: string
+}
+
+export const ControlBar = ({ company }: ControlBarProps) => {
   const room = useRoomContext()
   const { localParticipant, isCameraEnabled, isMicrophoneEnabled } =
     useLocalParticipant()
@@ -89,7 +95,10 @@ export const ControlBar = () => {
 
   return (
     <>
-      <View style={styles.controlsContainer}>
+      <View style={styles.controlsContainer} testID="control-bar-row">
+        {/* Company icon identifying which company/tenant this room belongs to */}
+        <CompanyIcon company={company} />
+
         {/* Microphone control component with a dropdown list */}
         <MicrophoneControl
           isMuted={!isMicrophoneEnabled}

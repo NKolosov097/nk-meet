@@ -11,6 +11,7 @@ const mockSetAttributes = jest.fn(() => Promise.resolve())
 const mockOn = jest.fn()
 const mockOff = jest.fn()
 const mockMeetingStartedAt = Date.parse("2026-08-26T18:00:00.000Z")
+let capturedControlBarProps: { company?: string } = {}
 
 jest.mock("@livekit/react-native", () => ({
   useRoomContext: () => ({
@@ -35,7 +36,12 @@ jest.mock("@livekit/react-native", () => ({
   }),
 }))
 
-jest.mock("./ControlBar", () => ({ ControlBar: () => null }))
+jest.mock("./ControlBar", () => ({
+  ControlBar: (props: { company: string }) => {
+    capturedControlBarProps = props
+    return null
+  },
+}))
 jest.mock("./VideoConference", () => ({ VideoConference: () => null }))
 jest.mock("./useRegisterActiveRoomDisconnect", () => ({
   useRegisterActiveRoomDisconnect: jest.fn(),
@@ -47,6 +53,7 @@ beforeEach(() => {
   mockSetAttributes.mockClear()
   mockOn.mockClear()
   mockOff.mockClear()
+  capturedControlBarProps = {}
 })
 
 afterEach(() => {
@@ -94,4 +101,16 @@ test("keeps the meeting name and duration in one compact transparent row", async
     color: TEXT_COLORS.placeholder,
     flexShrink: 0,
   })
+})
+
+test("passes the room's company down to ControlBar", async () => {
+  await render(
+    <ActiveRoom
+      company={DEFAULT_COMPANY_ID}
+      roomSlug="weekly-sync"
+      onForcedDisconnect={jest.fn()}
+    />,
+  )
+
+  expect(capturedControlBarProps.company).toBe(DEFAULT_COMPANY_ID)
 })

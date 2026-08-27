@@ -15,6 +15,8 @@ export const ControlBarPreview = () => (
     accessibilityElementsHidden
     importantForAccessibility="no-hide-descendants"
   >
+    <View testID="control-bar-preview-company" style={styles.controlButton} />
+
     <View style={styles.controlButton}>
       <MicIcon />
     </View>

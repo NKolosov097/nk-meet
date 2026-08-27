@@ -133,6 +133,12 @@ export const VISUAL_COMPONENT_CONTRACTS: readonly VisualComponentContract[] = [
     kind: "contract",
   },
   {
+    contractId: "a11y:components/room/CompanyIcon.tsx",
+    source: "components/room/CompanyIcon.tsx",
+    owner: "components/room/CompanyIcon.test.tsx",
+    kind: "contract",
+  },
+  {
     contractId: "a11y:components/room/VideoConference.tsx",
     source: "components/room/VideoConference.tsx",
     owner: "components/room/VideoConference.integration.test.tsx",
@@ -245,6 +251,14 @@ export const VISUAL_COMPONENT_CONTRACTS: readonly VisualComponentContract[] = [
     kind: "decorative",
     rationale:
       "State is announced by its owning microphone button; the SVG has no independent semantics.",
+  },
+  {
+    contractId: "a11y:components/icons/NKolosovIcon.tsx",
+    source: "components/icons/NKolosovIcon.tsx",
+    owner: "components/room/CompanyIcon.test.tsx",
+    kind: "decorative",
+    rationale:
+      "Rendered inside CompanyIcon, which owns the accessible label; the SVG has no independent semantics.",
   },
   {
     contractId: "a11y:components/icons/ParticipantPlaceholderIcon.tsx",
@@ -426,6 +440,11 @@ test("ControlBarPreview is decorative and renders the covered control icons", as
       includeHiddenElements: true,
     })
 
+    expect(
+      view.getByTestId("control-bar-preview-company", {
+        includeHiddenElements: true,
+      }),
+    ).toBeOnTheScreen()
     expect(preview.props.accessibilityElementsHidden).toBe(true)
     expect(preview.props.importantForAccessibility).toBe("no-hide-descendants")
     expect(
