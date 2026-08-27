@@ -197,6 +197,12 @@ export const VISUAL_COMPONENT_CONTRACTS: readonly VisualComponentContract[] = [
       "Lays out covered ParticipantTile children without adding meaningful colors or controls.",
   },
   {
+    contractId: "a11y:components/room/spotlight/ParticipantSpotlight.tsx",
+    source: "components/room/spotlight/ParticipantSpotlight.tsx",
+    owner: "components/room/spotlight/ParticipantSpotlight.test.tsx",
+    kind: "contract",
+  },
+  {
     contractId: "a11y:components/icons/CameraDisabledIcon.tsx",
     source: "components/icons/CameraDisabledIcon.tsx",
     owner: "components/room/controls/mediaDevices.integration.test.tsx",
