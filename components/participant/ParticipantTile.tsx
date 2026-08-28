@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
   spotlightButton: {
     position: "absolute",
     top: BADGE_INSET,
-    left: BADGE_INSET,
+    right: BADGE_INSET,
     width: SPOTLIGHT_BUTTON_SIZE,
     height: SPOTLIGHT_BUTTON_SIZE,
     borderRadius: BORDER_RADIUSES.pill,
