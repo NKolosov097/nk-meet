@@ -120,7 +120,6 @@ export const ParticipantSpotlight = ({
           renderItem={renderCarouselTile}
           initialNumToRender={CAROUSEL_INITIAL_NUM_TO_RENDER}
           windowSize={CAROUSEL_WINDOW_SIZE}
-          removeClippedSubviews
         />
       )}
     </View>
@@ -136,6 +135,7 @@ const styles = StyleSheet.create({
   },
   carousel: {
     flexGrow: 0,
+    height: CAROUSEL_TILE_HEIGHT + CAROUSEL_PADDING * 2,
   },
   carouselContent: {
     gap: CAROUSEL_GAP,
