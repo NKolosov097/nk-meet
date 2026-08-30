@@ -248,7 +248,9 @@ test("shows a speaking border when the participant is actively speaking", async 
     <ParticipantTile trackRef={connectedTrack} width={240} height={135} />,
   )
 
-  expect(view.getByTestId("participant-tile-ada")).toHaveStyle({
+  expect(mockUseIsSpeaking).toHaveBeenCalledWith(connectedTrack.participant)
+  expect(view.getByTestId("participant-speaking-border")).toHaveStyle({
+    borderWidth: 3,
     borderColor: BORDER_COLORS.speakingIndicator,
   })
 })
@@ -262,7 +264,8 @@ test("hides the speaking border when the participant is not speaking", async () 
     <ParticipantTile trackRef={connectedTrack} width={240} height={135} />,
   )
 
-  expect(view.getByTestId("participant-tile-ada")).toHaveStyle({
+  expect(view.getByTestId("participant-speaking-border")).toHaveStyle({
+    borderWidth: 3,
     borderColor: BACKGROUND_COLORS.transparent,
   })
 })

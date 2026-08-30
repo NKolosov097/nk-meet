@@ -119,11 +119,7 @@ const ConnectedParticipantTile = ({
   return (
     <View
       testID={`participant-tile-${participant.identity}`}
-      style={[
-        styles.participantContainer,
-        { width, height },
-        isSpeaking ? styles.speakingParticipant : undefined,
-      ]}
+      style={[styles.participantContainer, { width, height }]}
     >
       {hasVideo ? (
         <VideoTrack
@@ -165,6 +161,15 @@ const ConnectedParticipantTile = ({
           )}
         </TouchableOpacity>
       )}
+
+      <View
+        testID="participant-speaking-border"
+        pointerEvents="none"
+        style={[
+          styles.speakingBorder,
+          isSpeaking ? styles.speakingBorderActive : undefined,
+        ]}
+      />
     </View>
   )
 }
@@ -221,11 +226,15 @@ const styles = StyleSheet.create({
   participantContainer: {
     backgroundColor: BACKGROUND_COLORS.secondary,
     borderRadius: BORDER_RADIUSES.medium,
-    borderWidth: SPEAKING_BORDER_WIDTH,
-    borderColor: BACKGROUND_COLORS.transparent,
     overflow: "hidden",
   },
-  speakingParticipant: {
+  speakingBorder: {
+    ...StyleSheet.absoluteFill,
+    borderRadius: BORDER_RADIUSES.medium,
+    borderWidth: SPEAKING_BORDER_WIDTH,
+    borderColor: BACKGROUND_COLORS.transparent,
+  },
+  speakingBorderActive: {
     borderColor: BORDER_COLORS.speakingIndicator,
   },
   videoView: {
