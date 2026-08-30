@@ -1,23 +1,31 @@
 // a11y:components/participant/ParticipantTile.tsx
 // a11y:components/icons/ParticipantPlaceholderIcon.tsx
+// a11y:components/icons/ExpandIcon.tsx
+// a11y:components/icons/CollapseIcon.tsx
 import { processColor } from "react-native"
 
-import { render } from "@testing-library/react-native"
+import { fireEvent, render } from "@testing-library/react-native"
 
 import {
   isTrackReference,
   type TrackReferenceOrPlaceholder,
+  useIsSpeaking,
   useTrackMutedIndicator,
 } from "@livekit/react-native"
 import { Track } from "livekit-client"
 
 import { ParticipantPlaceholderIcon } from "@/components/icons"
-import { BACKGROUND_COLORS, TEXT_COLORS } from "@/constants/colors"
+import {
+  BACKGROUND_COLORS,
+  BORDER_COLORS,
+  TEXT_COLORS,
+} from "@/constants/colors"
 
 import { ParticipantTile } from "./ParticipantTile"
 
 jest.mock("@livekit/react-native", () => ({
   isTrackReference: jest.fn(),
+  useIsSpeaking: jest.fn(),
   useTrackMutedIndicator: jest.fn(),
   VideoTrack: () => {
     const React = require("react")
@@ -34,6 +42,7 @@ jest.mock("@livekit/react-native", () => ({
 }))
 
 const mockIsTrackReference = jest.mocked(isTrackReference)
+const mockUseIsSpeaking = useIsSpeaking as jest.Mock
 const mockUseTrackMutedIndicator = useTrackMutedIndicator as jest.Mock
 
 const connectedTrack = {
@@ -176,4 +185,87 @@ test("defaults the placeholder icon to an opaque meaningful semantic color", asy
     expect(path.fill).toEqual(svgColor(TEXT_COLORS.placeholder))
     expect(path.fillOpacity).toBeUndefined()
   }
+})
+
+test("shows an expand button that spotlights this tile", async () => {
+  mockIsTrackReference.mockReturnValue(true)
+  mockUseTrackMutedIndicator.mockReturnValue({ isMuted: false })
+  const onToggleSpotlight = jest.fn()
+
+  const view = await render(
+    <ParticipantTile
+      trackRef={connectedTrack}
+      width={240}
+      height={135}
+      onToggleSpotlight={onToggleSpotlight}
+    />,
+  )
+
+  await fireEvent.press(view.getByLabelText("Expand Ada video"))
+
+  expect(onToggleSpotlight).toHaveBeenCalledTimes(1)
+})
+
+test("shows a collapse button with a readable icon when this tile is spotlighted", async () => {
+  mockIsTrackReference.mockReturnValue(true)
+  mockUseTrackMutedIndicator.mockReturnValue({ isMuted: false })
+
+  const view = await render(
+    <ParticipantTile
+      trackRef={connectedTrack}
+      width={240}
+      height={135}
+      isSpotlighted
+      onToggleSpotlight={jest.fn()}
+    />,
+  )
+
+  expect(view.getByLabelText("Collapse Ada video")).toBeOnTheScreen()
+  expect(svgPathProps(view.toJSON())).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ fill: svgColor(TEXT_COLORS.light) }),
+    ]),
+  )
+})
+
+test("omits the spotlight button when no handler is given", async () => {
+  mockIsTrackReference.mockReturnValue(true)
+  mockUseTrackMutedIndicator.mockReturnValue({ isMuted: false })
+
+  const view = await render(
+    <ParticipantTile trackRef={connectedTrack} width={240} height={135} />,
+  )
+
+  expect(view.queryByLabelText("Expand Ada video")).not.toBeOnTheScreen()
+})
+
+test("shows a speaking border when the participant is actively speaking", async () => {
+  mockIsTrackReference.mockReturnValue(true)
+  mockUseTrackMutedIndicator.mockReturnValue({ isMuted: false })
+  mockUseIsSpeaking.mockReturnValue(true)
+
+  const view = await render(
+    <ParticipantTile trackRef={connectedTrack} width={240} height={135} />,
+  )
+
+  expect(mockUseIsSpeaking).toHaveBeenCalledWith(connectedTrack.participant)
+  expect(view.getByTestId("participant-speaking-border")).toHaveStyle({
+    borderWidth: 3,
+    borderColor: BORDER_COLORS.speakingIndicator,
+  })
+})
+
+test("hides the speaking border when the participant is not speaking", async () => {
+  mockIsTrackReference.mockReturnValue(true)
+  mockUseTrackMutedIndicator.mockReturnValue({ isMuted: false })
+  mockUseIsSpeaking.mockReturnValue(false)
+
+  const view = await render(
+    <ParticipantTile trackRef={connectedTrack} width={240} height={135} />,
+  )
+
+  expect(view.getByTestId("participant-speaking-border")).toHaveStyle({
+    borderWidth: 3,
+    borderColor: BACKGROUND_COLORS.transparent,
+  })
 })

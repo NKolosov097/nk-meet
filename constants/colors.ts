@@ -37,6 +37,7 @@ export const BORDER_COLORS = {
   divider: "rgba(255, 255, 255, 0.15)",
   controlDivider: "rgba(255, 255, 255, 0.5)",
   selectionIndicator: "#FFFFFF",
+  speakingIndicator: "#64D2FF",
 } satisfies ColorPalette
 
 export const SHADOW_COLORS = {

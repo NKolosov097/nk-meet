@@ -10,6 +10,7 @@ import type { TrackReferenceOrPlaceholder } from "@livekit/react-native"
 import { ParticipantTile } from "@/components/participant/ParticipantTile"
 
 import { GRID_GAP, GRID_PADDING } from "./gridLayout"
+import { getTrackKey } from "./trackKey"
 
 interface ParticipantGridProps {
   // The current page's participant/placeholder tracks to render as tiles.
@@ -22,6 +23,8 @@ interface ParticipantGridProps {
   onLayout: (event: LayoutChangeEvent) => void
   // Gesture handlers enabling horizontal swipe-to-change-page; spread onto the container.
   panHandlers: GestureResponderHandlers
+  // Called with a track's key when its expand button is pressed.
+  onExpand: (key: string) => void
 }
 
 export const ParticipantGrid = ({
@@ -30,6 +33,7 @@ export const ParticipantGrid = ({
   tileHeight,
   onLayout,
   panHandlers,
+  onExpand,
 }: ParticipantGridProps) => (
   <View style={styles.swipeArea} {...panHandlers}>
     <View
@@ -37,14 +41,19 @@ export const ParticipantGrid = ({
       style={styles.container}
       onLayout={onLayout}
     >
-      {tracks.map(track => (
-        <ParticipantTile
-          key={`${track.participant.identity}-${track.source}`}
-          trackRef={track}
-          width={tileWidth}
-          height={tileHeight}
-        />
-      ))}
+      {tracks.map(track => {
+        const key = getTrackKey(track)
+
+        return (
+          <ParticipantTile
+            key={key}
+            trackRef={track}
+            width={tileWidth}
+            height={tileHeight}
+            onToggleSpotlight={() => onExpand(key)}
+          />
+        )
+      })}
     </View>
   </View>
 )
