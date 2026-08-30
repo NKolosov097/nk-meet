@@ -9,17 +9,23 @@ import { fireEvent, render } from "@testing-library/react-native"
 import {
   isTrackReference,
   type TrackReferenceOrPlaceholder,
+  useIsSpeaking,
   useTrackMutedIndicator,
 } from "@livekit/react-native"
 import { Track } from "livekit-client"
 
 import { ParticipantPlaceholderIcon } from "@/components/icons"
-import { BACKGROUND_COLORS, TEXT_COLORS } from "@/constants/colors"
+import {
+  BACKGROUND_COLORS,
+  BORDER_COLORS,
+  TEXT_COLORS,
+} from "@/constants/colors"
 
 import { ParticipantTile } from "./ParticipantTile"
 
 jest.mock("@livekit/react-native", () => ({
   isTrackReference: jest.fn(),
+  useIsSpeaking: jest.fn(),
   useTrackMutedIndicator: jest.fn(),
   VideoTrack: () => {
     const React = require("react")
@@ -36,6 +42,7 @@ jest.mock("@livekit/react-native", () => ({
 }))
 
 const mockIsTrackReference = jest.mocked(isTrackReference)
+const mockUseIsSpeaking = useIsSpeaking as jest.Mock
 const mockUseTrackMutedIndicator = useTrackMutedIndicator as jest.Mock
 
 const connectedTrack = {
@@ -230,4 +237,32 @@ test("omits the spotlight button when no handler is given", async () => {
   )
 
   expect(view.queryByLabelText("Expand Ada video")).not.toBeOnTheScreen()
+})
+
+test("shows a speaking border when the participant is actively speaking", async () => {
+  mockIsTrackReference.mockReturnValue(true)
+  mockUseTrackMutedIndicator.mockReturnValue({ isMuted: false })
+  mockUseIsSpeaking.mockReturnValue(true)
+
+  const view = await render(
+    <ParticipantTile trackRef={connectedTrack} width={240} height={135} />,
+  )
+
+  expect(view.getByTestId("participant-tile-ada")).toHaveStyle({
+    borderColor: BORDER_COLORS.speakingIndicator,
+  })
+})
+
+test("hides the speaking border when the participant is not speaking", async () => {
+  mockIsTrackReference.mockReturnValue(true)
+  mockUseTrackMutedIndicator.mockReturnValue({ isMuted: false })
+  mockUseIsSpeaking.mockReturnValue(false)
+
+  const view = await render(
+    <ParticipantTile trackRef={connectedTrack} width={240} height={135} />,
+  )
+
+  expect(view.getByTestId("participant-tile-ada")).toHaveStyle({
+    borderColor: BACKGROUND_COLORS.transparent,
+  })
 })
