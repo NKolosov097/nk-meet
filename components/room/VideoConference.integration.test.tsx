@@ -11,6 +11,7 @@ import { VideoConference } from "./VideoConference"
 jest.mock("@livekit/react-native", () => ({
   useTracks: jest.fn(),
   isTrackReference: jest.fn(() => false),
+  useIsSpeaking: jest.fn(() => false),
   useTrackMutedIndicator: jest.fn(() => ({ isMuted: false })),
   VideoTrack: () => null,
 }))

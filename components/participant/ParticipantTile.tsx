@@ -2,6 +2,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
 
 import {
   isTrackReference,
+  useIsSpeaking,
   useTrackMutedIndicator,
   VideoTrack,
   VideoView,
@@ -16,13 +17,18 @@ import {
   ParticipantPlaceholderIcon,
 } from "@/components/icons"
 import { BORDER_RADIUSES } from "@/constants/borderRadiuses"
-import { BACKGROUND_COLORS, TEXT_COLORS } from "@/constants/colors"
+import {
+  BACKGROUND_COLORS,
+  BORDER_COLORS,
+  TEXT_COLORS,
+} from "@/constants/colors"
 
 const MIC_ICON_SIZE = 16
 const BADGE_INSET = 4
 const SPOTLIGHT_ICON_SIZE = 16
 const SPOTLIGHT_BUTTON_SIZE = 28
 const SPOTLIGHT_HIT_SLOP = { top: 8, right: 8, bottom: 8, left: 8 }
+const SPEAKING_BORDER_WIDTH = 3
 
 interface ConnectedParticipantTileProps {
   // The participant's camera/screen-share track, or a placeholder.
@@ -79,6 +85,7 @@ const ConnectedParticipantTile = ({
     participant,
     source: Track.Source.Microphone,
   })
+  const isSpeaking = useIsSpeaking(participant)
 
   const hasVideo =
     isTrackReference(trackRef) && !isVideoMuted && !!trackRef.publication.track
@@ -154,6 +161,15 @@ const ConnectedParticipantTile = ({
           )}
         </TouchableOpacity>
       )}
+
+      <View
+        testID="participant-speaking-border"
+        pointerEvents="none"
+        style={[
+          styles.speakingBorder,
+          isSpeaking ? styles.speakingBorderActive : undefined,
+        ]}
+      />
     </View>
   )
 }
@@ -211,6 +227,15 @@ const styles = StyleSheet.create({
     backgroundColor: BACKGROUND_COLORS.secondary,
     borderRadius: BORDER_RADIUSES.medium,
     overflow: "hidden",
+  },
+  speakingBorder: {
+    ...StyleSheet.absoluteFill,
+    borderRadius: BORDER_RADIUSES.medium,
+    borderWidth: SPEAKING_BORDER_WIDTH,
+    borderColor: BACKGROUND_COLORS.transparent,
+  },
+  speakingBorderActive: {
+    borderColor: BORDER_COLORS.speakingIndicator,
   },
   videoView: {
     flex: 1,

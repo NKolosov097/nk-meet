@@ -66,4 +66,17 @@ describe("semantic color palette", () => {
       contrastRatio(BORDER_COLORS.selectionIndicator, BACKGROUND_COLORS.black),
     ).toBeGreaterThanOrEqual(3)
   })
+
+  it("keeps the speaking indicator visible against room and tile backgrounds", () => {
+    expect(BORDER_COLORS.speakingIndicator).toEqual(expect.any(String))
+    expect(
+      contrastRatio(BORDER_COLORS.speakingIndicator, BACKGROUND_COLORS.black),
+    ).toBeGreaterThanOrEqual(3)
+    expect(
+      contrastRatio(
+        BORDER_COLORS.speakingIndicator,
+        BACKGROUND_COLORS.secondary,
+      ),
+    ).toBeGreaterThanOrEqual(3)
+  })
 })
