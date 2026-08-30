@@ -1,7 +1,8 @@
-import { StyleSheet, Text, View } from "react-native"
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
 
 import {
   isTrackReference,
+  useIsSpeaking,
   useTrackMutedIndicator,
   VideoTrack,
   VideoView,
@@ -9,12 +10,25 @@ import {
 } from "@livekit/react-native"
 import { Track, type LocalVideoTrack } from "livekit-client"
 
-import { MicDisabledIcon, ParticipantPlaceholderIcon } from "@/components/icons"
+import {
+  CollapseIcon,
+  ExpandIcon,
+  MicDisabledIcon,
+  ParticipantPlaceholderIcon,
+} from "@/components/icons"
 import { BORDER_RADIUSES } from "@/constants/borderRadiuses"
-import { BACKGROUND_COLORS, TEXT_COLORS } from "@/constants/colors"
+import {
+  BACKGROUND_COLORS,
+  BORDER_COLORS,
+  TEXT_COLORS,
+} from "@/constants/colors"
 
 const MIC_ICON_SIZE = 16
 const BADGE_INSET = 4
+const SPOTLIGHT_ICON_SIZE = 16
+const SPOTLIGHT_BUTTON_SIZE = 28
+const SPOTLIGHT_HIT_SLOP = { top: 8, right: 8, bottom: 8, left: 8 }
+const SPEAKING_BORDER_WIDTH = 3
 
 interface ConnectedParticipantTileProps {
   // The participant's camera/screen-share track, or a placeholder.
@@ -23,6 +37,10 @@ interface ConnectedParticipantTileProps {
   width: number
   // Height of this tile, in pixels, as computed by the grid layout.
   height: number
+  // True when this tile is shown fullscreen; selects the collapse icon.
+  isSpotlighted?: boolean
+  // Shows the expand/collapse button when provided; omitted hides it.
+  onToggleSpotlight?: VoidFunction
   // Connected tiles cannot receive pre-join preview tracks
   previewTrack?: never
   // Connected tiles read the participant name from the LiveKit track
@@ -58,6 +76,8 @@ const ConnectedParticipantTile = ({
   trackRef,
   width,
   height,
+  isSpotlighted = false,
+  onToggleSpotlight,
 }: ConnectedParticipantTileProps) => {
   const { participant } = trackRef
   const { isMuted: isVideoMuted } = useTrackMutedIndicator(trackRef)
@@ -65,10 +85,12 @@ const ConnectedParticipantTile = ({
     participant,
     source: Track.Source.Microphone,
   })
+  const isSpeaking = useIsSpeaking(participant)
 
   const hasVideo =
     isTrackReference(trackRef) && !isVideoMuted && !!trackRef.publication.track
   const placeholderSize = Math.min(width, height) * 0.5
+  const displayName = participant.name || participant.identity
 
   const badge = (
     <>
@@ -84,11 +106,15 @@ const ConnectedParticipantTile = ({
         numberOfLines={1}
         ellipsizeMode="tail"
       >
-        {participant.name || participant.identity}
+        {displayName}
         {participant.isLocal ? " (You)" : ""}
       </Text>
     </>
   )
+
+  const spotlightAccessibilityLabel = isSpotlighted
+    ? `Collapse ${displayName} video`
+    : `Expand ${displayName} video`
 
   return (
     <View
@@ -115,6 +141,35 @@ const ConnectedParticipantTile = ({
           {badge}
         </View>
       </View>
+
+      {onToggleSpotlight && (
+        <TouchableOpacity
+          testID="participant-spotlight-button"
+          style={styles.spotlightButton}
+          onPress={onToggleSpotlight}
+          accessibilityRole="button"
+          accessibilityLabel={spotlightAccessibilityLabel}
+          hitSlop={SPOTLIGHT_HIT_SLOP}
+        >
+          {isSpotlighted ? (
+            <CollapseIcon
+              size={SPOTLIGHT_ICON_SIZE}
+              color={TEXT_COLORS.light}
+            />
+          ) : (
+            <ExpandIcon size={SPOTLIGHT_ICON_SIZE} color={TEXT_COLORS.light} />
+          )}
+        </TouchableOpacity>
+      )}
+
+      <View
+        testID="participant-speaking-border"
+        pointerEvents="none"
+        style={[
+          styles.speakingBorder,
+          isSpeaking ? styles.speakingBorderActive : undefined,
+        ]}
+      />
     </View>
   )
 }
@@ -173,6 +228,15 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUSES.medium,
     overflow: "hidden",
   },
+  speakingBorder: {
+    ...StyleSheet.absoluteFill,
+    borderRadius: BORDER_RADIUSES.medium,
+    borderWidth: SPEAKING_BORDER_WIDTH,
+    borderColor: BACKGROUND_COLORS.transparent,
+  },
+  speakingBorderActive: {
+    borderColor: BORDER_COLORS.speakingIndicator,
+  },
   videoView: {
     flex: 1,
   },
@@ -187,6 +251,17 @@ const styles = StyleSheet.create({
     left: BADGE_INSET,
     right: BADGE_INSET,
     flexDirection: "row",
+  },
+  spotlightButton: {
+    position: "absolute",
+    top: BADGE_INSET,
+    right: BADGE_INSET,
+    width: SPOTLIGHT_BUTTON_SIZE,
+    height: SPOTLIGHT_BUTTON_SIZE,
+    borderRadius: BORDER_RADIUSES.pill,
+    backgroundColor: BACKGROUND_COLORS.participantBadge,
+    justifyContent: "center",
+    alignItems: "center",
   },
   badge: {
     flex: 1,

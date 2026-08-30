@@ -14,7 +14,7 @@
     "prebuild": "expo prebuild --clean",
     "prebuild:ios": "expo prebuild --platform ios --clean",
     "test": "jest --runInBand",
-    "test:node": "node --test --experimental-strip-types components/room/controls/deviceDropdownLayout.node.test.ts components/room/grid/gridLayout.node.test.ts components/room/grid/swipeResponder.node.test.ts",
+    "test:node": "node --test --experimental-strip-types components/room/controls/deviceDropdownLayout.node.test.ts components/room/grid/gridLayout.node.test.ts components/room/grid/swipeResponder.node.test.ts components/room/grid/trackKey.node.test.ts",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",

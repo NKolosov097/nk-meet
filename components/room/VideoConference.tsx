@@ -7,6 +7,8 @@ import { ParticipantKind, Track } from "livekit-client"
 import { PaginationBar } from "@/components/room/grid/PaginationBar"
 import { ParticipantGrid } from "@/components/room/grid/ParticipantGrid"
 import { useParticipantGrid } from "@/components/room/grid/useParticipantGrid"
+import { ParticipantSpotlight } from "@/components/room/spotlight/ParticipantSpotlight"
+import { useParticipantSpotlight } from "@/components/room/spotlight/useParticipantSpotlight"
 import { TEXT_COLORS } from "@/constants/colors"
 
 const tracksOption = [
@@ -43,6 +45,14 @@ export const VideoConference = () => {
     goToPreviousPage,
   } = useParticipantGrid(participantTracks)
 
+  const {
+    expandedTrack,
+    carouselTracks,
+    canManuallySelect,
+    selectSpotlight,
+    clearSpotlight,
+  } = useParticipantSpotlight(participantTracks)
+
   if (participantTracks.length === 0) {
     return (
       <View style={styles.noVideo}>
@@ -53,22 +63,35 @@ export const VideoConference = () => {
 
   return (
     <View style={styles.container}>
-      <ParticipantGrid
-        tracks={visibleItems}
-        tileWidth={tileWidth}
-        tileHeight={tileHeight}
-        onLayout={onContainerLayout}
-        panHandlers={panHandlers}
-      />
-
-      {totalPages > 1 && (
-        <PaginationBar
-          currentPage={currentPage}
-          totalPages={totalPages}
-          isVisible={isPaginationVisible}
-          onPrevious={goToPreviousPage}
-          onNext={goToNextPage}
+      {expandedTrack ? (
+        <ParticipantSpotlight
+          expandedTrack={expandedTrack}
+          carouselTracks={carouselTracks}
+          canManuallySelect={canManuallySelect}
+          onSelect={selectSpotlight}
+          onCollapse={clearSpotlight}
         />
+      ) : (
+        <>
+          <ParticipantGrid
+            tracks={visibleItems}
+            tileWidth={tileWidth}
+            tileHeight={tileHeight}
+            onLayout={onContainerLayout}
+            panHandlers={panHandlers}
+            onExpand={selectSpotlight}
+          />
+
+          {totalPages > 1 && (
+            <PaginationBar
+              currentPage={currentPage}
+              totalPages={totalPages}
+              isVisible={isPaginationVisible}
+              onPrevious={goToPreviousPage}
+              onNext={goToNextPage}
+            />
+          )}
+        </>
       )}
     </View>
   )

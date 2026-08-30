@@ -197,6 +197,12 @@ export const VISUAL_COMPONENT_CONTRACTS: readonly VisualComponentContract[] = [
       "Lays out covered ParticipantTile children without adding meaningful colors or controls.",
   },
   {
+    contractId: "a11y:components/room/spotlight/ParticipantSpotlight.tsx",
+    source: "components/room/spotlight/ParticipantSpotlight.tsx",
+    owner: "components/room/spotlight/ParticipantSpotlight.test.tsx",
+    kind: "contract",
+  },
+  {
     contractId: "a11y:components/icons/CameraDisabledIcon.tsx",
     source: "components/icons/CameraDisabledIcon.tsx",
     owner: "components/room/controls/mediaDevices.integration.test.tsx",
@@ -227,6 +233,22 @@ export const VISUAL_COMPONENT_CONTRACTS: readonly VisualComponentContract[] = [
     kind: "decorative",
     rationale:
       "Direction is announced by the owning labeled button; the SVG has no independent semantics.",
+  },
+  {
+    contractId: "a11y:components/icons/CollapseIcon.tsx",
+    source: "components/icons/CollapseIcon.tsx",
+    owner: "components/participant/ParticipantTile.test.tsx",
+    kind: "decorative",
+    rationale:
+      "State is announced by the owning spotlight button; the SVG has no independent semantics.",
+  },
+  {
+    contractId: "a11y:components/icons/ExpandIcon.tsx",
+    source: "components/icons/ExpandIcon.tsx",
+    owner: "components/participant/ParticipantTile.test.tsx",
+    kind: "decorative",
+    rationale:
+      "State is announced by the owning spotlight button; the SVG has no independent semantics.",
   },
   {
     contractId: "a11y:components/icons/DisconnectIcon.tsx",
