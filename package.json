@@ -22,6 +22,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@livekit/components-core": "0.12.14",
     "@livekit/react-native": "2.12.0",
     "@livekit/react-native-expo-plugin": "1.0.2",
     "@livekit/react-native-webrtc": "144.1.2",

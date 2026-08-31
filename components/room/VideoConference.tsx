@@ -1,6 +1,7 @@
 import { useMemo } from "react"
 import { StyleSheet, Text, View } from "react-native"
 
+import { sortTrackReferences } from "@livekit/components-core"
 import { useTracks } from "@livekit/react-native"
 import { ParticipantKind, Track } from "livekit-client"
 
@@ -26,8 +27,10 @@ export const VideoConference = () => {
 
   const participantTracks = useMemo(
     () =>
-      tracks.filter(track =>
-        VISIBLE_PARTICIPANT_KINDS.includes(track.participant.kind),
+      sortTrackReferences(
+        tracks.filter(track =>
+          VISIBLE_PARTICIPANT_KINDS.includes(track.participant.kind),
+        ),
       ),
     [tracks],
   )
