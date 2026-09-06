@@ -31,6 +31,11 @@ test("the TypeScript Expo config preserves the complete native and web contract"
         NSMicrophoneUsageDescription:
           "This app needs access to microphone to enable audio calls",
         UIBackgroundModes: ["audio"],
+        RTCAppGroupIdentifier: "group.com.nkolosov.nkmeet",
+        RTCScreenSharingExtension: "com.nkolosov.nkmeet.broadcast",
+      },
+      entitlements: {
+        "com.apple.security.application-groups": ["group.com.nkolosov.nkmeet"],
       },
       bundleIdentifier: "com.nkolosov.nkmeet",
     },
@@ -46,6 +51,8 @@ test("the TypeScript Expo config preserves the complete native and web contract"
         "android.permission.INTERNET",
         "android.permission.ACCESS_NETWORK_STATE",
         "android.permission.WAKE_LOCK",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION",
       ],
       package: "com.nkolosov.nkmeet",
     },
@@ -56,8 +63,17 @@ test("the TypeScript Expo config preserves the complete native and web contract"
       [
         "@livekit/react-native-expo-plugin",
         {
-          enableScreenCapture: false,
-          enableCrisp: true,
+          android: {
+            audioType: "communication",
+            enableScreenShareService: true,
+          },
+        },
+      ],
+      "./plugins/withScreenShareNotificationIcon",
+      [
+        "./plugins/withIosBroadcastExtension",
+        {
+          appGroupIdentifier: "group.com.nkolosov.nkmeet",
         },
       ],
       "expo-router",
