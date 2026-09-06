@@ -27,11 +27,11 @@ jest.mock("@livekit/react-native", () => ({
   isTrackReference: jest.fn(),
   useIsSpeaking: jest.fn(),
   useTrackMutedIndicator: jest.fn(),
-  VideoTrack: () => {
+  VideoTrack: ({ mirror }: { mirror?: boolean }) => {
     const React = require("react")
     const { View } = require("react-native")
 
-    return React.createElement(View, { testID: "participant-video" })
+    return React.createElement(View, { testID: "participant-video", mirror })
   },
   VideoView: () => {
     const React = require("react")
@@ -53,6 +53,26 @@ const connectedTrack = {
   },
   publication: { track: {} },
   source: Track.Source.Camera,
+} as TrackReferenceOrPlaceholder
+
+const ownScreenShareTrack = {
+  participant: {
+    identity: "nkolosov",
+    name: "Nikita",
+    isLocal: true,
+  },
+  publication: { track: {} },
+  source: Track.Source.ScreenShare,
+} as TrackReferenceOrPlaceholder
+
+const remoteScreenShareTrack = {
+  participant: {
+    identity: "ada",
+    name: "Ada",
+    isLocal: false,
+  },
+  publication: { track: {} },
+  source: Track.Source.ScreenShare,
 } as TrackReferenceOrPlaceholder
 
 type RenderedNativeNode = {
@@ -268,4 +288,41 @@ test("hides the speaking border when the participant is not speaking", async () 
     borderWidth: 3,
     borderColor: BACKGROUND_COLORS.transparent,
   })
+})
+
+test("scrims your own screen share and says so instead of feeding the tile back", async () => {
+  mockIsTrackReference.mockReturnValue(true)
+  mockUseTrackMutedIndicator.mockReturnValue({ isMuted: false })
+
+  const view = await render(
+    <ParticipantTile trackRef={ownScreenShareTrack} width={240} height={135} />,
+  )
+
+  expect(view.getByTestId("own-screen-share-scrim")).toHaveStyle({
+    backgroundColor: BACKGROUND_COLORS.localScreenShareScrim,
+  })
+  expect(view.getByText("You're sharing your screen")).toHaveStyle({
+    color: TEXT_COLORS.light,
+  })
+  // The name badge would only repeat what the label already says.
+  expect(view.queryByTestId("participant-badge")).not.toBeOnTheScreen()
+  // Mirroring is for self-view cameras; a mirrored screen is unreadable.
+  expect(view.getByTestId("participant-video")).toHaveProp("mirror", false)
+})
+
+test("leaves a remote screen share unscrimmed and badged", async () => {
+  mockIsTrackReference.mockReturnValue(true)
+  mockUseTrackMutedIndicator.mockReturnValue({ isMuted: false })
+
+  const view = await render(
+    <ParticipantTile
+      trackRef={remoteScreenShareTrack}
+      width={240}
+      height={135}
+    />,
+  )
+
+  expect(view.queryByTestId("own-screen-share-scrim")).not.toBeOnTheScreen()
+  expect(view.getByTestId("participant-badge")).toBeOnTheScreen()
+  expect(view.getByText("Ada")).toBeOnTheScreen()
 })

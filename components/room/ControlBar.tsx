@@ -12,8 +12,19 @@ import { CompanyIcon } from "./CompanyIcon"
 import { ConfirmDisconnectModal } from "./ConfirmDisconnectModal"
 import { CameraControl } from "./controls/CameraControl"
 import { MicrophoneControl } from "./controls/MicrophoneControl"
+import { ScreenShareControl } from "./controls/ScreenShareControl"
 
 type DeviceDropdownSource = Track.Source.Camera | Track.Source.Microphone
+
+// Declining the system capture prompt is a normal outcome, not a failure: the
+// Android bridge reports it as a DOMException carrying "NotAllowedError".
+const isScreenShareDeclined = (error: unknown): boolean => {
+  if (typeof error !== "object" || error === null) return false
+
+  const { name, message } = error as { name?: unknown; message?: unknown }
+
+  return name === "NotAllowedError" || message === "NotAllowedError"
+}
 
 interface ControlBarProps {
   // Canonical company id whose icon is shown alongside the room controls
@@ -22,12 +33,18 @@ interface ControlBarProps {
 
 export const ControlBar = ({ company }: ControlBarProps) => {
   const room = useRoomContext()
-  const { localParticipant, isCameraEnabled, isMicrophoneEnabled } =
-    useLocalParticipant()
+  const {
+    localParticipant,
+    isCameraEnabled,
+    isMicrophoneEnabled,
+    isScreenShareEnabled,
+  } = useLocalParticipant()
   const isTogglingMicrophone = useRef<boolean>(false)
   const [isMicrophoneToggling, setIsMicrophoneToggling] = useState(false)
   const isTogglingCamera = useRef<boolean>(false)
   const [isCameraToggling, setIsCameraToggling] = useState(false)
+  const isTogglingScreenShare = useRef<boolean>(false)
+  const [isScreenShareToggling, setIsScreenShareToggling] = useState(false)
   const [openDeviceDropdown, setOpenDeviceDropdown] =
     useState<DeviceDropdownSource | null>(null)
   const [isConfirmingDisconnect, setIsConfirmingDisconnect] = useState(false)
@@ -73,6 +90,25 @@ export const ControlBar = ({ company }: ControlBarProps) => {
     }
   }, [localParticipant, isCameraEnabled])
 
+  const toggleScreenShare = useCallback(async (): Promise<void> => {
+    if (isTogglingScreenShare.current) return
+
+    isTogglingScreenShare.current = true
+    setIsScreenShareToggling(true)
+
+    try {
+      await localParticipant.setScreenShareEnabled(!isScreenShareEnabled)
+    } catch (error) {
+      if (!isScreenShareDeclined(error)) {
+        console.error("Error toggling screen sharing: ", error)
+        Alert.alert("Error", "Failed to toggle screen sharing")
+      }
+    } finally {
+      isTogglingScreenShare.current = false
+      setIsScreenShareToggling(false)
+    }
+  }, [localParticipant, isScreenShareEnabled])
+
   const requestDisconnect = useCallback((): void => {
     setIsConfirmingDisconnect(true)
   }, [])
@@ -117,6 +153,13 @@ export const ControlBar = ({ company }: ControlBarProps) => {
           isDropdownVisible={openDeviceDropdown === Track.Source.Camera}
           onToggleDropdown={() => toggleDeviceDropdown(Track.Source.Camera)}
           onCloseDropdown={() => setOpenDeviceDropdown(null)}
+        />
+
+        {/* Screen sharing toggle; no device list, so no dropdown */}
+        <ScreenShareControl
+          isScreenShareEnabled={isScreenShareEnabled}
+          onToggleScreenShare={toggleScreenShare}
+          disabled={isScreenShareToggling}
         />
 
         {/* Disconnect button */}

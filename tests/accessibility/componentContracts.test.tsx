@@ -169,6 +169,12 @@ export const VISUAL_COMPONENT_CONTRACTS: readonly VisualComponentContract[] = [
     kind: "contract",
   },
   {
+    contractId: "a11y:components/room/controls/ScreenShareControl.tsx",
+    source: "components/room/controls/ScreenShareControl.tsx",
+    owner: "components/room/ControlBar.integration.test.tsx",
+    kind: "contract",
+  },
+  {
     contractId: "a11y:components/room/grid/ControlBarPreview.tsx",
     source: "components/room/grid/ControlBarPreview.tsx",
     owner: "tests/accessibility/componentContracts.test.tsx",
@@ -289,6 +295,22 @@ export const VISUAL_COMPONENT_CONTRACTS: readonly VisualComponentContract[] = [
     kind: "decorative",
     rationale:
       "ParticipantTile announces participant state while directly testing this meaningful SVG color.",
+  },
+  {
+    contractId: "a11y:components/icons/ScreenShareIcon.tsx",
+    source: "components/icons/ScreenShareIcon.tsx",
+    owner: "components/room/ControlBar.integration.test.tsx",
+    kind: "decorative",
+    rationale:
+      "State is announced by the owning screen-share button; the SVG has no independent semantics.",
+  },
+  {
+    contractId: "a11y:components/icons/ScreenShareStopIcon.tsx",
+    source: "components/icons/ScreenShareStopIcon.tsx",
+    owner: "components/room/ControlBar.integration.test.tsx",
+    kind: "decorative",
+    rationale:
+      "State is announced by the owning screen-share button; the SVG has no independent semantics.",
   },
 ] as const
 
