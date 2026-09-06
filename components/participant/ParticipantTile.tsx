@@ -91,6 +91,10 @@ const ConnectedParticipantTile = ({
     isTrackReference(trackRef) && !isVideoMuted && !!trackRef.publication.track
   const placeholderSize = Math.min(width, height) * 0.5
   const displayName = participant.name || participant.identity
+  // Capturing your own screen while previewing it feeds the tile back into
+  // itself, so this tile is scrimmed down to a hint of what is being shared.
+  const isOwnScreenShare =
+    participant.isLocal && trackRef.source === Track.Source.ScreenShare
 
   const badge = (
     <>
@@ -125,7 +129,7 @@ const ConnectedParticipantTile = ({
         <VideoTrack
           style={styles.videoView}
           trackRef={trackRef}
-          mirror={participant.isLocal}
+          mirror={participant.isLocal && !isOwnScreenShare}
         />
       ) : (
         <View style={styles.placeholderView}>
@@ -136,11 +140,23 @@ const ConnectedParticipantTile = ({
         </View>
       )}
 
-      <View style={styles.badgeAnchor}>
-        <View testID="participant-badge" style={styles.badge}>
-          {badge}
+      {isOwnScreenShare ? (
+        <View
+          testID="own-screen-share-scrim"
+          pointerEvents="none"
+          style={styles.ownScreenShareScrim}
+        >
+          <Text style={styles.ownScreenShareLabel}>
+            You&apos;re sharing your screen
+          </Text>
         </View>
-      </View>
+      ) : (
+        <View style={styles.badgeAnchor}>
+          <View testID="participant-badge" style={styles.badge}>
+            {badge}
+          </View>
+        </View>
+      )}
 
       {onToggleSpotlight && (
         <TouchableOpacity
@@ -276,6 +292,19 @@ const styles = StyleSheet.create({
   },
   participantName: {
     flexShrink: 1,
+    color: TEXT_COLORS.light,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  ownScreenShareScrim: {
+    ...StyleSheet.absoluteFill,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 12,
+    backgroundColor: BACKGROUND_COLORS.localScreenShareScrim,
+  },
+  ownScreenShareLabel: {
+    textAlign: "center",
     color: TEXT_COLORS.light,
     fontSize: 14,
     fontWeight: "600",

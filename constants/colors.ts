@@ -14,6 +14,7 @@ export const BACKGROUND_COLORS = {
   transparent: "transparent",
   elevated: "#4A4A4A",
   overlay: "rgba(0, 0, 0, 0.5)",
+  localScreenShareScrim: "rgba(51, 51, 51, 0.82)",
 } satisfies ColorPalette
 
 export const TEXT_COLORS = {
