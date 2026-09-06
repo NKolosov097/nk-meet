@@ -1,5 +1,8 @@
 // a11y:components/room/ControlBar.tsx
+// a11y:components/room/controls/ScreenShareControl.tsx
 // a11y:components/icons/DisconnectIcon.tsx
+// a11y:components/icons/ScreenShareIcon.tsx
+// a11y:components/icons/ScreenShareStopIcon.tsx
 import { Alert } from "react-native"
 
 import { act, fireEvent, render, waitFor } from "@testing-library/react-native"
@@ -10,6 +13,7 @@ import { DEFAULT_COMPANY_ID } from "@/constants/company"
 import { ControlBar } from "./ControlBar"
 import { CameraControl } from "./controls/CameraControl"
 import { MicrophoneControl } from "./controls/MicrophoneControl"
+import { ScreenShareControl } from "./controls/ScreenShareControl"
 
 jest.mock("@livekit/react-native", () => ({
   useLocalParticipant: jest.fn(),
@@ -113,10 +117,12 @@ const mockRoom = {
 const mockLocalParticipant = {
   setCameraEnabled: jest.fn<Promise<void>, [boolean]>(),
   setMicrophoneEnabled: jest.fn<Promise<void>, [boolean]>(),
+  setScreenShareEnabled: jest.fn<Promise<void>, [boolean]>(),
 }
 
 let mockCameraEnabled = false
 let mockMicrophoneEnabled = true
+let mockScreenShareEnabled = false
 
 beforeAll(() => {
   Object.defineProperty(navigator, "mediaDevices", {
@@ -129,15 +135,18 @@ beforeEach(() => {
   jest.clearAllMocks()
   mockCameraEnabled = false
   mockMicrophoneEnabled = true
+  mockScreenShareEnabled = false
   mockRoom.disconnect.mockResolvedValue(undefined)
   mockRoom.getActiveDevice.mockReturnValue(undefined)
   mockRoom.switchActiveDevice.mockResolvedValue(undefined)
   mockLocalParticipant.setCameraEnabled.mockResolvedValue(undefined)
   mockLocalParticipant.setMicrophoneEnabled.mockResolvedValue(undefined)
+  mockLocalParticipant.setScreenShareEnabled.mockResolvedValue(undefined)
   mockUseRoomContext.mockReturnValue(mockRoom)
   mockUseLocalParticipant.mockImplementation(() => ({
     isCameraEnabled: mockCameraEnabled,
     isMicrophoneEnabled: mockMicrophoneEnabled,
+    isScreenShareEnabled: mockScreenShareEnabled,
     localParticipant: mockLocalParticipant,
   }))
   ;(navigator.mediaDevices.enumerateDevices as jest.Mock).mockResolvedValue([])
@@ -383,6 +392,152 @@ test("dims the camera button when disabled", async () => {
   expect(enabled.getByLabelText("Turn on camera")).toHaveStyle({
     opacity: 1,
   })
+})
+
+test("starts and stops screen sharing through the local participant", async () => {
+  const view = await render(<ControlBar company={company} />)
+
+  await fireEvent.press(view.getByLabelText("Share your screen"))
+
+  await waitFor(() => {
+    expect(mockLocalParticipant.setScreenShareEnabled).toHaveBeenCalledWith(
+      true,
+    )
+  })
+
+  mockScreenShareEnabled = true
+  await view.rerender(<ControlBar company={company} />)
+
+  const stopButton = view.getByLabelText("Stop sharing your screen")
+
+  expect(stopButton).toHaveStyle({
+    backgroundColor: BACKGROUND_COLORS.primary,
+  })
+
+  await fireEvent.press(stopButton)
+
+  await waitFor(() => {
+    expect(mockLocalParticipant.setScreenShareEnabled).toHaveBeenLastCalledWith(
+      false,
+    )
+  })
+})
+
+test("ignores concurrent screen-share toggles until the current toggle finishes", async () => {
+  const pendingToggle = createDeferred()
+  mockLocalParticipant.setScreenShareEnabled.mockReturnValue(
+    pendingToggle.promise,
+  )
+  const view = await render(<ControlBar company={company} />)
+
+  await pressTwice(view.getByLabelText("Share your screen"))
+
+  expect(mockLocalParticipant.setScreenShareEnabled).toHaveBeenCalledTimes(1)
+
+  await act(async () => {
+    pendingToggle.resolve()
+    await pendingToggle.promise
+  })
+
+  await fireEvent.press(view.getByLabelText("Share your screen"))
+
+  expect(mockLocalParticipant.setScreenShareEnabled).toHaveBeenCalledTimes(2)
+})
+
+test("disables the screen-share button while its toggle is pending", async () => {
+  const pendingToggle = createDeferred()
+  mockLocalParticipant.setScreenShareEnabled.mockReturnValue(
+    pendingToggle.promise,
+  )
+  const view = await render(<ControlBar company={company} />)
+  const button = view.getByLabelText("Share your screen")
+
+  await act(async () => {
+    button.props.onClick?.()
+  })
+
+  expect(
+    view.getByLabelText("Share your screen").props.accessibilityState?.disabled,
+  ).toBe(true)
+
+  await act(async () => {
+    pendingToggle.resolve()
+    await pendingToggle.promise
+  })
+
+  expect(
+    view.getByLabelText("Share your screen").props.accessibilityState?.disabled,
+  ).toBeFalsy()
+})
+
+test("dims the screen-share button when disabled", async () => {
+  const disabled = await render(
+    <ScreenShareControl
+      isScreenShareEnabled={false}
+      onToggleScreenShare={noop}
+      disabled
+    />,
+  )
+  const enabled = await render(
+    <ScreenShareControl
+      isScreenShareEnabled={false}
+      onToggleScreenShare={noop}
+      disabled={false}
+    />,
+  )
+
+  expect(disabled.getByLabelText("Share your screen")).toHaveStyle({
+    opacity: 0.4,
+  })
+  expect(enabled.getByLabelText("Share your screen")).toHaveStyle({
+    opacity: 1,
+  })
+})
+
+test("alerts when the screen-share toggle fails", async () => {
+  const alert = jest.spyOn(Alert, "alert").mockImplementation()
+  const consoleError = jest.spyOn(console, "error").mockImplementation()
+  mockLocalParticipant.setScreenShareEnabled.mockRejectedValue(
+    new Error("screen share failed"),
+  )
+  const view = await render(<ControlBar company={company} />)
+
+  await fireEvent.press(view.getByLabelText("Share your screen"))
+
+  await waitFor(() => {
+    expect(alert).toHaveBeenCalledWith(
+      "Error",
+      "Failed to toggle screen sharing",
+    )
+    expect(consoleError).toHaveBeenCalledWith(
+      "Error toggling screen sharing: ",
+      expect.any(Error),
+    )
+  })
+  expect(
+    view.getByLabelText("Share your screen").props.accessibilityState?.disabled,
+  ).toBeFalsy()
+})
+
+test("stays silent when the capture prompt is declined", async () => {
+  const alert = jest.spyOn(Alert, "alert").mockImplementation()
+  const consoleError = jest.spyOn(console, "error").mockImplementation()
+  const declined = Object.assign(new Error("NotAllowedError"), {
+    code: "DOMException",
+  })
+  mockLocalParticipant.setScreenShareEnabled.mockRejectedValue(declined)
+  const view = await render(<ControlBar company={company} />)
+
+  await fireEvent.press(view.getByLabelText("Share your screen"))
+
+  await waitFor(() => {
+    expect(
+      view.getByLabelText("Share your screen").props.accessibilityState
+        ?.disabled,
+    ).toBeFalsy()
+  })
+  expect(alert).not.toHaveBeenCalled()
+  expect(consoleError).not.toHaveBeenCalled()
 })
 
 test("alerts when the microphone toggle fails", async () => {
