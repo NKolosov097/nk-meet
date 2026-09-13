@@ -1,6 +1,6 @@
 // a11y:components/room/ControlBar.tsx
 // a11y:components/icons/DisconnectIcon.tsx
-import { Alert } from "react-native"
+import { Alert, Dimensions } from "react-native"
 
 import { act, fireEvent, render, waitFor } from "@testing-library/react-native"
 
@@ -14,6 +14,16 @@ import { MicrophoneControl } from "./controls/MicrophoneControl"
 jest.mock("@livekit/react-native", () => ({
   useLocalParticipant: jest.fn(),
   useRoomContext: jest.fn(),
+}))
+jest.mock("./controls/ReactionsControl", () => ({
+  ReactionsControl: () => {
+    const React = require("react")
+    const { View } = require("react-native")
+    return React.createElement(View, {
+      accessibilityLabel: "Open reactions",
+      accessibilityRole: "button",
+    })
+  },
 }))
 
 const {
@@ -79,6 +89,10 @@ const accessibilityLabelsInOrder = (node: unknown): string[] => {
 
 const noop: VoidFunction = () => undefined
 const company = DEFAULT_COMPANY_ID
+const dimensions = (width: number) => ({
+  window: { width, height: 800, scale: 1, fontScale: 1 },
+  screen: { width, height: 800, scale: 1, fontScale: 1 },
+})
 
 const pressTwice = async (target: PressTarget): Promise<void> => {
   // RNTL's public fireEvent.press awaits the async handler, so invoking it
@@ -135,6 +149,7 @@ beforeEach(() => {
   mockLocalParticipant.setCameraEnabled.mockResolvedValue(undefined)
   mockLocalParticipant.setMicrophoneEnabled.mockResolvedValue(undefined)
   mockUseRoomContext.mockReturnValue(mockRoom)
+  Dimensions.set(dimensions(342))
   mockUseLocalParticipant.mockImplementation(() => ({
     isCameraEnabled: mockCameraEnabled,
     isMicrophoneEnabled: mockMicrophoneEnabled,
@@ -529,4 +544,32 @@ test("renders the company icon as the first control", async () => {
   expect(labels).toEqual(
     expect.arrayContaining(["Mute microphone", "Disconnect from room"]),
   )
+})
+
+test("keeps reactions between camera controls and disconnect at 342px", async () => {
+  const view = await render(<ControlBar company={company} />)
+  const row = findNodeByTestId(view.toJSON(), "control-bar-row")
+  if (!row) throw new Error("control-bar-row not found in rendered tree")
+
+  expect(accessibilityLabelsInOrder(row)).toEqual([
+    "NKolosov company",
+    "Mute microphone",
+    "Select audio device",
+    "Turn on camera",
+    "Select camera",
+    "Open reactions",
+    "Disconnect from room",
+  ])
+})
+
+test("hides only the company icon below 342px", async () => {
+  Dimensions.set(dimensions(341))
+  const view = await render(<ControlBar company={company} />)
+  const row = findNodeByTestId(view.toJSON(), "control-bar-row")
+  if (!row) throw new Error("control-bar-row not found in rendered tree")
+
+  const labels = accessibilityLabelsInOrder(row)
+  expect(labels).not.toContain("NKolosov company")
+  expect(labels).toContain("Open reactions")
+  expect(labels).toContain("Disconnect from room")
 })

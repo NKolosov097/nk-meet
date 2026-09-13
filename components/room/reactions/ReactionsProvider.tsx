@@ -63,9 +63,14 @@ interface ReactionsContextValue {
   toggleHand: VoidFunction
 }
 
-const ReactionsContext = createContext<ReactionsContextValue | undefined>(
-  undefined,
-)
+const ReactionsContext = createContext<ReactionsContextValue>({
+  participants: {},
+  canSendQuickReactions: false,
+  canUpdateHand: false,
+  isHandUpdatePending: false,
+  sendQuickReaction: () => undefined,
+  toggleHand: () => undefined,
+})
 
 const participantState = (
   source: Participant,
@@ -412,8 +417,5 @@ export const ReactionsProvider = ({ children }: PropsWithChildren) => {
 }
 
 export const useReactions = (): ReactionsContextValue => {
-  const value = useContext(ReactionsContext)
-  if (!value)
-    throw new Error("useReactions must be used within ReactionsProvider")
-  return value
+  return useContext(ReactionsContext)
 }
