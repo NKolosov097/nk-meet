@@ -23,6 +23,10 @@ import {
   TEXT_COLORS,
 } from "@/constants/colors"
 
+import { useReactions } from "../room/reactions/ReactionsProvider"
+
+import { ParticipantReactions } from "./ParticipantReactions"
+
 const MIC_ICON_SIZE = 16
 const BADGE_INSET = 4
 const SPOTLIGHT_ICON_SIZE = 16
@@ -86,11 +90,18 @@ const ConnectedParticipantTile = ({
     source: Track.Source.Microphone,
   })
   const isSpeaking = useIsSpeaking(participant)
+  const { participants } = useReactions()
 
   const hasVideo =
     isTrackReference(trackRef) && !isVideoMuted && !!trackRef.publication.track
   const placeholderSize = Math.min(width, height) * 0.5
   const displayName = participant.name || participant.identity
+  const displayedName = `${displayName}${participant.isLocal ? " (You)" : ""}`
+  // Adds persistent hand state to the spoken name while the glyph stays decorative.
+  const participantAccessibilityLabel = participants[participant.identity]
+    ?.isHandRaised
+    ? `${displayedName}, hand raised`
+    : displayedName
 
   const badge = (
     <>
@@ -105,9 +116,9 @@ const ConnectedParticipantTile = ({
         style={styles.participantName}
         numberOfLines={1}
         ellipsizeMode="tail"
+        accessibilityLabel={participantAccessibilityLabel}
       >
-        {displayName}
-        {participant.isLocal ? " (You)" : ""}
+        {displayedName}
       </Text>
     </>
   )
@@ -135,6 +146,11 @@ const ConnectedParticipantTile = ({
           />
         </View>
       )}
+
+      <ParticipantReactions
+        identity={participant.identity}
+        displayName={displayName}
+      />
 
       <View style={styles.badgeAnchor}>
         <View testID="participant-badge" style={styles.badge}>

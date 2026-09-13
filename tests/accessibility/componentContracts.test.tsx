@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs"
 import path from "node:path"
 
+import type { ReactNode } from "react"
 import { processColor } from "react-native"
 
 import { fireEvent, render } from "@testing-library/react-native"
@@ -35,6 +36,13 @@ jest.mock("@/components/room/VideoConference", () => ({
     return React.createElement(View, {
       testID: "covered-video-conference",
     })
+  },
+}))
+
+jest.mock("@/components/room/reactions/ReactionsProvider", () => ({
+  ReactionsProvider: ({ children }: { children: ReactNode }) => {
+    const React = require("react")
+    return React.createElement(React.Fragment, null, children)
   },
 }))
 
@@ -107,6 +115,12 @@ export const VISUAL_COMPONENT_CONTRACTS: readonly VisualComponentContract[] = [
     kind: "contract",
   },
   {
+    contractId: "a11y:components/participant/ParticipantReactions.tsx",
+    source: "components/participant/ParticipantReactions.tsx",
+    owner: "components/participant/ParticipantReactions.test.tsx",
+    kind: "contract",
+  },
+  {
     contractId: "a11y:components/room/ActiveRoom.tsx",
     source: "components/room/ActiveRoom.tsx",
     owner: "tests/accessibility/componentContracts.test.tsx",
@@ -167,6 +181,20 @@ export const VISUAL_COMPONENT_CONTRACTS: readonly VisualComponentContract[] = [
     source: "components/room/controls/MicrophoneControl.tsx",
     owner: "components/room/controls/mediaDevices.integration.test.tsx",
     kind: "contract",
+  },
+  {
+    contractId: "a11y:components/room/controls/ReactionsControl.tsx",
+    source: "components/room/controls/ReactionsControl.tsx",
+    owner: "components/room/controls/ReactionsControl.test.tsx",
+    kind: "contract",
+  },
+  {
+    contractId: "a11y:components/room/reactions/ReactionsProvider.tsx",
+    source: "components/room/reactions/ReactionsProvider.tsx",
+    owner: "components/room/reactions/ReactionsProvider.test.tsx",
+    kind: "structural",
+    rationale:
+      "Provides shared state and subscriptions while its covered children own all visual output.",
   },
   {
     contractId: "a11y:components/room/grid/ControlBarPreview.tsx",

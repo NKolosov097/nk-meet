@@ -1,3 +1,5 @@
+import type { ReactNode } from "react"
+
 import { render, screen } from "@testing-library/react-native"
 
 import { BACKGROUND_COLORS, TEXT_COLORS } from "@/constants/colors"
@@ -38,11 +40,26 @@ jest.mock("@livekit/react-native", () => ({
 
 jest.mock("./ControlBar", () => ({
   ControlBar: (props: { company: string }) => {
+    const React = require("react")
+    const { View } = require("react-native")
     capturedControlBarProps = props
-    return null
+    return React.createElement(View, { testID: "control-bar" })
   },
 }))
-jest.mock("./VideoConference", () => ({ VideoConference: () => null }))
+jest.mock("./VideoConference", () => ({
+  VideoConference: () => {
+    const React = require("react")
+    const { View } = require("react-native")
+    return React.createElement(View, { testID: "video-conference" })
+  },
+}))
+jest.mock("./reactions/ReactionsProvider", () => ({
+  ReactionsProvider: ({ children }: { children: ReactNode }) => {
+    const React = require("react")
+    const { View } = require("react-native")
+    return React.createElement(View, { testID: "reactions-provider" }, children)
+  },
+}))
 jest.mock("./useRegisterActiveRoomDisconnect", () => ({
   useRegisterActiveRoomDisconnect: jest.fn(),
 }))
@@ -113,4 +130,19 @@ test("passes the room's company down to ControlBar", async () => {
   )
 
   expect(capturedControlBarProps.company).toBe(DEFAULT_COMPANY_ID)
+})
+
+test("wraps conference and controls in exactly one reactions provider", async () => {
+  const view = await render(
+    <ActiveRoom
+      company={DEFAULT_COMPANY_ID}
+      roomSlug="weekly-sync"
+      onForcedDisconnect={jest.fn()}
+    />,
+  )
+
+  const provider = view.getByTestId("reactions-provider")
+  expect(view.getAllByTestId("reactions-provider")).toHaveLength(1)
+  expect(view.getByTestId("video-conference").parent).toBe(provider)
+  expect(view.getByTestId("control-bar").parent).toBe(provider)
 })

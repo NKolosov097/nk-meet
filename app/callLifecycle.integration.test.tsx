@@ -45,6 +45,21 @@ jest.mock("@/services/recentRooms", () => ({
   saveRecentRoom: jest.fn(() => Promise.resolve()),
 }))
 
+jest.mock("@/components/room/reactions/ReactionsProvider", () => ({
+  ReactionsProvider: ({ children }: PropsWithChildren) => {
+    const React = jest.requireActual("react")
+    return React.createElement(React.Fragment, null, children)
+  },
+  useReactions: () => ({
+    participants: {},
+    canSendQuickReactions: false,
+    canUpdateHand: false,
+    isHandUpdatePending: false,
+    sendQuickReaction: jest.fn(),
+    toggleHand: jest.fn(),
+  }),
+}))
+
 jest.mock("livekit-client", () => ({
   ...jest.requireActual("livekit-client"),
   createLocalVideoTrack: jest.fn(() =>
