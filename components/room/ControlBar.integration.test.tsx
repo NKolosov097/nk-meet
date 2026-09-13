@@ -3,7 +3,7 @@
 // a11y:components/icons/DisconnectIcon.tsx
 // a11y:components/icons/ScreenShareIcon.tsx
 // a11y:components/icons/ScreenShareStopIcon.tsx
-import { Alert, NativeModules } from "react-native"
+import { Alert, NativeModules, View } from "react-native"
 
 import { act, fireEvent, render, waitFor } from "@testing-library/react-native"
 
@@ -83,6 +83,7 @@ const accessibilityLabelsInOrder = (node: unknown): string[] => {
 
 const noop: VoidFunction = () => undefined
 const company = DEFAULT_COMPANY_ID
+const narrowViewportStyle = { width: 320 }
 
 const pressTwice = async (target: PressTarget): Promise<void> => {
   // RNTL's public fireEvent.press awaits the async handler, so invoking it
@@ -746,4 +747,20 @@ test("renders the company icon as the first control", async () => {
   expect(labels).toEqual(
     expect.arrayContaining(["Mute microphone", "Disconnect from room"]),
   )
+})
+
+test("wraps every interactive control at a 320dp viewport", async () => {
+  const view = await render(
+    <View style={narrowViewportStyle}>
+      <ControlBar company={company} />
+    </View>,
+  )
+
+  expect(view.getByTestId("control-bar-row")).toHaveStyle({ flexWrap: "wrap" })
+  expect(view.getByLabelText("Mute microphone")).toBeVisible()
+  expect(view.getByLabelText("Select audio device")).toBeVisible()
+  expect(view.getByLabelText("Turn on camera")).toBeVisible()
+  expect(view.getByLabelText("Select camera")).toBeVisible()
+  expect(view.getByLabelText("Share your screen")).toBeVisible()
+  expect(view.getByLabelText("Disconnect from room")).toBeVisible()
 })

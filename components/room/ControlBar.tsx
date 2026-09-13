@@ -185,9 +185,12 @@ export const ControlBar = ({ company }: ControlBarProps) => {
 const styles = StyleSheet.create({
   controlsContainer: {
     flexDirection: "row",
-    justifyContent: "space-evenly",
+    flexWrap: "wrap",
+    justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 20,
+    columnGap: 12,
+    rowGap: 12,
+    paddingHorizontal: 12,
     paddingVertical: 20,
     backgroundColor: BACKGROUND_COLORS.tertiary,
   },
