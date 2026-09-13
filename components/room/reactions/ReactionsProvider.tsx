@@ -190,8 +190,26 @@ export const ReactionsProvider = ({ children }: PropsWithChildren) => {
 
   const addReaction = useCallback(
     (identity: string, reaction: EphemeralReaction): boolean => {
+      const now = Date.now()
       const ids =
         seenReactionIdsRef.current.get(identity) ?? new Map<string, number>()
+      let removedExpiredId = false
+      for (const [id, expiresAt] of ids) {
+        if (expiresAt <= now) {
+          ids.delete(id)
+          removedExpiredId = true
+        }
+      }
+      if (removedExpiredId) {
+        const timer = timersRef.current.get(identity)
+        if (timer) clearTimeout(timer)
+        timersRef.current.delete(identity)
+        if (ids.size === 0) {
+          seenReactionIdsRef.current.delete(identity)
+        } else {
+          scheduleCleanup(identity)
+        }
+      }
       if (ids.has(reaction.id)) return false
       if (ids.size >= MAX_SEEN_REACTION_IDS_PER_PARTICIPANT) return false
 
@@ -202,7 +220,12 @@ export const ReactionsProvider = ({ children }: PropsWithChildren) => {
         isHandRaised: false,
         ephemeralReactions: [],
       }
-      const reactions = [...existing.ephemeralReactions, reaction]
+      const reactions = [
+        ...existing.ephemeralReactions.filter(
+          existingReaction => existingReaction.expiresAt > now,
+        ),
+        reaction,
+      ]
       const ephemeralReactions = reactions.slice(
         -MAX_LIVE_REACTIONS_PER_PARTICIPANT,
       )

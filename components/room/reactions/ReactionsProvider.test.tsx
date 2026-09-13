@@ -515,6 +515,75 @@ describe("quick reactions", () => {
     expect(announce).toHaveBeenCalledTimes(101)
   })
 
+  test("accepts the same id after its ttl when cleanup timer work is delayed", async () => {
+    const announce = jest.spyOn(AccessibilityInfo, "announceForAccessibility")
+    const alice = participant("alice")
+    await renderProvider()
+    const setTimeoutSpy = jest.spyOn(global, "setTimeout")
+    const clearTimeoutSpy = jest.spyOn(global, "clearTimeout")
+    const packet = {
+      payload: encodeReactionMessage({
+        type: "ephemeral" as const,
+        reactionId: "alice:delayed:1",
+        reaction: "heart" as const,
+        participant: "alice",
+      }),
+      from: alice,
+      topic: "reaction-topic",
+    }
+
+    await act(() => onDataMessage?.(packet))
+    const originalTimer = setTimeoutSpy.mock.results[0].value
+    jest.setSystemTime(1_726_260_002_001)
+    await act(() => onDataMessage?.(packet))
+
+    expect(state().alice?.ephemeralReactions).toEqual([
+      {
+        id: "alice:delayed:1",
+        type: "heart",
+        expiresAt: 1_726_260_004_001,
+      },
+    ])
+    expect(announce).toHaveBeenCalledTimes(2)
+    expect(clearTimeoutSpy).toHaveBeenCalledWith(originalTimer)
+    expect(setTimeoutSpy).toHaveBeenCalledTimes(2)
+  })
+
+  test("lazily frees a full seen-id cache after ttl without timer work", async () => {
+    const announce = jest.spyOn(AccessibilityInfo, "announceForAccessibility")
+    const alice = participant("alice")
+    await renderProvider()
+    const receive = async (reactionId: string): Promise<void> => {
+      await act(() =>
+        onDataMessage?.({
+          payload: encodeReactionMessage({
+            type: "ephemeral",
+            reactionId,
+            reaction: "smile",
+            participant: "alice",
+          }),
+          from: alice,
+          topic: "reaction-topic",
+        }),
+      )
+    }
+
+    for (let index = 1; index <= 100; index += 1) {
+      await receive(`alice:delayed-flood:${index}`)
+    }
+    jest.setSystemTime(1_726_260_002_001)
+    await receive("alice:delayed-flood:101")
+
+    expect(state().alice?.ephemeralReactions).toEqual([
+      {
+        id: "alice:delayed-flood:101",
+        type: "smile",
+        expiresAt: 1_726_260_004_001,
+      },
+    ])
+    expect(announce).toHaveBeenCalledTimes(101)
+  })
+
   test("uses one cleanup timer per participant and clears it on disconnect", async () => {
     const alice = participant("alice")
     await renderProvider()
