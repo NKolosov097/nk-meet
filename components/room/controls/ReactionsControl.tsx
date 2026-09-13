@@ -32,6 +32,7 @@ export const ReactionsControl = () => {
   const isHandRaised =
     participants[localParticipant.identity]?.isHandRaised === true
   const handLabel = isHandRaised ? "Lower hand" : "Raise hand"
+  // Blocks hand changes without metadata permission or during an in-flight update.
   const isHandDisabled = !canUpdateHand || isHandUpdatePending
   const triggerAccessibilityState = {
     disabled: !canSendQuickReactions,

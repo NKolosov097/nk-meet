@@ -97,6 +97,7 @@ const ConnectedParticipantTile = ({
   const placeholderSize = Math.min(width, height) * 0.5
   const displayName = participant.name || participant.identity
   const displayedName = `${displayName}${participant.isLocal ? " (You)" : ""}`
+  // Adds persistent hand state to the spoken name while the glyph stays decorative.
   const participantAccessibilityLabel = participants[participant.identity]
     ?.isHandRaised
     ? `${displayedName}, hand raised`

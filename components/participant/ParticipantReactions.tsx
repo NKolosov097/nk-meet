@@ -18,14 +18,14 @@ import {
 interface ParticipantReactionsProps {
   // LiveKit identity whose reaction state is rendered.
   identity: string
-  // Participant name used by the provider's announcement contract.
+  // Participant name supplied by the connected tile.
   displayName: string
 }
 
 interface AnimatedReactionProps {
   // Live quick reaction to animate.
   reaction: EphemeralReaction
-  // Stable collision-free horizontal position assigned by the overlay.
+  // Stable horizontal anchor assigned by the overlay.
   horizontalOffset: number
 }
 
@@ -39,6 +39,7 @@ const AnimatedReaction = ({
   const opacity = useRef(new Animated.Value(0.5)).current
   const scale = useRef(new Animated.Value(0.5)).current
 
+  // Runs the full two-second native animation and stops it on early unmount.
   useEffect(() => {
     const animation = Animated.parallel([
       Animated.timing(translateY, {
@@ -113,6 +114,7 @@ export const ParticipantReactions = ({
 }: ParticipantReactionsProps) => {
   const { participants } = useReactions()
   const state = participants[identity]
+  // Preserves each live reaction's anchor while allowing glyphs to overlap.
   const reactionSlotsRef = useRef(new Map<string, number>())
   const [isReduceMotionEnabled, setIsReduceMotionEnabled] = useState<
     boolean | null
@@ -133,6 +135,7 @@ export const ParticipantReactions = ({
     usedSlots.add(slot)
   }
 
+  // Defers reaction rendering until the asynchronous motion preference resolves.
   useEffect(() => {
     let isMounted = true
     const readPreference = async (): Promise<void> => {

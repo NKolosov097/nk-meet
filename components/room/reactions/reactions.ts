@@ -48,6 +48,7 @@ export const encodeReactionMessage = (message: ReactionMessage): Uint8Array =>
 export const decodeReactionMessage = (
   payload: Uint8Array,
 ): ReactionMessage | null => {
+  // Treats the data channel as untrusted and returns only validated wire shapes.
   if (payload.byteLength > 1024) return null
 
   let value: unknown

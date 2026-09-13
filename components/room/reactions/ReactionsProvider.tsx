@@ -86,6 +86,7 @@ const currentParticipants = (
   remoteParticipants: Iterable<Participant>,
   previous: Record<string, ParticipantReactionState> = {},
 ): Record<string, ParticipantReactionState> =>
+  // Rehydrates authoritative hand state while retaining current transient reactions.
   Object.fromEntries(
     [localParticipant, ...remoteParticipants].map(participant => [
       participant.identity,
@@ -107,6 +108,7 @@ export const ReactionsProvider = ({ children }: PropsWithChildren) => {
       room.remoteParticipants.values(),
     ),
   )
+  // Keeps room-event callbacks synchronized with the latest rendered state.
   const participantsRef = useRef(participants)
   const seenReactionIdsRef = useRef(new Map<string, Map<string, number>>())
   const timersRef = useRef(new Map<string, ReturnType<typeof setTimeout>>())
@@ -160,6 +162,7 @@ export const ReactionsProvider = ({ children }: PropsWithChildren) => {
     [replaceParticipants],
   )
 
+  // Uses one timer per participant to advance through absolute reaction expiries.
   const scheduleCleanup = useCallback(
     function scheduleParticipantCleanup(identity: string) {
       if (timersRef.current.has(identity)) return
@@ -188,6 +191,7 @@ export const ReactionsProvider = ({ children }: PropsWithChildren) => {
     [pruneExpired],
   )
 
+  // Prunes stale ids before enforcing dedupe bounds and the five-item display cap.
   const addReaction = useCallback(
     (identity: string, reaction: EphemeralReaction): boolean => {
       const now = Date.now()
@@ -260,6 +264,7 @@ export const ReactionsProvider = ({ children }: PropsWithChildren) => {
         return
       }
 
+      // Authoritative attributes override the legacy packet when the marker exists.
       setHand(
         from.identity,
         hasHandRaisedAttribute(from.attributes)
@@ -272,6 +277,7 @@ export const ReactionsProvider = ({ children }: PropsWithChildren) => {
 
   const { send } = useDataChannel(REACTION_TOPIC, onDataMessage)
 
+  // Owns the room-level participant listeners and all reaction timer cleanup.
   useEffect(() => {
     const onAttributesChanged = (
       _changedAttributes: Record<string, string>,
@@ -341,6 +347,7 @@ export const ReactionsProvider = ({ children }: PropsWithChildren) => {
   const canUpdateHand =
     canSendQuickReactions && permissions?.canUpdateMetadata === true
 
+  // Throttles and displays locally before publishing the compatibility packet.
   const sendQuickReaction = useCallback(
     (type: QuickReactionType) => {
       const identity = localParticipant.identity
@@ -382,6 +389,7 @@ export const ReactionsProvider = ({ children }: PropsWithChildren) => {
     [addReaction, canSendQuickReactions, localParticipant.identity, send],
   )
 
+  // Serializes optimistic hand writes; attributes commit before compatibility data.
   const toggleHand = useCallback(() => {
     const identity = localParticipant.identity
     if (!identity || !canUpdateHand || handUpdatePendingRef.current) return
