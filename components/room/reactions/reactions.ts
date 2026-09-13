@@ -33,8 +33,7 @@ export interface RaiseHandReactionMessage {
 }
 
 export type ReactionMessage =
-  | EphemeralReactionMessage
-  | RaiseHandReactionMessage
+  EphemeralReactionMessage | RaiseHandReactionMessage
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value)
@@ -53,12 +52,18 @@ export const decodeReactionMessage = (
 
   let value: unknown
   try {
-    value = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(payload))
+    value = JSON.parse(
+      new TextDecoder("utf-8", { fatal: true }).decode(payload),
+    )
   } catch {
     return null
   }
 
-  if (!isObject(value) || typeof value.participant !== "string" || !value.participant) {
+  if (
+    !isObject(value) ||
+    typeof value.participant !== "string" ||
+    !value.participant
+  ) {
     return null
   }
 
@@ -87,7 +92,8 @@ export const decodeReactionMessage = (
 
 export const hasHandRaisedAttribute = (
   attributes: Readonly<Record<string, string>>,
-): boolean => Object.prototype.hasOwnProperty.call(attributes, HAND_RAISED_ATTRIBUTE)
+): boolean =>
+  Object.prototype.hasOwnProperty.call(attributes, HAND_RAISED_ATTRIBUTE)
 
 export const readHandRaisedAttribute = (
   attributes: Readonly<Record<string, string>>,
