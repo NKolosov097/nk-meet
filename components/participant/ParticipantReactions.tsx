@@ -27,11 +27,15 @@ interface AnimatedReactionProps {
   reaction: EphemeralReaction
 }
 
+const reactionHorizontalOffset = (id: string): number =>
+  16 +
+  ([...id].reduce((hash, character) => hash + character.charCodeAt(0), 0) % 65)
+
 const AnimatedReaction = ({ reaction }: AnimatedReactionProps) => {
   const translateY = useRef(new Animated.Value(0)).current
   const opacity = useRef(new Animated.Value(0.5)).current
   const scale = useRef(new Animated.Value(0.5)).current
-  const horizontalOffset = useRef(16 + Math.floor(Math.random() * 65)).current
+  const horizontalOffset = useRef(reactionHorizontalOffset(reaction.id)).current
 
   useEffect(() => {
     const animation = Animated.parallel([
@@ -87,6 +91,20 @@ const AnimatedReaction = ({ reaction }: AnimatedReactionProps) => {
   )
 }
 
+const StaticReaction = ({ reaction }: AnimatedReactionProps) => {
+  const horizontalOffset = useRef(reactionHorizontalOffset(reaction.id)).current
+
+  return (
+    <Text
+      testID="quick-reaction-static"
+      style={[styles.quickReaction, { left: horizontalOffset }]}
+      accessible={false}
+    >
+      {QUICK_REACTIONS[reaction.type].glyph}
+    </Text>
+  )
+}
+
 export const ParticipantReactions = ({
   identity,
 }: ParticipantReactionsProps) => {
@@ -136,14 +154,7 @@ export const ParticipantReactions = ({
         ? null
         : state.ephemeralReactions.map(reaction =>
             isReduceMotionEnabled ? (
-              <Text
-                key={reaction.id}
-                testID="quick-reaction-static"
-                style={styles.quickReaction}
-                accessible={false}
-              >
-                {QUICK_REACTIONS[reaction.type].glyph}
-              </Text>
+              <StaticReaction key={reaction.id} reaction={reaction} />
             ) : (
               <AnimatedReaction key={reaction.id} reaction={reaction} />
             ),

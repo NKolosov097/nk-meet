@@ -2,6 +2,7 @@
 import {
   AccessibilityInfo,
   Animated,
+  StyleSheet,
   type EmitterSubscription,
 } from "react-native"
 
@@ -117,7 +118,10 @@ test("renders statically without translation or scale when motion is reduced", a
   const parallel = jest.spyOn(Animated, "parallel")
   setParticipantState({
     isHandRaised: false,
-    ephemeralReactions: [{ id: "alice:1:1", type: "smile", expiresAt: 2_000 }],
+    ephemeralReactions: [
+      { id: "alice:1:1", type: "smile", expiresAt: 2_000 },
+      { id: "alice:1:2", type: "heart", expiresAt: 2_000 },
+    ],
   })
 
   const view = await render(
@@ -125,7 +129,12 @@ test("renders statically without translation or scale when motion is reduced", a
   )
   await act(() => Promise.resolve())
 
-  expect(view.getByTestId("quick-reaction-static")).toBeVisible()
+  const staticReactions = view.getAllByTestId("quick-reaction-static")
+  expect(staticReactions).toHaveLength(2)
+  const offsets = staticReactions.map(
+    reaction => StyleSheet.flatten(reaction.props.style).left,
+  )
+  expect(new Set(offsets).size).toBe(2)
   expect(parallel).not.toHaveBeenCalled()
 })
 
