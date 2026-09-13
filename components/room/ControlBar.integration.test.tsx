@@ -619,7 +619,7 @@ test("stays silent when the capture prompt is declined", async () => {
   const declined = Object.assign(new Error("NotAllowedError"), {
     code: "DOMException",
   })
-  mockLocalParticipant.setScreenShareEnabled.mockRejectedValue(declined)
+  mockLocalParticipant.createScreenTracks.mockRejectedValue(declined)
   const view = await render(<ControlBar company={company} />)
 
   await fireEvent.press(view.getByLabelText("Share your screen"))

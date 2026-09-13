@@ -41,8 +41,9 @@ interface BroadcastPickerManager {
 const isPickerCanceled = (error: unknown): boolean =>
   typeof error === "object" &&
   error !== null &&
-  "code" in error &&
-  error.code === "broadcast_cancelled"
+  (("code" in error && error.code === "broadcast_cancelled") ||
+    ("name" in error && error.name === "NotAllowedError") ||
+    ("message" in error && error.message === "NotAllowedError"))
 
 const isTransportFailure = (error: unknown): boolean =>
   typeof error === "object" &&

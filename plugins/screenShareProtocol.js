@@ -99,6 +99,10 @@ static inline BOOL ScreenShareBeginOnce(BOOL *alreadyBegan) {
 static inline BOOL ScreenShareCanUseNetworkThread(BOOL networkThreadStarted) {
     return networkThreadStarted;
 }
+
+static inline BOOL ScreenShareShouldCancelPickerRequest(BOOL requestPending, BOOL extensionStarted) {
+    return requestPending && !extensionStarted;
+}
 `
 
 module.exports = {

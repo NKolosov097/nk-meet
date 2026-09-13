@@ -114,7 +114,8 @@ RCT_EXPORT_METHOD(present
     NSString *requestID = self.requestID;
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(kCancellationGracePeriod * NSEC_PER_SEC)),
                    dispatch_get_main_queue(), ^{
-                       if (self.resolve && [self.requestID isEqualToString:requestID] && !self.extensionStarted) {
+                       BOOL isCurrentRequest = self.resolve && [self.requestID isEqualToString:requestID];
+                       if (ScreenShareShouldCancelPickerRequest(isCurrentRequest, self.extensionStarted)) {
                            [self fail:@"broadcast_cancelled" message:@"Broadcast picker was dismissed."];
                        }
                    });
