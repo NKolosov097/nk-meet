@@ -17,6 +17,37 @@ type XcodeProject = Parameters<
 // The plugins are Node-land CommonJS that expo/config-plugins loads through
 // `xcode`, so they run under the Node test runner instead of the RN Jest env.
 const requirePlugin = createRequire(import.meta.url)
+const screenShareProtocol = requirePlugin("./screenShareProtocol") as {
+  notificationName: (
+    namespace: string,
+    requestID: string,
+    event: "starting" | "ready" | "failed",
+  ) => string
+  beginOnce: (alreadyBegan: boolean) => boolean
+  canUseNetworkThread: (networkThreadStarted: boolean) => boolean
+  shouldCancelPickerRequest: (state: {
+    extensionStarted: boolean
+    requestPending: boolean
+    screenCaptured?: boolean
+  }) => boolean
+  frameMessage: (frame: {
+    body: Buffer
+    width: number
+    height: number
+    orientation: number
+  }) => Buffer
+  parseFrameMessage: (message: Buffer) => {
+    body: Buffer
+    width: number
+    height: number
+    orientation: number
+  }
+  nextUploaderState: (
+    remainingBytes: number,
+    writtenBytes: number,
+  ) => "ready" | "writing" | "failed"
+  nativeHeader: (namespace: string) => string
+}
 
 const readPluginAsset = (...segments: string[]): string =>
   readFileSync(path.join(import.meta.dirname, ...segments), "utf8")
@@ -58,12 +89,16 @@ const createXcodeProjectFixture = () => {
   }
   const groups = new Map<string, typeof rootGroup>()
   const sourceFiles: string[] = []
+  const appSourceFiles: string[] = []
   const buildPhases: Array<{ files: string[]; type: string; target: string }> =
     []
   const buildSettings: Record<string, string> = {
     PRODUCT_NAME: '"BroadcastExtension"',
   }
   let uuid = 0
+  let extensionTarget: { uuid: string; productType: string } | undefined
+  let targetAddCount = 0
+  let extensionGroupAddCount = 0
 
   return {
     sourceFiles,
@@ -83,11 +118,21 @@ const createXcodeProjectFixture = () => {
       sourceFiles.push(file.path)
     },
     addToPbxBuildFileSection: () => undefined,
-    addToPbxSourcesBuildPhase: () => undefined,
+    addToPbxSourcesBuildPhase: (file: { path: string; target: string }) => {
+      appSourceFiles.push(`${file.target}:${file.path}`)
+    },
     getTarget: () => ({ uuid: "APP" }),
-    pbxTargetByName: () => undefined,
-    addPbxGroup: () => ({ uuid: `GROUP${++uuid}` }),
-    addTarget: () => ({ uuid: "EXTENSION", productType: "app_extension" }),
+    pbxTargetByName: (name: string) =>
+      name === "BroadcastExtension" ? extensionTarget : undefined,
+    addPbxGroup: () => {
+      extensionGroupAddCount += 1
+      return { uuid: `GROUP${++uuid}` }
+    },
+    addTarget: () => {
+      targetAddCount += 1
+      extensionTarget = { uuid: "EXTENSION", productType: "app_extension" }
+      return extensionTarget
+    },
     addBuildPhase: (
       files: string[],
       type: string,
@@ -97,6 +142,13 @@ const createXcodeProjectFixture = () => {
       buildPhases.push({ files, type, target })
     },
     pbxXCBuildConfigurationSection: () => ({ extension: { buildSettings } }),
+    appSourceFiles,
+    get extensionGroupAddCount() {
+      return extensionGroupAddCount
+    },
+    get targetAddCount() {
+      return targetAddCount
+    },
   }
 }
 
@@ -171,6 +223,23 @@ test("applies native screen-share sources to a generated project fixture", async
       ),
       /RCT_EXPORT_METHOD\(present/,
     )
+    const expectedHeader = screenShareProtocol.nativeHeader(
+      "group.com.nkolosov.nkmeet",
+    )
+    assert.equal(
+      readFileSync(
+        path.join(iosRoot, "BroadcastExtension", "ScreenShareGenerated.h"),
+        "utf8",
+      ),
+      expectedHeader,
+    )
+    assert.equal(
+      readFileSync(
+        path.join(iosRoot, "ScreenShareBridge", "ScreenShareGenerated.h"),
+        "utf8",
+      ),
+      expectedHeader,
+    )
   } catch (error) {
     throw error
   } finally {
@@ -200,25 +269,33 @@ test("registers the host bridge and extension implementation in Xcode build phas
   }
 
   try {
-    await Promise.resolve(
-      xcodeMod({
-        ...config,
-        modResults: project as XcodeProject,
-        modRawConfig: createBaseConfig(),
-        modRequest: {
-          projectRoot: "fixture",
-          platformProjectRoot: "fixture/ios",
-          platform: "ios",
-          modName: "xcodeproj",
-          introspect: false,
-        },
-      }),
-    )
+    const applyXcodeMod = () =>
+      Promise.resolve(
+        xcodeMod({
+          ...config,
+          modResults: project as XcodeProject,
+          modRawConfig: createBaseConfig(),
+          modRequest: {
+            projectRoot: "fixture",
+            platformProjectRoot: "fixture/ios",
+            platform: "ios",
+            modName: "xcodeproj",
+            introspect: false,
+          },
+        }),
+      )
+    await applyXcodeMod()
+    await applyXcodeMod()
   } catch (error) {
     throw error
   }
 
   assert.ok(project.sourceFiles.includes("ScreenShareBridge/BroadcastPicker.m"))
+  assert.deepEqual(project.appSourceFiles, [
+    "APP:ScreenShareBridge/BroadcastPicker.m",
+  ])
+  assert.equal(project.extensionGroupAddCount, 1)
+  assert.equal(project.targetAddCount, 1)
   assert.deepEqual(
     project.buildPhases.filter(phase => phase.target === "EXTENSION"),
     [
@@ -262,39 +339,62 @@ test("shares one App Group between the extension and the host app", () => {
 })
 
 test("frames samples the way the host app's ScreenCapturer parses them", () => {
-  const uploader = readPluginAsset(
-    "ios",
-    "BroadcastExtension",
-    "SampleUploader.m",
-  )
+  const body = Buffer.from([0xff, 0xd8, 0xff, 0xd9])
+  const message = screenShareProtocol.frameMessage({
+    body,
+    width: 1280,
+    height: 720,
+    orientation: 6,
+  })
 
-  assert.match(uploader, /Content-Length/)
-  assert.match(uploader, /Buffer-Width/)
-  assert.match(uploader, /Buffer-Height/)
-  assert.match(uploader, /Buffer-Orientation/)
-  assert.match(
-    uploader,
-    /CFHTTPMessageCreateResponse\([\s\S]*?200[\s\S]*?kCFHTTPVersion1_1\)/,
-  )
-  assert.doesNotMatch(uploader, /CFHTTPMessageCreateRequest/)
+  assert.equal(message.subarray(0, 17).toString(), "HTTP/1.1 200 OK\r\n")
+  assert.deepEqual(screenShareProtocol.parseFrameMessage(message), {
+    body,
+    width: 1280,
+    height: 720,
+    orientation: 6,
+  })
 })
 
 test("keeps a partial frame pending until the socket finishes it", () => {
-  const uploader = readPluginAsset(
-    "ios",
-    "BroadcastExtension",
-    "SampleUploader.m",
-  )
+  assert.equal(screenShareProtocol.nextUploaderState(100, 0), "writing")
+  assert.equal(screenShareProtocol.nextUploaderState(100, 20), "writing")
+  assert.equal(screenShareProtocol.nextUploaderState(100, 100), "ready")
+  assert.equal(screenShareProtocol.nextUploaderState(100, -1), "failed")
+})
 
-  assert.match(
-    uploader,
-    /self\.state != SampleUploaderStateReady[\s\S]*?self\.state = SampleUploaderStateWriting[\s\S]*?self\.dataToSend = framedMessage/,
+test("uses request-scoped notifications and cancels without screen capture state", () => {
+  const namespace = "group.com.nkolosov.nkmeet"
+  const requestID = "request-42"
+
+  assert.equal(
+    screenShareProtocol.notificationName(namespace, requestID, "ready"),
+    `${namespace}.screen-share.${requestID}.ready`,
   )
-  assert.match(
-    uploader,
-    /self\.byteIndex >= self\.dataToSend\.length[\s\S]*?self\.state = SampleUploaderStateReady/,
+  for (const screenCaptured of [false, true]) {
+    assert.equal(
+      screenShareProtocol.shouldCancelPickerRequest({
+        extensionStarted: false,
+        requestPending: true,
+        screenCaptured,
+      }),
+      true,
+    )
+  }
+  assert.equal(
+    screenShareProtocol.shouldCancelPickerRequest({
+      extensionStarted: true,
+      requestPending: true,
+    }),
+    false,
   )
-  assert.doesNotMatch(uploader, /isReady = !\[.*sendNonBlocking\]/)
+})
+
+test("models safe close before thread start and one-shot completion callbacks", () => {
+  assert.equal(screenShareProtocol.canUseNetworkThread(false), false)
+  assert.equal(screenShareProtocol.canUseNetworkThread(true), true)
+  assert.equal(screenShareProtocol.beginOnce(false), true)
+  assert.equal(screenShareProtocol.beginOnce(true), false)
 })
 
 test("allows the host listener to start after ReplayKit confirms selection", () => {

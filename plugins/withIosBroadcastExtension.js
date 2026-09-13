@@ -1,4 +1,9 @@
-const { copyFileSync, mkdirSync, readdirSync } = require("node:fs")
+const {
+  copyFileSync,
+  mkdirSync,
+  readdirSync,
+  writeFileSync,
+} = require("node:fs")
 const path = require("node:path")
 
 const {
@@ -7,6 +12,8 @@ const {
   withXcodeProject,
 } = require("expo/config-plugins")
 
+const { nativeHeader } = require("./screenShareProtocol")
+
 const TARGET_NAME = "BroadcastExtension"
 const SOURCE_DIR = path.join(__dirname, "ios", TARGET_NAME)
 const HOST_SOURCE_DIR = path.join(__dirname, "ios", "App")
@@ -14,9 +21,10 @@ const HOST_TARGET_DIR = "ScreenShareBridge"
 const INFO_PLIST_FILE_NAME = "Info.plist"
 const ENTITLEMENTS_FILE_NAME = `${TARGET_NAME}.entitlements`
 const APP_GROUP_BUILD_SETTING = "RTC_APP_GROUP_IDENTIFIER"
+const GENERATED_HEADER_FILE_NAME = "ScreenShareGenerated.h"
 
 // Copies the ReplayKit extension sources next to the generated Xcode project.
-const withBroadcastExtensionSources = config =>
+const withBroadcastExtensionSources = (config, { appGroupIdentifier }) =>
   withDangerousMod(config, [
     "ios",
     async iosConfig => {
@@ -32,6 +40,10 @@ const withBroadcastExtensionSources = config =>
           path.join(targetDir, fileName),
         )
       })
+      writeFileSync(
+        path.join(targetDir, GENERATED_HEADER_FILE_NAME),
+        nativeHeader(appGroupIdentifier),
+      )
 
       const hostTargetDir = path.join(
         iosConfig.modRequest.platformProjectRoot,
@@ -44,6 +56,10 @@ const withBroadcastExtensionSources = config =>
           path.join(hostTargetDir, fileName),
         )
       })
+      writeFileSync(
+        path.join(hostTargetDir, GENERATED_HEADER_FILE_NAME),
+        nativeHeader(appGroupIdentifier),
+      )
 
       return iosConfig
     },
@@ -77,7 +93,7 @@ const withBroadcastExtensionTarget = (config, { appGroupIdentifier }) =>
     )
 
     project.addPbxGroup(
-      readdirSync(SOURCE_DIR),
+      [...readdirSync(SOURCE_DIR), GENERATED_HEADER_FILE_NAME],
       TARGET_NAME,
       TARGET_NAME,
       '"<group>"',
@@ -133,9 +149,10 @@ const withIosBroadcastExtension = (config, options) => {
     )
   }
 
-  return withBroadcastExtensionTarget(withBroadcastExtensionSources(config), {
-    appGroupIdentifier,
-  })
+  return withBroadcastExtensionTarget(
+    withBroadcastExtensionSources(config, { appGroupIdentifier }),
+    { appGroupIdentifier },
+  )
 }
 
 module.exports = withIosBroadcastExtension

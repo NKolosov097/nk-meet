@@ -2,35 +2,48 @@
 
 #import "SampleUploader.h"
 #import "SocketConnection.h"
+#import "ScreenShareGenerated.h"
 
 // Must match kRTCScreensharingSocketFD / kRTCAppGroupIdentifier in
 // react-native-webrtc's ScreenCaptureController.
 static NSString *const kScreenSharingSocketName = @"rtc_SSFD";
 static NSString *const kAppGroupIdentifierKey = @"RTCAppGroupIdentifier";
-static CFStringRef const kBroadcastStartedNotification = CFSTR("com.nkolosov.nkmeet.broadcast.started");
 
 @interface SampleHandler ()
 
 @property(nonatomic, strong, nullable) SocketConnection *connection;
 @property(nonatomic, strong, nullable) SampleUploader *uploader;
+@property(nonatomic, copy, nullable) NSString *requestID;
+@property(nonatomic, assign) BOOL hasFinishedBroadcast;
+@property(nonatomic, assign) BOOL hasCleanedUp;
 
 @end
 
 @implementation SampleHandler
 
 - (void)broadcastStartedWithSetupInfo:(NSDictionary<NSString *, NSObject *> *)setupInfo {
-    CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(),
-                                         kBroadcastStartedNotification, NULL, NULL, true);
-    NSString *socketFilePath = [self socketFilePath];
+    NSString *appGroupIdentifier = [[NSBundle mainBundle] objectForInfoDictionaryKey:kAppGroupIdentifierKey];
+    NSURL *sharedContainer = appGroupIdentifier
+                                 ? [[NSFileManager defaultManager]
+                                       containerURLForSecurityApplicationGroupIdentifier:appGroupIdentifier]
+                                 : nil;
+    NSUserDefaults *sharedDefaults = appGroupIdentifier
+                                        ? [[NSUserDefaults alloc] initWithSuiteName:appGroupIdentifier]
+                                        : nil;
+    self.requestID = [sharedDefaults stringForKey:ScreenShareRequestIDKey];
 
-    if (!socketFilePath) {
+    if (!sharedContainer || !self.requestID) {
         [self finishBroadcastWithReason:@"Screen sharing is not configured for this app."];
         return;
     }
 
+    [self postStatus:@"starting"];
+    NSString *socketFilePath = [[sharedContainer URLByAppendingPathComponent:kScreenSharingSocketName] path];
+
     self.connection = [[SocketConnection alloc] initWithFilePath:socketFilePath];
 
     if (!self.connection) {
+        [self postStatus:@"failed"];
         [self finishBroadcastWithReason:@"Could not reach the app. Open it and try again."];
         return;
     }
@@ -41,13 +54,21 @@ static CFStringRef const kBroadcastStartedNotification = CFSTR("com.nkolosov.nkm
     };
 
     self.uploader = [[SampleUploader alloc] initWithConnection:self.connection];
+    void (^uploaderDidOpen)(void) = self.connection.didOpen;
+    self.connection.didOpen = ^{
+        if (uploaderDidOpen) uploaderDidOpen();
+        [weakSelf postStatus:@"ready"];
+    };
 
     if (![self.connection open]) {
+        [self postStatus:@"failed"];
         [self finishBroadcastWithReason:@"Could not reach the app. Open it and try again."];
     }
 }
 
 - (void)broadcastFinished {
+    if (!ScreenShareBeginOnce(&_hasCleanedUp)) return;
+    self.connection.didClose = nil;
     [self.connection close];
     self.connection = nil;
     self.uploader = nil;
@@ -66,20 +87,15 @@ static CFStringRef const kBroadcastStartedNotification = CFSTR("com.nkolosov.nkm
 
 // MARK: - Private Methods
 
-- (nullable NSString *)socketFilePath {
-    NSString *appGroupIdentifier = [[NSBundle mainBundle] objectForInfoDictionaryKey:kAppGroupIdentifierKey];
-
-    if (!appGroupIdentifier) {
-        return nil;
-    }
-
-    NSURL *sharedContainer =
-        [[NSFileManager defaultManager] containerURLForSecurityApplicationGroupIdentifier:appGroupIdentifier];
-
-    return [[sharedContainer URLByAppendingPathComponent:kScreenSharingSocketName] path];
+- (void)postStatus:(NSString *)status {
+    if (!self.requestID) return;
+    NSString *name = ScreenShareNotificationName(self.requestID, status);
+    CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(),
+                                         (__bridge CFStringRef)name, NULL, NULL, true);
 }
 
 - (void)finishBroadcastWithReason:(NSString *)reason {
+    if (!ScreenShareBeginOnce(&_hasFinishedBroadcast)) return;
     NSError *error = [NSError errorWithDomain:@"com.nkolosov.nkmeet.broadcast"
                                          code:0
                                      userInfo:@{NSLocalizedFailureReasonErrorKey : reason}];

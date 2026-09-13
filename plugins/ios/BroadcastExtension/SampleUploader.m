@@ -3,6 +3,8 @@
 #import <CoreImage/CoreImage.h>
 #import <ReplayKit/ReplayKit.h>
 
+#import "ScreenShareGenerated.h"
+
 // ponytail: device heat/bandwidth ceiling; tune these on physical devices.
 static const CGFloat kJpegCompressionQuality = 0.7;
 static const CGFloat kMaximumFrameDimension = 1920;
@@ -92,8 +94,9 @@ typedef NS_ENUM(NSUInteger, SampleUploaderState) {
 
     const uint8_t *bytes = (const uint8_t *)self.dataToSend.bytes + self.byteIndex;
     NSInteger written = [self.connection writeBuffer:bytes length:remaining];
+    NSInteger nextState = ScreenShareStateAfterWrite(remaining, written);
 
-    if (written < 0) {
+    if (nextState < 0) {
         NSLog(@"BroadcastExtension: failure writing the frame to the host app");
         self.dataToSend = nil;
         self.state = SampleUploaderStateFailed;
@@ -102,7 +105,7 @@ typedef NS_ENUM(NSUInteger, SampleUploaderState) {
 
     self.byteIndex += (NSUInteger)written;
 
-    if (self.byteIndex >= self.dataToSend.length) {
+    if (nextState > 0) {
         self.dataToSend = nil;
         self.state = SampleUploaderStateReady;
     }
@@ -140,18 +143,18 @@ typedef NS_ENUM(NSUInteger, SampleUploaderState) {
     }
 
     CFHTTPMessageRef message =
-        CFHTTPMessageCreateResponse(kCFAllocatorDefault, 200, NULL, kCFHTTPVersion1_1);
-    CFHTTPMessageSetHeaderFieldValue(message, CFSTR("Content-Length"),
+        CFHTTPMessageCreateResponse(kCFAllocatorDefault, ScreenShareHTTPStatusCode, NULL, kCFHTTPVersion1_1);
+    CFHTTPMessageSetHeaderFieldValue(message, ScreenShareContentLengthHeader,
                                      (__bridge CFStringRef)[NSString stringWithFormat:@"%lu",
                                                                                       (unsigned long)jpegData.length]);
     CFHTTPMessageSetHeaderFieldValue(
-        message, CFSTR("Buffer-Width"),
+        message, ScreenShareWidthHeader,
         (__bridge CFStringRef)[NSString stringWithFormat:@"%zu", encodedWidth]);
     CFHTTPMessageSetHeaderFieldValue(
-        message, CFSTR("Buffer-Height"),
+        message, ScreenShareHeightHeader,
         (__bridge CFStringRef)[NSString stringWithFormat:@"%zu", encodedHeight]);
     CFHTTPMessageSetHeaderFieldValue(
-        message, CFSTR("Buffer-Orientation"),
+        message, ScreenShareOrientationHeader,
         (__bridge CFStringRef)[NSString stringWithFormat:@"%d", [self orientationForSample:sampleBuffer]]);
     CFHTTPMessageSetBody(message, (__bridge CFDataRef)jpegData);
 

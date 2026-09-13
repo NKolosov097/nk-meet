@@ -5,6 +5,8 @@
 #include <sys/un.h>
 #include <unistd.h>
 
+#import "ScreenShareGenerated.h"
+
 // Allows the app's JS-triggered ScreenCapturer listener two seconds to bind.
 static const NSUInteger kHostConnectRetryCount = 40;
 static const useconds_t kHostConnectRetryDelayMicroseconds = 50000;
@@ -16,6 +18,8 @@ static const useconds_t kHostConnectRetryDelayMicroseconds = 50000;
 @property(nonatomic, strong, nullable) NSThread *networkThread;
 @property(nonatomic, strong, nullable) NSInputStream *inputStream;
 @property(nonatomic, strong, nullable) NSOutputStream *outputStream;
+@property(nonatomic, assign) BOOL networkThreadStarted;
+@property(nonatomic, assign) BOOL didNotifyClose;
 
 @end
 
@@ -36,6 +40,7 @@ static const useconds_t kHostConnectRetryDelayMicroseconds = 50000;
 }
 
 - (BOOL)open {
+    self.didNotifyClose = NO;
     if (![self connectSocket]) {
         return NO;
     }
@@ -52,6 +57,7 @@ static const useconds_t kHostConnectRetryDelayMicroseconds = 50000;
     [self.outputStream setProperty:@"kCFBooleanTrue" forKey:@"kCFStreamPropertyShouldCloseNativeSocket"];
 
     [self.networkThread start];
+    self.networkThreadStarted = YES;
     [self performSelector:@selector(scheduleStreams) onThread:self.networkThread withObject:nil waitUntilDone:YES];
 
     [self.inputStream open];
@@ -61,20 +67,26 @@ static const useconds_t kHostConnectRetryDelayMicroseconds = 50000;
 }
 
 - (void)close {
-    if (!self.networkThread) {
-        return;
-    }
-
-    [self performSelector:@selector(unscheduleStreams) onThread:self.networkThread withObject:nil waitUntilDone:YES];
-
     self.inputStream.delegate = nil;
     self.outputStream.delegate = nil;
+
+    if (ScreenShareCanUseNetworkThread(self.networkThreadStarted)) {
+        [self performSelector:@selector(unscheduleStreams)
+                     onThread:self.networkThread
+                   withObject:nil
+                waitUntilDone:YES];
+    }
     [self.inputStream close];
     [self.outputStream close];
+    if (!self.inputStream && !self.outputStream && self.socketHandle >= 0) {
+        close(self.socketHandle);
+    }
+    self.socketHandle = -1;
     self.inputStream = nil;
     self.outputStream = nil;
 
-    [self.networkThread cancel];
+    if (ScreenShareCanUseNetworkThread(self.networkThreadStarted)) [self.networkThread cancel];
+    self.networkThreadStarted = NO;
     self.networkThread = nil;
 }
 
@@ -102,14 +114,10 @@ static const useconds_t kHostConnectRetryDelayMicroseconds = 50000;
             break;
         case NSStreamEventErrorOccurred:
             NSLog(@"BroadcastExtension: stream error %@", stream.streamError.localizedDescription);
-            if (self.didClose) {
-                self.didClose(stream.streamError);
-            }
+            [self notifyClosed:stream.streamError];
             break;
         case NSStreamEventEndEncountered:
-            if (self.didClose) {
-                self.didClose(nil);
-            }
+            [self notifyClosed:nil];
             break;
         default:
             break;
@@ -173,6 +181,11 @@ static const useconds_t kHostConnectRetryDelayMicroseconds = 50000;
 - (void)unscheduleStreams {
     [self.inputStream removeFromRunLoop:NSRunLoop.currentRunLoop forMode:NSRunLoopCommonModes];
     [self.outputStream removeFromRunLoop:NSRunLoop.currentRunLoop forMode:NSRunLoopCommonModes];
+}
+
+- (void)notifyClosed:(nullable NSError *)error {
+    if (!ScreenShareBeginOnce(&_didNotifyClose)) return;
+    if (self.didClose) self.didClose(error);
 }
 
 @end
