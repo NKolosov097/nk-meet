@@ -138,6 +138,44 @@ test("renders statically without translation or scale when motion is reduced", a
   expect(parallel).not.toHaveBeenCalled()
 })
 
+test("keeps collision-free reaction positions stable as reactions change", async () => {
+  jest.spyOn(AccessibilityInfo, "isReduceMotionEnabled").mockResolvedValue(true)
+  setParticipantState({
+    isHandRaised: false,
+    ephemeralReactions: [
+      { id: "ab", type: "smile", expiresAt: 2_000 },
+      { id: "ba", type: "heart", expiresAt: 2_000 },
+    ],
+  })
+
+  const view = await render(
+    <ParticipantReactions identity="alice" displayName="Alice" />,
+  )
+  await act(() => Promise.resolve())
+
+  const initialOffsets = view
+    .getAllByTestId("quick-reaction-static")
+    .map(reaction => StyleSheet.flatten(reaction.props.style).left)
+  expect(initialOffsets[0]).not.toBe(initialOffsets[1])
+
+  setParticipantState({
+    isHandRaised: false,
+    ephemeralReactions: [
+      { id: "ba", type: "heart", expiresAt: 2_000 },
+      { id: "ca", type: "cry", expiresAt: 2_000 },
+    ],
+  })
+  await view.rerender(
+    <ParticipantReactions identity="alice" displayName="Alice" />,
+  )
+
+  const nextOffsets = view
+    .getAllByTestId("quick-reaction-static")
+    .map(reaction => StyleSheet.flatten(reaction.props.style).left)
+  expect(nextOffsets[0]).toBe(initialOffsets[1])
+  expect(nextOffsets[1]).not.toBe(nextOffsets[0])
+})
+
 test("removes the reduced-motion listener on unmount", async () => {
   setParticipantState({ isHandRaised: true, ephemeralReactions: [] })
   const view = await render(

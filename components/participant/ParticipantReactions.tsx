@@ -25,17 +25,19 @@ interface ParticipantReactionsProps {
 interface AnimatedReactionProps {
   // Live quick reaction to animate.
   reaction: EphemeralReaction
+  // Stable collision-free horizontal position assigned by the overlay.
+  horizontalOffset: number
 }
 
-const reactionHorizontalOffset = (id: string): number =>
-  16 +
-  ([...id].reduce((hash, character) => hash + character.charCodeAt(0), 0) % 65)
+const REACTION_HORIZONTAL_OFFSETS = [16, 32, 48, 64, 80]
 
-const AnimatedReaction = ({ reaction }: AnimatedReactionProps) => {
+const AnimatedReaction = ({
+  reaction,
+  horizontalOffset,
+}: AnimatedReactionProps) => {
   const translateY = useRef(new Animated.Value(0)).current
   const opacity = useRef(new Animated.Value(0.5)).current
   const scale = useRef(new Animated.Value(0.5)).current
-  const horizontalOffset = useRef(reactionHorizontalOffset(reaction.id)).current
 
   useEffect(() => {
     const animation = Animated.parallel([
@@ -91,9 +93,10 @@ const AnimatedReaction = ({ reaction }: AnimatedReactionProps) => {
   )
 }
 
-const StaticReaction = ({ reaction }: AnimatedReactionProps) => {
-  const horizontalOffset = useRef(reactionHorizontalOffset(reaction.id)).current
-
+const StaticReaction = ({
+  reaction,
+  horizontalOffset,
+}: AnimatedReactionProps) => {
   return (
     <Text
       testID="quick-reaction-static"
@@ -110,9 +113,25 @@ export const ParticipantReactions = ({
 }: ParticipantReactionsProps) => {
   const { participants } = useReactions()
   const state = participants[identity]
+  const reactionSlotsRef = useRef(new Map<string, number>())
   const [isReduceMotionEnabled, setIsReduceMotionEnabled] = useState<
     boolean | null
   >(null)
+
+  const reactions = state?.ephemeralReactions ?? []
+  const liveIds = new Set(reactions.map(reaction => reaction.id))
+  for (const id of reactionSlotsRef.current.keys()) {
+    if (!liveIds.has(id)) reactionSlotsRef.current.delete(id)
+  }
+  const usedSlots = new Set(reactionSlotsRef.current.values())
+  for (const reaction of reactions) {
+    if (reactionSlotsRef.current.has(reaction.id)) continue
+    const slot = REACTION_HORIZONTAL_OFFSETS.findIndex(
+      (_, index) => !usedSlots.has(index),
+    )
+    reactionSlotsRef.current.set(reaction.id, slot)
+    usedSlots.add(slot)
+  }
 
   useEffect(() => {
     let isMounted = true
@@ -152,13 +171,25 @@ export const ParticipantReactions = ({
 
       {isReduceMotionEnabled === null
         ? null
-        : state.ephemeralReactions.map(reaction =>
-            isReduceMotionEnabled ? (
-              <StaticReaction key={reaction.id} reaction={reaction} />
+        : reactions.map(reaction => {
+            const horizontalOffset =
+              REACTION_HORIZONTAL_OFFSETS[
+                reactionSlotsRef.current.get(reaction.id) ?? 0
+              ]
+            return isReduceMotionEnabled ? (
+              <StaticReaction
+                key={reaction.id}
+                reaction={reaction}
+                horizontalOffset={horizontalOffset}
+              />
             ) : (
-              <AnimatedReaction key={reaction.id} reaction={reaction} />
-            ),
-          )}
+              <AnimatedReaction
+                key={reaction.id}
+                reaction={reaction}
+                horizontalOffset={horizontalOffset}
+              />
+            )
+          })}
     </View>
   )
 }
