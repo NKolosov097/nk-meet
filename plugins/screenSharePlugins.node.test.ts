@@ -68,6 +68,42 @@ test("frames samples the way the host app's ScreenCapturer parses them", () => {
   assert.match(uploader, /Buffer-Width/)
   assert.match(uploader, /Buffer-Height/)
   assert.match(uploader, /Buffer-Orientation/)
+  assert.match(
+    uploader,
+    /CFHTTPMessageCreateResponse\([\s\S]*?200[\s\S]*?kCFHTTPVersion1_1\)/,
+  )
+  assert.doesNotMatch(uploader, /CFHTTPMessageCreateRequest/)
+})
+
+test("keeps a partial frame pending until the socket finishes it", () => {
+  const uploader = readPluginAsset(
+    "ios",
+    "BroadcastExtension",
+    "SampleUploader.m",
+  )
+
+  assert.match(
+    uploader,
+    /self\.state != SampleUploaderStateReady[\s\S]*?self\.state = SampleUploaderStateWriting[\s\S]*?self\.dataToSend = framedMessage/,
+  )
+  assert.match(
+    uploader,
+    /self\.byteIndex >= self\.dataToSend\.length[\s\S]*?self\.state = SampleUploaderStateReady/,
+  )
+  assert.doesNotMatch(uploader, /isReady = !\[.*sendNonBlocking\]/)
+})
+
+test("bounds ReplayKit encoding work for sustained screen sharing", () => {
+  const uploader = readPluginAsset(
+    "ios",
+    "BroadcastExtension",
+    "SampleUploader.m",
+  )
+
+  assert.match(uploader, /kMaximumFrameDimension = 1920/)
+  assert.match(uploader, /kMinimumFrameInterval = 1\.0 \/ 15\.0/)
+  assert.match(uploader, /imageByApplyingTransform/)
+  assert.doesNotMatch(uploader, /kJpegCompressionQuality = 1\.0/)
 })
 
 test("refuses to configure the target without an App Group", () => {

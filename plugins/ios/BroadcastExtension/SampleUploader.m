@@ -3,7 +3,17 @@
 #import <CoreImage/CoreImage.h>
 #import <ReplayKit/ReplayKit.h>
 
-static const CGFloat kJpegCompressionQuality = 1.0;
+// ponytail: device heat/bandwidth ceiling; tune these on physical devices.
+static const CGFloat kJpegCompressionQuality = 0.7;
+static const CGFloat kMaximumFrameDimension = 1920;
+static const NSTimeInterval kMinimumFrameInterval = 1.0 / 15.0;
+
+typedef NS_ENUM(NSUInteger, SampleUploaderState) {
+    SampleUploaderStateClosed,
+    SampleUploaderStateReady,
+    SampleUploaderStateWriting,
+    SampleUploaderStateFailed,
+};
 
 @interface SampleUploader ()
 
@@ -11,7 +21,8 @@ static const CGFloat kJpegCompressionQuality = 1.0;
 @property(nonatomic, strong, nullable) NSData *dataToSend;
 @property(nonatomic, assign) NSUInteger byteIndex;
 @property(nonatomic, strong) dispatch_queue_t serialQueue;
-@property(atomic, assign) BOOL isReady;
+@property(nonatomic, assign) SampleUploaderState state;
+@property(nonatomic, assign) CMTime lastFrameTime;
 
 @end
 
@@ -25,14 +36,18 @@ static const CGFloat kJpegCompressionQuality = 1.0;
 
     self.connection = connection;
     self.serialQueue = dispatch_queue_create("com.nkolosov.nkmeet.broadcast.uploader", DISPATCH_QUEUE_SERIAL);
+    self.state = SampleUploaderStateClosed;
+    self.lastFrameTime = kCMTimeInvalid;
 
     __weak __typeof__(self) weakSelf = self;
     connection.didOpen = ^{
-        weakSelf.isReady = YES;
+        dispatch_async(weakSelf.serialQueue, ^{
+            weakSelf.state = SampleUploaderStateReady;
+        });
     };
     connection.streamHasSpaceAvailable = ^{
         dispatch_async(weakSelf.serialQueue, ^{
-            weakSelf.isReady = ![weakSelf sendNonBlocking];
+            [weakSelf sendNonBlocking];
         });
     };
 
@@ -40,19 +55,20 @@ static const CGFloat kJpegCompressionQuality = 1.0;
 }
 
 - (void)sendSample:(CMSampleBufferRef)sampleBuffer {
-    if (!self.isReady) {
-        return;
-    }
-
-    self.isReady = NO;
-
-    NSData *framedMessage = [self framedMessageForSample:sampleBuffer];
-    if (!framedMessage) {
-        self.isReady = YES;
-        return;
-    }
-
+    CFRetain(sampleBuffer);
     dispatch_async(self.serialQueue, ^{
+        if (self.state != SampleUploaderStateReady || ![self shouldSendSample:sampleBuffer]) {
+            CFRelease(sampleBuffer);
+            return;
+        }
+
+        NSData *framedMessage = [self framedMessageForSample:sampleBuffer];
+        CFRelease(sampleBuffer);
+        if (!framedMessage) {
+            return;
+        }
+
+        self.state = SampleUploaderStateWriting;
         self.dataToSend = framedMessage;
         self.byteIndex = 0;
         [self sendNonBlocking];
@@ -61,17 +77,17 @@ static const CGFloat kJpegCompressionQuality = 1.0;
 
 // MARK: - Private Methods
 
-/// Writes as much of the pending message as the socket accepts. Returns YES
-/// once the whole message is out, so the caller can take the next sample.
-- (BOOL)sendNonBlocking {
+/// Writes one chunk and leaves the state ready only after the complete frame.
+- (void)sendNonBlocking {
     if (!self.dataToSend) {
-        return YES;
+        return;
     }
 
     NSUInteger remaining = self.dataToSend.length - self.byteIndex;
     if (remaining == 0) {
         self.dataToSend = nil;
-        return YES;
+        self.state = SampleUploaderStateReady;
+        return;
     }
 
     const uint8_t *bytes = (const uint8_t *)self.dataToSend.bytes + self.byteIndex;
@@ -80,17 +96,29 @@ static const CGFloat kJpegCompressionQuality = 1.0;
     if (written < 0) {
         NSLog(@"BroadcastExtension: failure writing the frame to the host app");
         self.dataToSend = nil;
-        return YES;
+        self.state = SampleUploaderStateFailed;
+        return;
     }
 
     self.byteIndex += (NSUInteger)written;
 
     if (self.byteIndex >= self.dataToSend.length) {
         self.dataToSend = nil;
-        return YES;
+        self.state = SampleUploaderStateReady;
+    }
+}
+
+- (BOOL)shouldSendSample:(CMSampleBufferRef)sampleBuffer {
+    CMTime frameTime = CMSampleBufferGetPresentationTimeStamp(sampleBuffer);
+    if (CMTIME_IS_VALID(self.lastFrameTime)) {
+        NSTimeInterval elapsed = CMTimeGetSeconds(CMTimeSubtract(frameTime, self.lastFrameTime));
+        if (elapsed >= 0 && elapsed < kMinimumFrameInterval) {
+            return NO;
+        }
     }
 
-    return NO;
+    self.lastFrameTime = frameTime;
+    return YES;
 }
 
 - (nullable NSData *)framedMessageForSample:(CMSampleBufferRef)sampleBuffer {
@@ -99,23 +127,29 @@ static const CGFloat kJpegCompressionQuality = 1.0;
         return nil;
     }
 
-    NSData *jpegData = [self jpegDataForImageBuffer:imageBuffer];
+    size_t sourceWidth = CVPixelBufferGetWidth(imageBuffer);
+    size_t sourceHeight = CVPixelBufferGetHeight(imageBuffer);
+    CGFloat scale = MIN(1.0, kMaximumFrameDimension / MAX(sourceWidth, sourceHeight));
+    size_t encodedWidth = (size_t)lrint(sourceWidth * scale);
+    size_t encodedHeight = (size_t)lrint(sourceHeight * scale);
+    NSData *jpegData = [self jpegDataForImageBuffer:imageBuffer
+                                             width:encodedWidth
+                                            height:encodedHeight];
     if (!jpegData) {
         return nil;
     }
 
-    CFHTTPMessageRef message = CFHTTPMessageCreateRequest(kCFAllocatorDefault, CFSTR("POST"),
-                                                          (__bridge CFURLRef)[NSURL URLWithString:@"/"],
-                                                          kCFHTTPVersion1_1);
+    CFHTTPMessageRef message =
+        CFHTTPMessageCreateResponse(kCFAllocatorDefault, 200, NULL, kCFHTTPVersion1_1);
     CFHTTPMessageSetHeaderFieldValue(message, CFSTR("Content-Length"),
                                      (__bridge CFStringRef)[NSString stringWithFormat:@"%lu",
                                                                                       (unsigned long)jpegData.length]);
     CFHTTPMessageSetHeaderFieldValue(
         message, CFSTR("Buffer-Width"),
-        (__bridge CFStringRef)[NSString stringWithFormat:@"%zu", CVPixelBufferGetWidth(imageBuffer)]);
+        (__bridge CFStringRef)[NSString stringWithFormat:@"%zu", encodedWidth]);
     CFHTTPMessageSetHeaderFieldValue(
         message, CFSTR("Buffer-Height"),
-        (__bridge CFStringRef)[NSString stringWithFormat:@"%zu", CVPixelBufferGetHeight(imageBuffer)]);
+        (__bridge CFStringRef)[NSString stringWithFormat:@"%zu", encodedHeight]);
     CFHTTPMessageSetHeaderFieldValue(
         message, CFSTR("Buffer-Orientation"),
         (__bridge CFStringRef)[NSString stringWithFormat:@"%d", [self orientationForSample:sampleBuffer]]);
@@ -127,7 +161,9 @@ static const CGFloat kJpegCompressionQuality = 1.0;
     return serializedMessage;
 }
 
-- (nullable NSData *)jpegDataForImageBuffer:(CVImageBufferRef)imageBuffer {
+- (nullable NSData *)jpegDataForImageBuffer:(CVImageBufferRef)imageBuffer
+                                      width:(size_t)width
+                                     height:(size_t)height {
     // A CIContext is expensive to build, so it is shared across every frame.
     static CIContext *imageContext = nil;
     static dispatch_once_t onceToken;
@@ -136,6 +172,9 @@ static const CGFloat kJpegCompressionQuality = 1.0;
     });
 
     CIImage *image = [CIImage imageWithCVPixelBuffer:imageBuffer];
+    CGFloat scaleX = (CGFloat)width / CVPixelBufferGetWidth(imageBuffer);
+    CGFloat scaleY = (CGFloat)height / CVPixelBufferGetHeight(imageBuffer);
+    image = [image imageByApplyingTransform:CGAffineTransformMakeScale(scaleX, scaleY)];
     CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
     NSData *jpegData = [imageContext JPEGRepresentationOfImage:image
                                                     colorSpace:colorSpace
