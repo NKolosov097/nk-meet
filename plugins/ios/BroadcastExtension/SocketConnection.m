@@ -1,7 +1,13 @@
 #import "SocketConnection.h"
 
+#include <errno.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <unistd.h>
+
+// Allows the app's JS-triggered ScreenCapturer listener two seconds to bind.
+static const NSUInteger kHostConnectRetryCount = 40;
+static const useconds_t kHostConnectRetryDelayMicroseconds = 50000;
 
 @interface SocketConnection () <NSStreamDelegate>
 
@@ -22,12 +28,7 @@
     }
 
     self.filePath = filePath;
-    self.socketHandle = socket(AF_UNIX, SOCK_STREAM, 0);
-
-    if (self.socketHandle < 0) {
-        NSLog(@"BroadcastExtension: failure creating socket");
-        return nil;
-    }
+    self.socketHandle = -1;
 
     [self setupNetworkThread];
 
@@ -140,12 +141,28 @@
 
     strncpy(addr.sun_path, self.filePath.UTF8String, sizeof(addr.sun_path) - 1);
 
-    if (connect(self.socketHandle, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-        NSLog(@"BroadcastExtension: failure connecting to the host app socket");
-        return NO;
+    for (NSUInteger attempt = 0; attempt < kHostConnectRetryCount; attempt++) {
+        self.socketHandle = socket(AF_UNIX, SOCK_STREAM, 0);
+        if (self.socketHandle < 0) {
+            break;
+        }
+
+        if (connect(self.socketHandle, (struct sockaddr *)&addr, sizeof(addr)) == 0) {
+            return YES;
+        }
+
+        int connectionError = errno;
+        close(self.socketHandle);
+        self.socketHandle = -1;
+        if (connectionError != ENOENT && connectionError != ECONNREFUSED) {
+            break;
+        }
+
+        usleep(kHostConnectRetryDelayMicroseconds);
     }
 
-    return YES;
+    NSLog(@"BroadcastExtension: failure connecting to the host app socket");
+    return NO;
 }
 
 - (void)scheduleStreams {

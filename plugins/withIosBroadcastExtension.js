@@ -1,10 +1,16 @@
 const { copyFileSync, mkdirSync, readdirSync } = require("node:fs")
 const path = require("node:path")
 
-const { withDangerousMod, withXcodeProject } = require("expo/config-plugins")
+const {
+  IOSConfig,
+  withDangerousMod,
+  withXcodeProject,
+} = require("expo/config-plugins")
 
 const TARGET_NAME = "BroadcastExtension"
 const SOURCE_DIR = path.join(__dirname, "ios", TARGET_NAME)
+const HOST_SOURCE_DIR = path.join(__dirname, "ios", "App")
+const HOST_TARGET_DIR = "ScreenShareBridge"
 const INFO_PLIST_FILE_NAME = "Info.plist"
 const ENTITLEMENTS_FILE_NAME = `${TARGET_NAME}.entitlements`
 const APP_GROUP_BUILD_SETTING = "RTC_APP_GROUP_IDENTIFIER"
@@ -27,6 +33,18 @@ const withBroadcastExtensionSources = config =>
         )
       })
 
+      const hostTargetDir = path.join(
+        iosConfig.modRequest.platformProjectRoot,
+        HOST_TARGET_DIR,
+      )
+      mkdirSync(hostTargetDir, { recursive: true })
+      readdirSync(HOST_SOURCE_DIR).forEach(fileName => {
+        copyFileSync(
+          path.join(HOST_SOURCE_DIR, fileName),
+          path.join(hostTargetDir, fileName),
+        )
+      })
+
       return iosConfig
     },
   ])
@@ -37,6 +55,16 @@ const withBroadcastExtensionSources = config =>
 const withBroadcastExtensionTarget = (config, { appGroupIdentifier }) =>
   withXcodeProject(config, iosConfig => {
     const project = iosConfig.modResults
+    const hostSourcePath = `${HOST_TARGET_DIR}/BroadcastPicker.m`
+
+    IOSConfig.XcodeUtils.ensureGroupRecursively(project, HOST_TARGET_DIR)
+    if (!project.hasFile(hostSourcePath)) {
+      IOSConfig.XcodeUtils.addBuildSourceFileToGroup({
+        filepath: hostSourcePath,
+        groupName: HOST_TARGET_DIR,
+        project,
+      })
+    }
 
     // prebuild runs repeatedly against the same project when --clean is off.
     if (project.pbxTargetByName(TARGET_NAME)) {

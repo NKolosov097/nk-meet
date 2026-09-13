@@ -7,6 +7,7 @@
 // react-native-webrtc's ScreenCaptureController.
 static NSString *const kScreenSharingSocketName = @"rtc_SSFD";
 static NSString *const kAppGroupIdentifierKey = @"RTCAppGroupIdentifier";
+static CFStringRef const kBroadcastStartedNotification = CFSTR("com.nkolosov.nkmeet.broadcast.started");
 
 @interface SampleHandler ()
 
@@ -18,6 +19,8 @@ static NSString *const kAppGroupIdentifierKey = @"RTCAppGroupIdentifier";
 @implementation SampleHandler
 
 - (void)broadcastStartedWithSetupInfo:(NSDictionary<NSString *, NSObject *> *)setupInfo {
+    CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(),
+                                         kBroadcastStartedNotification, NULL, NULL, true);
     NSString *socketFilePath = [self socketFilePath];
 
     if (!socketFilePath) {

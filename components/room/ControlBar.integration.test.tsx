@@ -3,7 +3,7 @@
 // a11y:components/icons/DisconnectIcon.tsx
 // a11y:components/icons/ScreenShareIcon.tsx
 // a11y:components/icons/ScreenShareStopIcon.tsx
-import { Alert } from "react-native"
+import { Alert, NativeModules } from "react-native"
 
 import { act, fireEvent, render, waitFor } from "@testing-library/react-native"
 
@@ -120,6 +120,10 @@ const mockLocalParticipant = {
   setScreenShareEnabled: jest.fn<Promise<void>, [boolean]>(),
 }
 
+const mockBroadcastPicker = NativeModules.BroadcastPicker as {
+  present: jest.Mock<Promise<void>, [number]>
+}
+
 let mockCameraEnabled = false
 let mockMicrophoneEnabled = true
 let mockScreenShareEnabled = false
@@ -133,6 +137,7 @@ beforeAll(() => {
 
 beforeEach(() => {
   jest.clearAllMocks()
+  jest.spyOn(require("react-native"), "findNodeHandle").mockReturnValue(42)
   mockCameraEnabled = false
   mockMicrophoneEnabled = true
   mockScreenShareEnabled = false
@@ -142,6 +147,7 @@ beforeEach(() => {
   mockLocalParticipant.setCameraEnabled.mockResolvedValue(undefined)
   mockLocalParticipant.setMicrophoneEnabled.mockResolvedValue(undefined)
   mockLocalParticipant.setScreenShareEnabled.mockResolvedValue(undefined)
+  mockBroadcastPicker.present.mockResolvedValue(undefined)
   mockUseRoomContext.mockReturnValue(mockRoom)
   mockUseLocalParticipant.mockImplementation(() => ({
     isCameraEnabled: mockCameraEnabled,
@@ -421,6 +427,62 @@ test("starts and stops screen sharing through the local participant", async () =
       false,
     )
   })
+})
+
+test("does not publish when the iOS broadcast picker is canceled", async () => {
+  mockBroadcastPicker.present.mockRejectedValue(
+    Object.assign(new Error("Broadcast picker was dismissed."), {
+      code: "broadcast_cancelled",
+    }),
+  )
+  const view = await render(<ControlBar company={company} />)
+
+  await fireEvent.press(view.getByLabelText("Share your screen"))
+
+  expect(mockBroadcastPicker.present).toHaveBeenCalledTimes(1)
+  expect(mockLocalParticipant.setScreenShareEnabled).not.toHaveBeenCalled()
+})
+
+test("rejects duplicate taps while the iOS broadcast picker is open", async () => {
+  const pendingPicker = createDeferred()
+  mockBroadcastPicker.present.mockReturnValue(pendingPicker.promise)
+  const view = await render(<ControlBar company={company} />)
+  const button = view.getByLabelText("Share your screen")
+
+  await pressTwice(button)
+
+  expect(mockBroadcastPicker.present).toHaveBeenCalledTimes(1)
+  expect(
+    view.getByLabelText("Share your screen").props.accessibilityState?.disabled,
+  ).toBe(true)
+
+  await act(async () => {
+    pendingPicker.resolve()
+    await pendingPicker.promise
+  })
+})
+
+test("reports an iOS broadcast picker launch failure without publishing", async () => {
+  const alert = jest.spyOn(Alert, "alert").mockImplementation()
+  const consoleError = jest.spyOn(console, "error").mockImplementation()
+  mockBroadcastPicker.present.mockRejectedValue(
+    Object.assign(new Error("Broadcast picker button not found."), {
+      code: "broadcast_picker_unavailable",
+    }),
+  )
+  const view = await render(<ControlBar company={company} />)
+
+  await fireEvent.press(view.getByLabelText("Share your screen"))
+
+  expect(mockLocalParticipant.setScreenShareEnabled).not.toHaveBeenCalled()
+  expect(alert).toHaveBeenCalledWith(
+    "Screen sharing unavailable",
+    "Could not open the iOS broadcast picker.",
+  )
+  expect(consoleError).toHaveBeenCalledWith(
+    "Error opening the broadcast picker: ",
+    expect.any(Error),
+  )
 })
 
 test("ignores concurrent screen-share toggles until the current toggle finishes", async () => {

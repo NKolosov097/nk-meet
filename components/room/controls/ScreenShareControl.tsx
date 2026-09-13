@@ -1,5 +1,6 @@
-import { useCallback, useRef, type ComponentRef } from "react"
+import { useCallback, useRef, useState, type ComponentRef } from "react"
 import {
+  Alert,
   findNodeHandle,
   NativeModules,
   Platform,
@@ -28,8 +29,16 @@ interface ScreenShareControlProps {
 
 // The manager only exists in an iOS binary that links ReplayKit, so its
 // presence doubles as the capability check for the broadcast picker.
-const broadcastPickerManager = NativeModules.ScreenCapturePickerViewManager as
-  { show: (reactTag: number) => Promise<void> } | undefined
+interface BroadcastPickerManager {
+  // Presents ReplayKit and resolves only after the extension starts.
+  present: (reactTag: number) => Promise<void>
+}
+
+const isPickerCanceled = (error: unknown): boolean =>
+  typeof error === "object" &&
+  error !== null &&
+  "code" in error &&
+  error.code === "broadcast_cancelled"
 
 export const ScreenShareControl = ({
   isScreenShareEnabled,
@@ -37,31 +46,47 @@ export const ScreenShareControl = ({
   disabled,
 }: ScreenShareControlProps) => {
   const pickerRef = useRef<BroadcastPicker>(null)
-  const accessibilityState: AccessibilityState = { disabled }
+  const isPresentingPicker = useRef(false)
+  const [pickerPending, setPickerPending] = useState(false)
+  const controlDisabled = disabled || pickerPending
+  const accessibilityState: AccessibilityState = { disabled: controlDisabled }
 
   // iOS publishes screen capture from a broadcast extension, which the user has
   // to start from the system picker before the track can be published.
-  const presentBroadcastPicker = useCallback(async (): Promise<void> => {
-    if (!broadcastPickerManager) return
+  const handlePress = useCallback(async (): Promise<void> => {
+    if (isPresentingPicker.current) return
 
+    if (isScreenShareEnabled || Platform.OS !== "ios") {
+      onToggleScreenShare()
+      return
+    }
+
+    isPresentingPicker.current = true
+    setPickerPending(true)
     try {
+      const broadcastPickerManager = NativeModules.BroadcastPicker as
+        BroadcastPickerManager | undefined
       const pickerTag = findNodeHandle(pickerRef.current)
 
-      if (pickerTag !== null) {
-        await broadcastPickerManager.show(pickerTag)
+      if (!broadcastPickerManager || pickerTag === null) {
+        throw new Error("iOS broadcast picker is not linked")
       }
+
+      await broadcastPickerManager.present(pickerTag)
+      onToggleScreenShare()
     } catch (error) {
+      if (isPickerCanceled(error)) return
+
       console.error("Error opening the broadcast picker: ", error)
+      Alert.alert(
+        "Screen sharing unavailable",
+        "Could not open the iOS broadcast picker.",
+      )
+    } finally {
+      isPresentingPicker.current = false
+      setPickerPending(false)
     }
-  }, [])
-
-  const handlePress = useCallback(async (): Promise<void> => {
-    if (!isScreenShareEnabled) {
-      await presentBroadcastPicker()
-    }
-
-    onToggleScreenShare()
-  }, [isScreenShareEnabled, onToggleScreenShare, presentBroadcastPicker])
+  }, [isScreenShareEnabled, onToggleScreenShare])
 
   return (
     <>
@@ -69,10 +94,10 @@ export const ScreenShareControl = ({
         style={[
           styles.controlButton,
           isScreenShareEnabled ? styles.activeButton : null,
-          disabled ? styles.disabledButton : null,
+          controlDisabled ? styles.disabledButton : null,
         ]}
         onPress={handlePress}
-        disabled={disabled}
+        disabled={controlDisabled}
         accessibilityLabel={
           isScreenShareEnabled
             ? "Stop sharing your screen"

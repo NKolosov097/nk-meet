@@ -6,6 +6,12 @@ jest.mock("@livekit/react-native-webrtc", () => ({
   ScreenCapturePickerView: "ScreenCapturePickerView",
 }))
 
+const { NativeModules } = require("react-native")
+
+NativeModules.BroadcastPicker = {
+  present: jest.fn().mockResolvedValue(undefined),
+}
+
 // The official RN safe-area-context Jest mock renders children synchronously
 // with all-zero insets and shares its real context with expo-router's
 // SafeAreaProviderCompat, instead of waiting on a native event that never fires.
