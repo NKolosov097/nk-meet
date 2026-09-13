@@ -96,10 +96,11 @@ const ConnectedParticipantTile = ({
     isTrackReference(trackRef) && !isVideoMuted && !!trackRef.publication.track
   const placeholderSize = Math.min(width, height) * 0.5
   const displayName = participant.name || participant.identity
+  const displayedName = `${displayName}${participant.isLocal ? " (You)" : ""}`
   const participantAccessibilityLabel = participants[participant.identity]
     ?.isHandRaised
-    ? `${displayName}, hand raised`
-    : displayName
+    ? `${displayedName}, hand raised`
+    : displayedName
 
   const badge = (
     <>
@@ -116,8 +117,7 @@ const ConnectedParticipantTile = ({
         ellipsizeMode="tail"
         accessibilityLabel={participantAccessibilityLabel}
       >
-        {displayName}
-        {participant.isLocal ? " (You)" : ""}
+        {displayedName}
       </Text>
     </>
   )

@@ -154,6 +154,28 @@ test("adds raised-hand state to the connected tile label", async () => {
   expect(view.queryByText("🖐️")).not.toBeOnTheScreen()
 })
 
+test("preserves the local participant suffix before raised-hand state", async () => {
+  mockIsTrackReference.mockReturnValue(false)
+  mockUseTrackMutedIndicator.mockReturnValue({ isMuted: false })
+  mockUseReactions.mockReturnValue({
+    participants: {
+      ada: { isHandRaised: true, ephemeralReactions: [] },
+    },
+  })
+  const localTrack = {
+    ...connectedTrack,
+    participant: { ...connectedTrack.participant, isLocal: true },
+  } as TrackReferenceOrPlaceholder
+
+  const view = await render(
+    <ParticipantTile trackRef={localTrack} width={240} height={135} />,
+  )
+
+  expect(view.getByLabelText("Ada (You), hand raised")).toHaveTextContent(
+    "Ada (You)",
+  )
+})
+
 test("keeps a connected video participant's badge readable over its video", async () => {
   mockIsTrackReference.mockReturnValue(true)
   mockUseTrackMutedIndicator
