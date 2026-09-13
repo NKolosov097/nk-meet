@@ -266,6 +266,69 @@ test("reconnect hydration replaces an earlier legacy fallback", async () => {
   expect(state().bob?.isHandRaised).toBe(false)
 })
 
+test("reacts to permission revocation without optimistic state or a rerender", async () => {
+  await renderProvider()
+  Object.assign(localParticipant, {
+    permissions: { canPublishData: false, canUpdateMetadata: false },
+  })
+
+  await act(() =>
+    listeners.get(RoomEvent.ParticipantPermissionsChanged)?.(
+      undefined,
+      localParticipant,
+    ),
+  )
+  await fireEvent.press(screen.getByLabelText("Send heart"))
+  await fireEvent.press(screen.getByLabelText("Toggle hand"))
+
+  expect(
+    JSON.parse(String(screen.getByTestId("permissions").props.children)),
+  ).toEqual({ quick: false, hand: false, pending: false })
+  expect(state().local).toEqual({
+    isHandRaised: true,
+    ephemeralReactions: [],
+  })
+  expect(mockSend).not.toHaveBeenCalled()
+  expect(mockSetAttributes).not.toHaveBeenCalled()
+})
+
+test("reacts separately to data and metadata permission grants", async () => {
+  Object.assign(localParticipant, {
+    permissions: { canPublishData: false, canUpdateMetadata: false },
+  })
+  await renderProvider()
+
+  Object.assign(localParticipant, {
+    permissions: { canPublishData: true, canUpdateMetadata: false },
+  })
+  await act(() =>
+    listeners.get(RoomEvent.ParticipantPermissionsChanged)?.(
+      undefined,
+      localParticipant,
+    ),
+  )
+  await fireEvent.press(screen.getByLabelText("Send heart"))
+  await fireEvent.press(screen.getByLabelText("Toggle hand"))
+
+  expect(state().local?.ephemeralReactions).toHaveLength(1)
+  expect(mockSend).toHaveBeenCalledTimes(1)
+  expect(mockSetAttributes).not.toHaveBeenCalled()
+
+  Object.assign(localParticipant, {
+    permissions: { canPublishData: true, canUpdateMetadata: true },
+  })
+  await act(() =>
+    listeners.get(RoomEvent.ParticipantPermissionsChanged)?.(
+      undefined,
+      localParticipant,
+    ),
+  )
+  await fireEvent.press(screen.getByLabelText("Toggle hand"))
+  await act(() => Promise.resolve())
+
+  expect(mockSetAttributes).toHaveBeenCalledTimes(1)
+})
+
 describe("quick reactions", () => {
   beforeEach(() => {
     jest.useFakeTimers()
@@ -363,6 +426,50 @@ describe("quick reactions", () => {
         String((reaction as { id: string }).id),
       ),
     ).toEqual(["alice:1:2", "alice:1:3", "alice:1:4", "alice:1:5", "alice:1:6"])
+  })
+
+  test("suppresses a queue-evicted duplicate until its original expiry", async () => {
+    const announce = jest.spyOn(AccessibilityInfo, "announceForAccessibility")
+    const alice = participant("alice")
+    await renderProvider()
+    const receive = async (reactionId: string): Promise<void> => {
+      await act(() =>
+        onDataMessage?.({
+          payload: encodeReactionMessage({
+            type: "ephemeral",
+            reactionId,
+            reaction: "smile",
+            participant: "alice",
+          }),
+          from: alice,
+          topic: "reaction-topic",
+        }),
+      )
+    }
+
+    for (let index = 1; index <= 6; index += 1) {
+      await receive(`alice:1:${index}`)
+    }
+    jest.advanceTimersByTime(1_000)
+    await receive("alice:1:1")
+
+    expect(
+      state().alice?.ephemeralReactions.map(reaction =>
+        String((reaction as { id: string }).id),
+      ),
+    ).toEqual(["alice:1:2", "alice:1:3", "alice:1:4", "alice:1:5", "alice:1:6"])
+    expect(announce).toHaveBeenCalledTimes(6)
+
+    await act(() => jest.advanceTimersByTime(1_000))
+    await receive("alice:1:1")
+    expect(state().alice?.ephemeralReactions).toEqual([
+      {
+        id: "alice:1:1",
+        type: "smile",
+        expiresAt: 1_726_260_004_000,
+      },
+    ])
+    expect(announce).toHaveBeenCalledTimes(7)
   })
 
   test("expires reactions from absolute timestamps after delayed timer work", async () => {

@@ -107,7 +107,7 @@ export const ReactionsProvider = ({ children }: PropsWithChildren) => {
     ),
   )
   const participantsRef = useRef(participants)
-  const reactionIdsRef = useRef(new Map<string, Set<string>>())
+  const seenReactionIdsRef = useRef(new Map<string, Set<string>>())
   const timersRef = useRef(
     new Map<string, Map<string, ReturnType<typeof setTimeout>>>(),
   )
@@ -115,6 +115,7 @@ export const ReactionsProvider = ({ children }: PropsWithChildren) => {
   const reactionCounterRef = useRef(0)
   const handUpdatePendingRef = useRef(false)
   const [isHandUpdatePending, setIsHandUpdatePending] = useState(false)
+  const [permissions, setPermissions] = useState(localParticipant.permissions)
 
   const replaceParticipants = useCallback(
     (next: Record<string, ParticipantReactionState>) => {
@@ -143,7 +144,7 @@ export const ReactionsProvider = ({ children }: PropsWithChildren) => {
       clearTimeout(timer)
     }
     timersRef.current.delete(identity)
-    reactionIdsRef.current.delete(identity)
+    seenReactionIdsRef.current.delete(identity)
   }, [])
 
   const pruneExpired = useCallback(
@@ -152,10 +153,6 @@ export const ReactionsProvider = ({ children }: PropsWithChildren) => {
         Object.entries(participantsRef.current).map(([identity, state]) => {
           const ephemeralReactions = state.ephemeralReactions.filter(
             reaction => reaction.expiresAt > now,
-          )
-          reactionIdsRef.current.set(
-            identity,
-            new Set(ephemeralReactions.map(reaction => reaction.id)),
           )
           return [identity, { ...state, ephemeralReactions }]
         }),
@@ -170,6 +167,9 @@ export const ReactionsProvider = ({ children }: PropsWithChildren) => {
       const timer = setTimeout(
         () => {
           timersRef.current.get(identity)?.delete(reaction.id)
+          const seenIds = seenReactionIdsRef.current.get(identity)
+          seenIds?.delete(reaction.id)
+          if (seenIds?.size === 0) seenReactionIdsRef.current.delete(identity)
           pruneExpired(Date.now())
         },
         Math.max(0, reaction.expiresAt - Date.now()),
@@ -183,11 +183,11 @@ export const ReactionsProvider = ({ children }: PropsWithChildren) => {
 
   const addReaction = useCallback(
     (identity: string, reaction: EphemeralReaction): boolean => {
-      const ids = reactionIdsRef.current.get(identity) ?? new Set<string>()
+      const ids = seenReactionIdsRef.current.get(identity) ?? new Set<string>()
       if (ids.has(reaction.id)) return false
 
       ids.add(reaction.id)
-      reactionIdsRef.current.set(identity, ids)
+      seenReactionIdsRef.current.set(identity, ids)
       const current = participantsRef.current
       const existing = current[identity] ?? {
         isHandRaised: false,
@@ -197,16 +197,6 @@ export const ReactionsProvider = ({ children }: PropsWithChildren) => {
       const ephemeralReactions = reactions.slice(
         -MAX_LIVE_REACTIONS_PER_PARTICIPANT,
       )
-
-      for (const removed of reactions.slice(
-        0,
-        -MAX_LIVE_REACTIONS_PER_PARTICIPANT,
-      )) {
-        const timer = timersRef.current.get(identity)?.get(removed.id)
-        if (timer) clearTimeout(timer)
-        timersRef.current.get(identity)?.delete(removed.id)
-        ids.delete(removed.id)
-      }
 
       replaceParticipants({
         ...current,
@@ -270,6 +260,14 @@ export const ReactionsProvider = ({ children }: PropsWithChildren) => {
         participantsRef.current
       replaceParticipants(remaining)
     }
+    const onPermissionsChanged = (
+      _previousPermissions: Participant["permissions"],
+      participant: Participant,
+    ) => {
+      if (participant.identity === localParticipant.identity) {
+        setPermissions(participant.permissions)
+      }
+    }
     const onReconnected = () => {
       const next = currentParticipants(
         room.localParticipant,
@@ -285,6 +283,7 @@ export const ReactionsProvider = ({ children }: PropsWithChildren) => {
     room.on(RoomEvent.ParticipantAttributesChanged, onAttributesChanged)
     room.on(RoomEvent.ParticipantConnected, onParticipantConnected)
     room.on(RoomEvent.ParticipantDisconnected, onParticipantDisconnected)
+    room.on(RoomEvent.ParticipantPermissionsChanged, onPermissionsChanged)
     room.on(RoomEvent.Reconnected, onReconnected)
     const timers = timersRef.current
 
@@ -292,14 +291,20 @@ export const ReactionsProvider = ({ children }: PropsWithChildren) => {
       room.off(RoomEvent.ParticipantAttributesChanged, onAttributesChanged)
       room.off(RoomEvent.ParticipantConnected, onParticipantConnected)
       room.off(RoomEvent.ParticipantDisconnected, onParticipantDisconnected)
+      room.off(RoomEvent.ParticipantPermissionsChanged, onPermissionsChanged)
       room.off(RoomEvent.Reconnected, onReconnected)
       for (const identity of timers.keys()) {
         clearParticipantTimers(identity)
       }
     }
-  }, [clearParticipantTimers, replaceParticipants, room, setHand])
+  }, [
+    clearParticipantTimers,
+    localParticipant.identity,
+    replaceParticipants,
+    room,
+    setHand,
+  ])
 
-  const permissions = localParticipant.permissions
   const canSendQuickReactions = permissions?.canPublishData === true
   const canUpdateHand =
     canSendQuickReactions && permissions?.canUpdateMetadata === true
