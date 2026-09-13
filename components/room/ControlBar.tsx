@@ -109,6 +109,35 @@ export const ControlBar = ({ company }: ControlBarProps) => {
     }
   }, [localParticipant, isScreenShareEnabled])
 
+  const startIosScreenShare = useCallback(
+    async (waitForBroadcastReady: () => Promise<void>): Promise<void> => {
+      if (isTogglingScreenShare.current) return
+
+      isTogglingScreenShare.current = true
+      setIsScreenShareToggling(true)
+      let tracks: Awaited<
+        ReturnType<typeof localParticipant.createScreenTracks>
+      > = []
+
+      try {
+        // Creating the track starts react-native-webrtc's Unix socket listener,
+        // but nothing is published until the extension confirms it connected.
+        tracks = await localParticipant.createScreenTracks()
+        await waitForBroadcastReady()
+        await Promise.all(
+          tracks.map(track => localParticipant.publishTrack(track)),
+        )
+      } catch (error) {
+        tracks.forEach(track => track.stop())
+        throw error
+      } finally {
+        isTogglingScreenShare.current = false
+        setIsScreenShareToggling(false)
+      }
+    },
+    [localParticipant],
+  )
+
   const requestDisconnect = useCallback((): void => {
     setIsConfirmingDisconnect(true)
   }, [])
@@ -159,6 +188,7 @@ export const ControlBar = ({ company }: ControlBarProps) => {
         <ScreenShareControl
           isScreenShareEnabled={isScreenShareEnabled}
           onToggleScreenShare={toggleScreenShare}
+          onStartIosScreenShare={startIosScreenShare}
           disabled={isScreenShareToggling}
         />
 

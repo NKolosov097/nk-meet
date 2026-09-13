@@ -23,6 +23,10 @@ interface ScreenShareControlProps {
   isScreenShareEnabled: boolean
   // Starts or stops the local screen share
   onToggleScreenShare: VoidFunction
+  // Prepares an unpublished iOS capture track and publishes it only after ReplayKit is ready
+  onStartIosScreenShare: (
+    waitForBroadcastReady: () => Promise<void>,
+  ) => Promise<void>
   // Whether the toggle is mid-flight and should reject taps
   disabled: boolean
 }
@@ -40,9 +44,16 @@ const isPickerCanceled = (error: unknown): boolean =>
   "code" in error &&
   error.code === "broadcast_cancelled"
 
+const isTransportFailure = (error: unknown): boolean =>
+  typeof error === "object" &&
+  error !== null &&
+  "code" in error &&
+  error.code === "broadcast_transport_failed"
+
 export const ScreenShareControl = ({
   isScreenShareEnabled,
   onToggleScreenShare,
+  onStartIosScreenShare,
   disabled,
 }: ScreenShareControlProps) => {
   const pickerRef = useRef<BroadcastPicker>(null)
@@ -72,21 +83,24 @@ export const ScreenShareControl = ({
         throw new Error("iOS broadcast picker is not linked")
       }
 
-      await broadcastPickerManager.present(pickerTag)
-      onToggleScreenShare()
+      await onStartIosScreenShare(() =>
+        broadcastPickerManager.present(pickerTag),
+      )
     } catch (error) {
       if (isPickerCanceled(error)) return
 
       console.error("Error opening the broadcast picker: ", error)
       Alert.alert(
         "Screen sharing unavailable",
-        "Could not open the iOS broadcast picker.",
+        isTransportFailure(error)
+          ? "Could not start the iOS screen-sharing transport."
+          : "Could not open the iOS broadcast picker.",
       )
     } finally {
       isPresentingPicker.current = false
       setPickerPending(false)
     }
-  }, [isScreenShareEnabled, onToggleScreenShare])
+  }, [isScreenShareEnabled, onStartIosScreenShare, onToggleScreenShare])
 
   return (
     <>

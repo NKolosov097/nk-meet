@@ -119,7 +119,11 @@ const mockLocalParticipant = {
   setCameraEnabled: jest.fn<Promise<void>, [boolean]>(),
   setMicrophoneEnabled: jest.fn<Promise<void>, [boolean]>(),
   setScreenShareEnabled: jest.fn<Promise<void>, [boolean]>(),
+  createScreenTracks: jest.fn<Promise<Array<{ stop: VoidFunction }>>, []>(),
+  publishTrack: jest.fn<Promise<void>, [{ stop: VoidFunction }]>(),
 }
+
+const mockScreenTrack = { stop: jest.fn() }
 
 const mockBroadcastPicker = NativeModules.BroadcastPicker as {
   present: jest.Mock<Promise<void>, [number]>
@@ -148,6 +152,8 @@ beforeEach(() => {
   mockLocalParticipant.setCameraEnabled.mockResolvedValue(undefined)
   mockLocalParticipant.setMicrophoneEnabled.mockResolvedValue(undefined)
   mockLocalParticipant.setScreenShareEnabled.mockResolvedValue(undefined)
+  mockLocalParticipant.createScreenTracks.mockResolvedValue([mockScreenTrack])
+  mockLocalParticipant.publishTrack.mockResolvedValue(undefined)
   mockBroadcastPicker.present.mockResolvedValue(undefined)
   mockUseRoomContext.mockReturnValue(mockRoom)
   mockUseLocalParticipant.mockImplementation(() => ({
@@ -407,9 +413,12 @@ test("starts and stops screen sharing through the local participant", async () =
   await fireEvent.press(view.getByLabelText("Share your screen"))
 
   await waitFor(() => {
-    expect(mockLocalParticipant.setScreenShareEnabled).toHaveBeenCalledWith(
-      true,
+    expect(mockLocalParticipant.createScreenTracks).toHaveBeenCalledTimes(1)
+    expect(mockBroadcastPicker.present).toHaveBeenCalledTimes(1)
+    expect(mockLocalParticipant.publishTrack).toHaveBeenCalledWith(
+      mockScreenTrack,
     )
+    expect(mockLocalParticipant.setScreenShareEnabled).not.toHaveBeenCalled()
   })
 
   mockScreenShareEnabled = true
@@ -442,6 +451,30 @@ test("does not publish when the iOS broadcast picker is canceled", async () => {
 
   expect(mockBroadcastPicker.present).toHaveBeenCalledTimes(1)
   expect(mockLocalParticipant.setScreenShareEnabled).not.toHaveBeenCalled()
+  expect(mockLocalParticipant.publishTrack).not.toHaveBeenCalled()
+  expect(mockScreenTrack.stop).toHaveBeenCalledTimes(1)
+})
+
+test("does not publish when the broadcast transport cannot connect", async () => {
+  const alert = jest.spyOn(Alert, "alert").mockImplementation()
+  jest.spyOn(console, "error").mockImplementation()
+  mockBroadcastPicker.present.mockRejectedValue(
+    Object.assign(new Error("Could not connect to the host transport."), {
+      code: "broadcast_transport_failed",
+    }),
+  )
+  const view = await render(<ControlBar company={company} />)
+
+  await fireEvent.press(view.getByLabelText("Share your screen"))
+
+  expect(mockLocalParticipant.createScreenTracks).toHaveBeenCalledTimes(1)
+  expect(mockLocalParticipant.publishTrack).not.toHaveBeenCalled()
+  expect(mockLocalParticipant.setScreenShareEnabled).not.toHaveBeenCalled()
+  expect(mockScreenTrack.stop).toHaveBeenCalledTimes(1)
+  expect(alert).toHaveBeenCalledWith(
+    "Screen sharing unavailable",
+    "Could not start the iOS screen-sharing transport.",
+  )
 })
 
 test("rejects duplicate taps while the iOS broadcast picker is open", async () => {
@@ -488,14 +521,12 @@ test("reports an iOS broadcast picker launch failure without publishing", async 
 
 test("ignores concurrent screen-share toggles until the current toggle finishes", async () => {
   const pendingToggle = createDeferred()
-  mockLocalParticipant.setScreenShareEnabled.mockReturnValue(
-    pendingToggle.promise,
-  )
+  mockLocalParticipant.publishTrack.mockReturnValue(pendingToggle.promise)
   const view = await render(<ControlBar company={company} />)
 
   await pressTwice(view.getByLabelText("Share your screen"))
 
-  expect(mockLocalParticipant.setScreenShareEnabled).toHaveBeenCalledTimes(1)
+  expect(mockLocalParticipant.publishTrack).toHaveBeenCalledTimes(1)
 
   await act(async () => {
     pendingToggle.resolve()
@@ -504,14 +535,12 @@ test("ignores concurrent screen-share toggles until the current toggle finishes"
 
   await fireEvent.press(view.getByLabelText("Share your screen"))
 
-  expect(mockLocalParticipant.setScreenShareEnabled).toHaveBeenCalledTimes(2)
+  expect(mockLocalParticipant.publishTrack).toHaveBeenCalledTimes(2)
 })
 
 test("disables the screen-share button while its toggle is pending", async () => {
   const pendingToggle = createDeferred()
-  mockLocalParticipant.setScreenShareEnabled.mockReturnValue(
-    pendingToggle.promise,
-  )
+  mockLocalParticipant.publishTrack.mockReturnValue(pendingToggle.promise)
   const view = await render(<ControlBar company={company} />)
   const button = view.getByLabelText("Share your screen")
 
@@ -538,6 +567,7 @@ test("dims the screen-share button when disabled", async () => {
     <ScreenShareControl
       isScreenShareEnabled={false}
       onToggleScreenShare={noop}
+      onStartIosScreenShare={async () => undefined}
       disabled
     />,
   )
@@ -545,6 +575,7 @@ test("dims the screen-share button when disabled", async () => {
     <ScreenShareControl
       isScreenShareEnabled={false}
       onToggleScreenShare={noop}
+      onStartIosScreenShare={async () => undefined}
       disabled={false}
     />,
   )
@@ -560,7 +591,7 @@ test("dims the screen-share button when disabled", async () => {
 test("alerts when the screen-share toggle fails", async () => {
   const alert = jest.spyOn(Alert, "alert").mockImplementation()
   const consoleError = jest.spyOn(console, "error").mockImplementation()
-  mockLocalParticipant.setScreenShareEnabled.mockRejectedValue(
+  mockLocalParticipant.publishTrack.mockRejectedValue(
     new Error("screen share failed"),
   )
   const view = await render(<ControlBar company={company} />)
@@ -569,11 +600,11 @@ test("alerts when the screen-share toggle fails", async () => {
 
   await waitFor(() => {
     expect(alert).toHaveBeenCalledWith(
-      "Error",
-      "Failed to toggle screen sharing",
+      "Screen sharing unavailable",
+      "Could not open the iOS broadcast picker.",
     )
     expect(consoleError).toHaveBeenCalledWith(
-      "Error toggling screen sharing: ",
+      "Error opening the broadcast picker: ",
       expect.any(Error),
     )
   })
