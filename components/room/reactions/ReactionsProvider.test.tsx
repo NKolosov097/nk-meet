@@ -472,6 +472,81 @@ describe("quick reactions", () => {
     expect(announce).toHaveBeenCalledTimes(7)
   })
 
+  test("drops unique packets beyond the per-participant seen-id limit until expiry", async () => {
+    const announce = jest.spyOn(AccessibilityInfo, "announceForAccessibility")
+    const alice = participant("alice")
+    await renderProvider()
+    const receive = async (reactionId: string): Promise<void> => {
+      await act(() =>
+        onDataMessage?.({
+          payload: encodeReactionMessage({
+            type: "ephemeral",
+            reactionId,
+            reaction: "smile",
+            participant: "alice",
+          }),
+          from: alice,
+          topic: "reaction-topic",
+        }),
+      )
+    }
+
+    for (let index = 1; index <= 101; index += 1) {
+      await receive(`alice:flood:${index}`)
+    }
+
+    expect(
+      state().alice?.ephemeralReactions.map(reaction =>
+        String((reaction as { id: string }).id),
+      ),
+    ).toEqual([
+      "alice:flood:96",
+      "alice:flood:97",
+      "alice:flood:98",
+      "alice:flood:99",
+      "alice:flood:100",
+    ])
+    expect(announce).toHaveBeenCalledTimes(100)
+
+    await act(() => jest.advanceTimersByTime(2_000))
+    await receive("alice:flood:101")
+
+    expect(state().alice?.ephemeralReactions).toHaveLength(1)
+    expect(announce).toHaveBeenCalledTimes(101)
+  })
+
+  test("uses one cleanup timer per participant and clears it on disconnect", async () => {
+    const alice = participant("alice")
+    await renderProvider()
+    const setTimeoutSpy = jest.spyOn(global, "setTimeout")
+    const clearTimeoutSpy = jest.spyOn(global, "clearTimeout")
+    const receive = async (reactionId: string): Promise<void> => {
+      await act(() =>
+        onDataMessage?.({
+          payload: encodeReactionMessage({
+            type: "ephemeral",
+            reactionId,
+            reaction: "smile",
+            participant: "alice",
+          }),
+          from: alice,
+          topic: "reaction-topic",
+        }),
+      )
+    }
+
+    await receive("alice:timer:1")
+    jest.advanceTimersByTime(100)
+    await receive("alice:timer:2")
+
+    expect(setTimeoutSpy).toHaveBeenCalledTimes(1)
+    const cleanupTimer = setTimeoutSpy.mock.results[0].value
+
+    await act(() => listeners.get(RoomEvent.ParticipantDisconnected)?.(alice))
+
+    expect(clearTimeoutSpy).toHaveBeenCalledWith(cleanupTimer)
+  })
+
   test("expires reactions from absolute timestamps after delayed timer work", async () => {
     await renderProvider()
     await fireEvent.press(screen.getByLabelText("Send heart"))

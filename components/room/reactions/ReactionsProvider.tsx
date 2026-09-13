@@ -31,6 +31,7 @@ import {
 const QUICK_REACTION_THROTTLE_MS = 300
 const QUICK_REACTION_LIFETIME_MS = 2_000
 const MAX_LIVE_REACTIONS_PER_PARTICIPANT = 5
+const MAX_SEEN_REACTION_IDS_PER_PARTICIPANT = 100
 
 export interface EphemeralReaction {
   // Sender-scoped id used to suppress live duplicates.
@@ -107,10 +108,8 @@ export const ReactionsProvider = ({ children }: PropsWithChildren) => {
     ),
   )
   const participantsRef = useRef(participants)
-  const seenReactionIdsRef = useRef(new Map<string, Set<string>>())
-  const timersRef = useRef(
-    new Map<string, Map<string, ReturnType<typeof setTimeout>>>(),
-  )
+  const seenReactionIdsRef = useRef(new Map<string, Map<string, number>>())
+  const timersRef = useRef(new Map<string, ReturnType<typeof setTimeout>>())
   const lastQuickReactionAtRef = useRef(Number.NEGATIVE_INFINITY)
   const reactionCounterRef = useRef(0)
   const handUpdatePendingRef = useRef(false)
@@ -140,9 +139,8 @@ export const ReactionsProvider = ({ children }: PropsWithChildren) => {
   )
 
   const clearParticipantTimers = useCallback((identity: string) => {
-    for (const timer of timersRef.current.get(identity)?.values() ?? []) {
-      clearTimeout(timer)
-    }
+    const timer = timersRef.current.get(identity)
+    if (timer) clearTimeout(timer)
     timersRef.current.delete(identity)
     seenReactionIdsRef.current.delete(identity)
   }, [])
@@ -162,31 +160,42 @@ export const ReactionsProvider = ({ children }: PropsWithChildren) => {
     [replaceParticipants],
   )
 
-  const scheduleExpiry = useCallback(
-    (identity: string, reaction: EphemeralReaction) => {
+  const scheduleCleanup = useCallback(
+    function scheduleParticipantCleanup(identity: string) {
+      if (timersRef.current.has(identity)) return
+      const seenIds = seenReactionIdsRef.current.get(identity)
+      if (!seenIds?.size) return
+
+      const nextExpiry = Math.min(...seenIds.values())
       const timer = setTimeout(
         () => {
-          timersRef.current.get(identity)?.delete(reaction.id)
-          const seenIds = seenReactionIdsRef.current.get(identity)
-          seenIds?.delete(reaction.id)
-          if (seenIds?.size === 0) seenReactionIdsRef.current.delete(identity)
-          pruneExpired(Date.now())
+          timersRef.current.delete(identity)
+          const now = Date.now()
+          const currentIds = seenReactionIdsRef.current.get(identity)
+          for (const [id, expiresAt] of currentIds ?? []) {
+            if (expiresAt <= now) currentIds?.delete(id)
+          }
+          if (currentIds?.size === 0) {
+            seenReactionIdsRef.current.delete(identity)
+          }
+          pruneExpired(now)
+          scheduleParticipantCleanup(identity)
         },
-        Math.max(0, reaction.expiresAt - Date.now()),
+        Math.max(0, nextExpiry - Date.now()),
       )
-      const timers = timersRef.current.get(identity) ?? new Map()
-      timers.set(reaction.id, timer)
-      timersRef.current.set(identity, timers)
+      timersRef.current.set(identity, timer)
     },
     [pruneExpired],
   )
 
   const addReaction = useCallback(
     (identity: string, reaction: EphemeralReaction): boolean => {
-      const ids = seenReactionIdsRef.current.get(identity) ?? new Set<string>()
+      const ids =
+        seenReactionIdsRef.current.get(identity) ?? new Map<string, number>()
       if (ids.has(reaction.id)) return false
+      if (ids.size >= MAX_SEEN_REACTION_IDS_PER_PARTICIPANT) return false
 
-      ids.add(reaction.id)
+      ids.set(reaction.id, reaction.expiresAt)
       seenReactionIdsRef.current.set(identity, ids)
       const current = participantsRef.current
       const existing = current[identity] ?? {
@@ -202,10 +211,10 @@ export const ReactionsProvider = ({ children }: PropsWithChildren) => {
         ...current,
         [identity]: { ...existing, ephemeralReactions },
       })
-      scheduleExpiry(identity, reaction)
+      scheduleCleanup(identity)
       return true
     },
-    [replaceParticipants, scheduleExpiry],
+    [replaceParticipants, scheduleCleanup],
   )
 
   const onDataMessage = useCallback(
