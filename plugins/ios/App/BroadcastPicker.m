@@ -84,7 +84,6 @@ RCT_EXPORT_METHOD(present
         [sharedDefaults synchronize];
         [self addDarwinObservers];
 
-        NSString *requestID = self.requestID;
         [self.bridge.uiManager
             addUIBlock:^(__unused RCTUIManager *uiManager, NSDictionary<NSNumber *, UIView *> *viewRegistry) {
                 UIView *view = viewRegistry[reactTag];
@@ -95,7 +94,6 @@ RCT_EXPORT_METHOD(present
                 for (UIView *subview in view.subviews) {
                     if ([subview isKindOfClass:[UIButton class]]) {
                         [(UIButton *)subview sendActionsForControlEvents:UIControlEventTouchUpInside];
-                        [self rejectRequestIfTimedOut:requestID];
                         return;
                     }
                 }
@@ -125,7 +123,10 @@ RCT_EXPORT_METHOD(present
     dispatch_async(dispatch_get_main_queue(), ^{
         if (!self.resolve) return;
         if ([notificationName isEqualToString:self.startingNotification]) {
-            self.extensionStarted = YES;
+            if (!self.extensionStarted) {
+                self.extensionStarted = YES;
+                [self rejectRequestIfTimedOut:self.requestID];
+            }
         } else if ([notificationName isEqualToString:self.readyNotification]) {
             RCTPromiseResolveBlock resolve = self.resolve;
             [self clearRequest];

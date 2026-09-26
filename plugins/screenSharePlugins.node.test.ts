@@ -55,6 +55,7 @@ const readPluginAsset = (...segments: string[]): string =>
 const createBaseConfig = (): ExpoConfig => ({
   name: "NK Meet",
   slug: "nk-meet",
+  ios: { bundleIdentifier: "com.nkolosov.nkmeet" },
 })
 
 const runDangerousMod = (
@@ -397,6 +398,84 @@ test("models safe close before thread start and one-shot completion callbacks", 
   assert.equal(screenShareProtocol.beginOnce(true), false)
 })
 
+test("host socket close skips unstarted network-thread cleanup but closes listener", () => {
+  const connection = readFileSync(
+    path.join(
+      import.meta.dirname,
+      "../node_modules/@livekit/react-native-webrtc/ios/RCTWebRTC/SocketConnection.m",
+    ),
+    "utf8",
+  )
+  const closeMethod = connection.match(/- \(void\)close \{([\s\S]*?)\n\}/)?.[1]
+
+  assert.ok(closeMethod)
+  assert.match(
+    closeMethod,
+    /if \(self\.networkThread\.isExecuting\) \{[\s\S]*?performSelector:@selector\(unscheduleStreams\)[\s\S]*?\[self\.networkThread cancel\];[\s\S]*?\}/,
+  )
+  assert.match(closeMethod, /dispatch_source_cancel\(self\.listeningSource\)/)
+  assert.match(closeMethod, /close\(self\.serverSocket\)/)
+})
+
+test("broadcast transport deadline starts once on the matching starting notification", () => {
+  const picker = readPluginAsset("ios", "App", "BroadcastPicker.m")
+  const presentMethod = picker.match(
+    /RCT_EXPORT_METHOD\(present([\s\S]*?)\n\}/,
+  )?.[1]
+  const statusMethod = picker.match(
+    /- \(void\)broadcastStatusChanged:\(NSString \*\)notificationName \{([\s\S]*?)\n\}/,
+  )?.[1]
+
+  assert.ok(presentMethod)
+  assert.ok(statusMethod)
+  assert.doesNotMatch(presentMethod, /rejectRequestIfTimedOut/)
+  assert.match(
+    statusMethod,
+    /isEqualToString:self\.startingNotification\][\s\S]*?if \(!self\.extensionStarted\) \{[\s\S]*?self\.extensionStarted = YES;[\s\S]*?\[self rejectRequestIfTimedOut:self\.requestID\]/,
+  )
+})
+
+test("ReplayKit orientation comes from the sample-buffer attachment", () => {
+  const uploader = readPluginAsset(
+    "ios",
+    "BroadcastExtension",
+    "SampleUploader.m",
+  )
+  const orientationMethod = uploader.match(
+    /- \(int\)orientationForSample:\(CMSampleBufferRef\)sampleBuffer \{([\s\S]*?)\n\}/,
+  )?.[1]
+
+  assert.ok(orientationMethod)
+  assert.match(
+    orientationMethod,
+    /CMGetAttachment\(sampleBuffer, \(__bridge CFStringRef\)RPVideoSampleOrientationKey, NULL\)/,
+  )
+  assert.doesNotMatch(
+    orientationMethod,
+    /CMSampleBufferGetSampleAttachmentsArray/,
+  )
+})
+
+test("ReplayKit samples are consumed on the serial queue before callback return", () => {
+  const uploader = readPluginAsset(
+    "ios",
+    "BroadcastExtension",
+    "SampleUploader.m",
+  )
+  const sendMethod = uploader.match(
+    /- \(void\)sendSample:\(CMSampleBufferRef\)sampleBuffer \{([\s\S]*?)\n\}/,
+  )?.[1]
+
+  assert.ok(sendMethod)
+  assert.match(sendMethod, /dispatch_sync\(self\.serialQueue, \^\{/)
+  assert.match(
+    sendMethod,
+    /self\.state != SampleUploaderStateReady \|\| !\[self shouldSendSample:sampleBuffer\]/,
+  )
+  assert.match(sendMethod, /\[self framedMessageForSample:sampleBuffer\]/)
+  assert.doesNotMatch(sendMethod, /CFRetain|CFRelease|dispatch_async/)
+})
+
 test("allows the host listener to start after ReplayKit confirms selection", () => {
   const connection = readPluginAsset(
     "ios",
@@ -436,5 +515,123 @@ test("refuses to configure the target without an App Group", () => {
   assert.throws(
     () => withIosBroadcastExtension(createBaseConfig()),
     /appGroupIdentifier/,
+  )
+})
+
+test("publishes an EAS extension declaration without losing other config", () => {
+  const withIosBroadcastExtension = requirePlugin(
+    "./withIosBroadcastExtension",
+  ) as (
+    config: ExpoConfig,
+    options: { appGroupIdentifier: string },
+  ) => ExportedConfig
+  const otherExtension = {
+    targetName: "OtherExtension",
+    bundleIdentifier: "com.nkolosov.nkmeet.other",
+  }
+  const config = withIosBroadcastExtension(
+    {
+      ...createBaseConfig(),
+      extra: {
+        featureFlag: true,
+        eas: {
+          projectId: "project-42",
+          build: {
+            experimental: {
+              ios: {
+                appExtensions: [otherExtension],
+              },
+            },
+          },
+        },
+      },
+    },
+    { appGroupIdentifier: "group.com.nkolosov.nkmeet" },
+  )
+
+  assert.deepEqual(config.extra, {
+    featureFlag: true,
+    eas: {
+      projectId: "project-42",
+      build: {
+        experimental: {
+          ios: {
+            appExtensions: [
+              otherExtension,
+              {
+                targetName: "BroadcastExtension",
+                bundleIdentifier: "com.nkolosov.nkmeet.broadcast",
+                entitlements: {
+                  "com.apple.security.application-groups": [
+                    "group.com.nkolosov.nkmeet",
+                  ],
+                },
+              },
+            ],
+          },
+        },
+      },
+    },
+  })
+})
+
+test("updates the EAS broadcast declaration idempotently", () => {
+  const withIosBroadcastExtension = requirePlugin(
+    "./withIosBroadcastExtension",
+  ) as (
+    config: ExpoConfig,
+    options: { appGroupIdentifier: string },
+  ) => ExportedConfig
+  const options = { appGroupIdentifier: "group.com.nkolosov.nkmeet" }
+  const once = withIosBroadcastExtension(
+    {
+      ...createBaseConfig(),
+      extra: {
+        eas: {
+          build: {
+            experimental: {
+              ios: {
+                appExtensions: [
+                  {
+                    targetName: "BroadcastExtension",
+                    bundleIdentifier: "old.broadcast",
+                  },
+                ],
+              },
+            },
+          },
+        },
+      },
+    },
+    options,
+  )
+  const twice = withIosBroadcastExtension(once, options)
+  const extensions = twice.extra?.eas?.build?.experimental?.ios?.appExtensions
+
+  assert.equal(extensions?.length, 1)
+  assert.deepEqual(extensions?.[0], {
+    targetName: "BroadcastExtension",
+    bundleIdentifier: "com.nkolosov.nkmeet.broadcast",
+    entitlements: {
+      "com.apple.security.application-groups": ["group.com.nkolosov.nkmeet"],
+    },
+  })
+})
+
+test("requires the host bundle identifier for EAS extension discovery", () => {
+  const withIosBroadcastExtension = requirePlugin(
+    "./withIosBroadcastExtension",
+  ) as (
+    config: ExpoConfig,
+    options: { appGroupIdentifier: string },
+  ) => ExportedConfig
+
+  assert.throws(
+    () =>
+      withIosBroadcastExtension(
+        { name: "NK Meet", slug: "nk-meet" },
+        { appGroupIdentifier: "group.com.nkolosov.nkmeet" },
+      ),
+    /ios\.bundleIdentifier/,
   )
 })

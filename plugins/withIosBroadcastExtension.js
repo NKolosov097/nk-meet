@@ -149,6 +149,33 @@ const withIosBroadcastExtension = (config, options) => {
     )
   }
 
+  const bundleIdentifier = config.ios?.bundleIdentifier
+  if (!bundleIdentifier) {
+    throw new Error("withIosBroadcastExtension requires ios.bundleIdentifier.")
+  }
+
+  const extra = (config.extra ??= {})
+  const eas = (extra.eas ??= {})
+  const build = (eas.build ??= {})
+  const experimental = (build.experimental ??= {})
+  const ios = (experimental.ios ??= {})
+  const appExtensions = (ios.appExtensions ??= [])
+  const extension = {
+    targetName: TARGET_NAME,
+    bundleIdentifier: `${bundleIdentifier}.broadcast`,
+    entitlements: {
+      "com.apple.security.application-groups": [appGroupIdentifier],
+    },
+  }
+  const existingIndex = appExtensions.findIndex(
+    item => item.targetName === TARGET_NAME,
+  )
+  if (existingIndex === -1) {
+    appExtensions.push(extension)
+  } else {
+    appExtensions[existingIndex] = extension
+  }
+
   return withBroadcastExtensionTarget(
     withBroadcastExtensionSources(config, { appGroupIdentifier }),
     { appGroupIdentifier },

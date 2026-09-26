@@ -57,15 +57,12 @@ typedef NS_ENUM(NSUInteger, SampleUploaderState) {
 }
 
 - (void)sendSample:(CMSampleBufferRef)sampleBuffer {
-    CFRetain(sampleBuffer);
-    dispatch_async(self.serialQueue, ^{
+    dispatch_sync(self.serialQueue, ^{
         if (self.state != SampleUploaderStateReady || ![self shouldSendSample:sampleBuffer]) {
-            CFRelease(sampleBuffer);
             return;
         }
 
         NSData *framedMessage = [self framedMessageForSample:sampleBuffer];
-        CFRelease(sampleBuffer);
         if (!framedMessage) {
             return;
         }
@@ -191,16 +188,10 @@ typedef NS_ENUM(NSUInteger, SampleUploaderState) {
     return jpegData;
 }
 
-/// ReplayKit attaches the device orientation as a sample attachment; the host
+/// ReplayKit attaches the device orientation to the sample buffer; the host
 /// app maps it back onto an RTCVideoRotation.
 - (int)orientationForSample:(CMSampleBufferRef)sampleBuffer {
-    CFArrayRef attachmentsArray = CMSampleBufferGetSampleAttachmentsArray(sampleBuffer, false);
-    if (!attachmentsArray || CFArrayGetCount(attachmentsArray) == 0) {
-        return kCGImagePropertyOrientationUp;
-    }
-
-    CFDictionaryRef attachments = CFArrayGetValueAtIndex(attachmentsArray, 0);
-    CFTypeRef orientation = CFDictionaryGetValue(attachments, (__bridge CFStringRef)RPVideoSampleOrientationKey);
+    CFTypeRef orientation = CMGetAttachment(sampleBuffer, (__bridge CFStringRef)RPVideoSampleOrientationKey, NULL);
     if (!orientation) {
         return kCGImagePropertyOrientationUp;
     }
