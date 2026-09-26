@@ -23,6 +23,10 @@ import {
   TEXT_COLORS,
 } from "@/constants/colors"
 
+import { useReactions } from "../room/reactions/ReactionsProvider"
+
+import { ParticipantReactions } from "./ParticipantReactions"
+
 const MIC_ICON_SIZE = 16
 const BADGE_INSET = 4
 const SPOTLIGHT_ICON_SIZE = 16
@@ -86,6 +90,7 @@ const ConnectedParticipantTile = ({
     source: Track.Source.Microphone,
   })
   const isSpeaking = useIsSpeaking(participant)
+  const { participants } = useReactions()
 
   const hasVideo =
     isTrackReference(trackRef) && !isVideoMuted && !!trackRef.publication.track
@@ -95,6 +100,12 @@ const ConnectedParticipantTile = ({
   // itself, so this tile is scrimmed down to a hint of what is being shared.
   const isOwnScreenShare =
     participant.isLocal && trackRef.source === Track.Source.ScreenShare
+  const displayedName = `${displayName}${participant.isLocal ? " (You)" : ""}`
+  const isHandRaised = participants[participant.identity]?.isHandRaised
+  // Adds persistent hand state to the spoken name while the glyph stays decorative.
+  const participantAccessibilityLabel = isHandRaised
+    ? `${displayedName}, hand raised`
+    : displayedName
 
   const badge = (
     <>
@@ -109,9 +120,9 @@ const ConnectedParticipantTile = ({
         style={styles.participantName}
         numberOfLines={1}
         ellipsizeMode="tail"
+        accessibilityLabel={participantAccessibilityLabel}
       >
-        {displayName}
-        {participant.isLocal ? " (You)" : ""}
+        {displayedName}
       </Text>
     </>
   )
@@ -146,7 +157,14 @@ const ConnectedParticipantTile = ({
           pointerEvents="none"
           style={styles.ownScreenShareScrim}
         >
-          <Text style={styles.ownScreenShareLabel}>
+          <Text
+            style={styles.ownScreenShareLabel}
+            accessibilityLabel={
+              isHandRaised
+                ? "You're sharing your screen, hand raised"
+                : "You're sharing your screen"
+            }
+          >
             You&apos;re sharing your screen
           </Text>
         </View>
@@ -157,6 +175,11 @@ const ConnectedParticipantTile = ({
           </View>
         </View>
       )}
+
+      <ParticipantReactions
+        identity={participant.identity}
+        displayName={displayName}
+      />
 
       {onToggleSpotlight && (
         <TouchableOpacity

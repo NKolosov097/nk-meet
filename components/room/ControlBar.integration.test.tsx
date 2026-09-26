@@ -3,7 +3,7 @@
 // a11y:components/icons/DisconnectIcon.tsx
 // a11y:components/icons/ScreenShareIcon.tsx
 // a11y:components/icons/ScreenShareStopIcon.tsx
-import { Alert, NativeModules, View } from "react-native"
+import { Alert, Dimensions, NativeModules, View } from "react-native"
 
 import { act, fireEvent, render, waitFor } from "@testing-library/react-native"
 
@@ -18,6 +18,16 @@ import { ScreenShareControl } from "./controls/ScreenShareControl"
 jest.mock("@livekit/react-native", () => ({
   useLocalParticipant: jest.fn(),
   useRoomContext: jest.fn(),
+}))
+jest.mock("./controls/ReactionsControl", () => ({
+  ReactionsControl: () => {
+    const React = require("react")
+    const { View: MockView } = require("react-native")
+    return React.createElement(MockView, {
+      accessibilityLabel: "Open reactions",
+      accessibilityRole: "button",
+    })
+  },
 }))
 
 const {
@@ -84,6 +94,10 @@ const accessibilityLabelsInOrder = (node: unknown): string[] => {
 const noop: VoidFunction = () => undefined
 const company = DEFAULT_COMPANY_ID
 const narrowViewportStyle = { width: 320 }
+const dimensions = (width: number) => ({
+  window: { width, height: 800, scale: 1, fontScale: 1 },
+  screen: { width, height: 800, scale: 1, fontScale: 1 },
+})
 
 const pressTwice = async (target: PressTarget): Promise<void> => {
   // RNTL's public fireEvent.press awaits the async handler, so invoking it
@@ -156,6 +170,7 @@ beforeEach(() => {
   mockLocalParticipant.publishTrack.mockResolvedValue(undefined)
   mockBroadcastPicker.present.mockResolvedValue(undefined)
   mockUseRoomContext.mockReturnValue(mockRoom)
+  Dimensions.set(dimensions(342))
   mockUseLocalParticipant.mockImplementation(() => ({
     isCameraEnabled: mockCameraEnabled,
     isMicrophoneEnabled: mockMicrophoneEnabled,
@@ -793,5 +808,36 @@ test("wraps every interactive control at a 320dp viewport", async () => {
   expect(view.getByLabelText("Turn on camera")).toBeVisible()
   expect(view.getByLabelText("Select camera")).toBeVisible()
   expect(view.getByLabelText("Share your screen")).toBeVisible()
+  expect(view.getByLabelText("Open reactions")).toBeVisible()
   expect(view.getByLabelText("Disconnect from room")).toBeVisible()
+})
+
+test("keeps reactions between camera controls and disconnect at 342px", async () => {
+  const view = await render(<ControlBar company={company} />)
+  const row = findNodeByTestId(view.toJSON(), "control-bar-row")
+  if (!row) throw new Error("control-bar-row not found in rendered tree")
+
+  expect(accessibilityLabelsInOrder(row)).toEqual([
+    "NKolosov company",
+    "Mute microphone",
+    "Select audio device",
+    "Turn on camera",
+    "Select camera",
+    "Share your screen",
+    "Open reactions",
+    "Disconnect from room",
+  ])
+})
+
+test("hides only the company icon below 342px", async () => {
+  Dimensions.set(dimensions(341))
+  const view = await render(<ControlBar company={company} />)
+  const row = findNodeByTestId(view.toJSON(), "control-bar-row")
+  if (!row) throw new Error("control-bar-row not found in rendered tree")
+
+  const labels = accessibilityLabelsInOrder(row)
+  expect(labels).not.toContain("NKolosov company")
+  expect(labels).toContain("Share your screen")
+  expect(labels).toContain("Open reactions")
+  expect(labels).toContain("Disconnect from room")
 })

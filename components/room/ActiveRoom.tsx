@@ -8,6 +8,7 @@ import { BACKGROUND_COLORS } from "@/constants/colors"
 
 import { ControlBar } from "./ControlBar"
 import { MeetingInfoBanner } from "./MeetingInfoBanner"
+import { ReactionsProvider } from "./reactions/ReactionsProvider"
 import { useRegisterActiveRoomDisconnect } from "./useRegisterActiveRoomDisconnect"
 import { useSharedMeetingStartedAt } from "./useSharedMeetingStartedAt"
 import { VideoConference } from "./VideoConference"
@@ -32,8 +33,10 @@ export const ActiveRoom = ({
   return (
     <SafeAreaView testID="active-room" style={styles.roomContainer}>
       <MeetingInfoBanner roomSlug={roomSlug} startedAt={startedAt} />
-      <VideoConference />
-      <ControlBar company={company} />
+      <ReactionsProvider>
+        <VideoConference />
+        <ControlBar company={company} />
+      </ReactionsProvider>
       <StatusBar style="light" />
     </SafeAreaView>
   )

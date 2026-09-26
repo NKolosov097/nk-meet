@@ -21,6 +21,8 @@ import {
   TEXT_COLORS,
 } from "@/constants/colors"
 
+import { useReactions } from "../room/reactions/ReactionsProvider"
+
 import { ParticipantTile } from "./ParticipantTile"
 
 jest.mock("@livekit/react-native", () => ({
@@ -40,10 +42,30 @@ jest.mock("@livekit/react-native", () => ({
     return React.createElement(View, { testID: "participant-video" })
   },
 }))
+jest.mock("../room/reactions/ReactionsProvider", () => ({
+  useReactions: jest.fn(),
+}))
+jest.mock("./ParticipantReactions", () => ({
+  ParticipantReactions: ({
+    identity,
+    displayName,
+  }: {
+    identity: string
+    displayName: string
+  }) => {
+    const React = require("react")
+    const { View } = require("react-native")
+    return React.createElement(View, {
+      testID: `participant-reactions-${identity}`,
+      accessibilityLabel: `Reactions for ${displayName}`,
+    })
+  },
+}))
 
 const mockIsTrackReference = jest.mocked(isTrackReference)
 const mockUseIsSpeaking = useIsSpeaking as jest.Mock
 const mockUseTrackMutedIndicator = useTrackMutedIndicator as jest.Mock
+const mockUseReactions = useReactions as jest.Mock
 
 const connectedTrack = {
   participant: {
@@ -101,6 +123,77 @@ const svgColor = (color: string) => ({
 
 beforeEach(() => {
   jest.clearAllMocks()
+  mockUseReactions.mockReturnValue({ participants: {} })
+})
+
+test.each([true, false])(
+  "renders connected reaction state for camera availability %s",
+  async hasTrack => {
+    mockIsTrackReference.mockReturnValue(hasTrack)
+    mockUseTrackMutedIndicator.mockReturnValue({ isMuted: false })
+
+    const view = await render(
+      <ParticipantTile trackRef={connectedTrack} width={240} height={135} />,
+    )
+
+    expect(view.getByTestId("participant-reactions-ada")).toHaveProp(
+      "accessibilityLabel",
+      "Reactions for Ada",
+    )
+  },
+)
+
+test("never renders reactions on a pre-join preview", async () => {
+  const view = await render(
+    <ParticipantTile
+      previewTrack={null}
+      displayName="Ada"
+      isMicrophoneEnabled
+      width={240}
+      height={135}
+    />,
+  )
+
+  expect(view.queryByTestId("participant-reactions-ada")).not.toBeOnTheScreen()
+})
+
+test("adds raised-hand state to the connected tile label", async () => {
+  mockIsTrackReference.mockReturnValue(false)
+  mockUseTrackMutedIndicator.mockReturnValue({ isMuted: false })
+  mockUseReactions.mockReturnValue({
+    participants: {
+      ada: { isHandRaised: true, ephemeralReactions: [] },
+    },
+  })
+
+  const view = await render(
+    <ParticipantTile trackRef={connectedTrack} width={240} height={135} />,
+  )
+
+  expect(view.getByLabelText("Ada, hand raised")).toHaveTextContent("Ada")
+  expect(view.queryByText("🖐️")).not.toBeOnTheScreen()
+})
+
+test("preserves the local participant suffix before raised-hand state", async () => {
+  mockIsTrackReference.mockReturnValue(false)
+  mockUseTrackMutedIndicator.mockReturnValue({ isMuted: false })
+  mockUseReactions.mockReturnValue({
+    participants: {
+      ada: { isHandRaised: true, ephemeralReactions: [] },
+    },
+  })
+  const localTrack = {
+    ...connectedTrack,
+    participant: { ...connectedTrack.participant, isLocal: true },
+  } as TrackReferenceOrPlaceholder
+
+  const view = await render(
+    <ParticipantTile trackRef={localTrack} width={240} height={135} />,
+  )
+
+  expect(view.getByLabelText("Ada (You), hand raised")).toHaveTextContent(
+    "Ada (You)",
+  )
 })
 
 test("keeps a connected video participant's badge readable over its video", async () => {
@@ -293,6 +386,11 @@ test("hides the speaking border when the participant is not speaking", async () 
 test("scrims your own screen share and says so instead of feeding the tile back", async () => {
   mockIsTrackReference.mockReturnValue(true)
   mockUseTrackMutedIndicator.mockReturnValue({ isMuted: false })
+  mockUseReactions.mockReturnValue({
+    participants: {
+      nkolosov: { isHandRaised: true, ephemeralReactions: [] },
+    },
+  })
 
   const view = await render(
     <ParticipantTile trackRef={ownScreenShareTrack} width={240} height={135} />,
@@ -301,9 +399,13 @@ test("scrims your own screen share and says so instead of feeding the tile back"
   expect(view.getByTestId("own-screen-share-scrim")).toHaveStyle({
     backgroundColor: BACKGROUND_COLORS.localScreenShareScrim,
   })
+  expect(view.getByTestId("participant-reactions-nkolosov")).toBeOnTheScreen()
   expect(view.getByText("You're sharing your screen")).toHaveStyle({
     color: TEXT_COLORS.light,
   })
+  expect(
+    view.getByLabelText("You're sharing your screen, hand raised"),
+  ).toBeOnTheScreen()
   // The name badge would only repeat what the label already says.
   expect(view.queryByTestId("participant-badge")).not.toBeOnTheScreen()
   // Mirroring is for self-view cameras; a mirrored screen is unreadable.
@@ -323,6 +425,7 @@ test("leaves a remote screen share unscrimmed and badged", async () => {
   )
 
   expect(view.queryByTestId("own-screen-share-scrim")).not.toBeOnTheScreen()
+  expect(view.getByTestId("participant-reactions-ada")).toBeOnTheScreen()
   expect(view.getByTestId("participant-badge")).toBeOnTheScreen()
   expect(view.getByText("Ada")).toBeOnTheScreen()
 })

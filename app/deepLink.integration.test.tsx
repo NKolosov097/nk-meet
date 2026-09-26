@@ -53,6 +53,20 @@ jest.mock("@/components/room/ControlBar", () => {
 jest.mock("@/components/room/useSharedMeetingStartedAt", () => ({
   useSharedMeetingStartedAt: () => Date.now(),
 }))
+jest.mock("@/components/room/reactions/ReactionsProvider", () => ({
+  ReactionsProvider: ({ children }: { children: React.ReactNode }) => {
+    const React = jest.requireActual("react")
+    return React.createElement(React.Fragment, null, children)
+  },
+  useReactions: () => ({
+    participants: {},
+    canSendQuickReactions: false,
+    canUpdateHand: false,
+    isHandUpdatePending: false,
+    sendQuickReaction: jest.fn(),
+    toggleHand: jest.fn(),
+  }),
+}))
 
 jest.mock("@livekit/react-native", () => {
   const React = jest.requireActual("react")

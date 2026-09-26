@@ -1,5 +1,11 @@
 import { useCallback, useRef, useState } from "react"
-import { Alert, StyleSheet, TouchableOpacity, View } from "react-native"
+import {
+  Alert,
+  StyleSheet,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
+} from "react-native"
 
 import { useLocalParticipant, useRoomContext } from "@livekit/react-native"
 import { Track } from "livekit-client"
@@ -12,6 +18,7 @@ import { CompanyIcon } from "./CompanyIcon"
 import { ConfirmDisconnectModal } from "./ConfirmDisconnectModal"
 import { CameraControl } from "./controls/CameraControl"
 import { MicrophoneControl } from "./controls/MicrophoneControl"
+import { ReactionsControl } from "./controls/ReactionsControl"
 import { ScreenShareControl } from "./controls/ScreenShareControl"
 
 type DeviceDropdownSource = Track.Source.Camera | Track.Source.Microphone
@@ -32,6 +39,7 @@ interface ControlBarProps {
 }
 
 export const ControlBar = ({ company }: ControlBarProps) => {
+  const { width } = useWindowDimensions()
   const room = useRoomContext()
   const {
     localParticipant,
@@ -162,7 +170,7 @@ export const ControlBar = ({ company }: ControlBarProps) => {
     <>
       <View style={styles.controlsContainer} testID="control-bar-row">
         {/* Company icon identifying which company/tenant this room belongs to */}
-        <CompanyIcon company={company} />
+        {width >= 342 ? <CompanyIcon company={company} /> : null}
 
         {/* Microphone control component with a dropdown list */}
         <MicrophoneControl
@@ -191,6 +199,7 @@ export const ControlBar = ({ company }: ControlBarProps) => {
           onStartIosScreenShare={startIosScreenShare}
           disabled={isScreenShareToggling}
         />
+        <ReactionsControl />
 
         {/* Disconnect button */}
         <TouchableOpacity
