@@ -398,7 +398,7 @@ test("models safe close before thread start and one-shot completion callbacks", 
   assert.equal(screenShareProtocol.beginOnce(true), false)
 })
 
-test("host socket close skips unstarted network-thread cleanup but closes listener", () => {
+test("host socket serializes accept and close, then waits for listener cancellation", () => {
   const connection = readFileSync(
     path.join(
       import.meta.dirname,
@@ -406,15 +406,54 @@ test("host socket close skips unstarted network-thread cleanup but closes listen
     ),
     "utf8",
   )
+  const openMethod = connection.match(
+    /- \(void\)openWithStreamDelegate:[^\n]* \{([\s\S]*?)\n\}/,
+  )?.[1]
+  const initMethod = connection.match(
+    /- \(instancetype\)initWithFilePath:[^\n]* \{([\s\S]*?)\n\}/,
+  )?.[1]
   const closeMethod = connection.match(/- \(void\)close \{([\s\S]*?)\n\}/)?.[1]
 
+  assert.ok(initMethod)
+  assert.ok(openMethod)
   assert.ok(closeMethod)
+  assert.match(connection, /dispatch_queue_t lifecycleQueue/)
+  assert.match(connection, /BOOL closed/)
+  assert.match(connection, /dispatch_group_t cancellationGroup/)
+  assert.match(openMethod, /dispatch_sync\(self\.lifecycleQueue, \^\{/)
+  assert.match(
+    initMethod,
+    /dispatch_source_create\(DISPATCH_SOURCE_TYPE_READ, self\.serverSocket, 0, self\.lifecycleQueue\)/,
+  )
+  assert.match(
+    openMethod,
+    /dispatch_source_set_event_handler\(self\.listeningSource, \^\{[\s\S]*?if \(!connection \|\| connection\.closed\) return;[\s\S]*?accept\(/,
+  )
+  assert.match(
+    initMethod,
+    /dispatch_source_set_cancel_handler\(self\.listeningSource, \^\{[\s\S]*?close\(serverSocket\);[\s\S]*?dispatch_group_leave\(cancellationGroup\)/,
+  )
+  assert.match(
+    closeMethod,
+    /dispatch_sync\(self\.lifecycleQueue, \^\{[\s\S]*?self\.closed = YES;[\s\S]*?dispatch_source_cancel\(self\.listeningSource\)/,
+  )
+  assert.match(
+    closeMethod,
+    /dispatch_group_wait\(self\.cancellationGroup, DISPATCH_TIME_FOREVER\)/,
+  )
+  assert.ok(
+    closeMethod.indexOf("dispatch_group_wait(") <
+      closeMethod.indexOf("performSelector:@selector(unscheduleStreams)"),
+  )
   assert.match(
     closeMethod,
     /if \(self\.networkThread\.isExecuting\) \{[\s\S]*?performSelector:@selector\(unscheduleStreams\)[\s\S]*?\[self\.networkThread cancel\];[\s\S]*?\}/,
   )
-  assert.match(closeMethod, /dispatch_source_cancel\(self\.listeningSource\)/)
-  assert.match(closeMethod, /close\(self\.serverSocket\)/)
+  assert.match(
+    closeMethod,
+    /if \(\[NSThread currentThread\] == self\.networkThread\) \{\s*\[self unscheduleStreams\];\s*\} else \{\s*\[self performSelector:@selector\(unscheduleStreams\)/,
+  )
+  assert.doesNotMatch(closeMethod, /close\(self\.serverSocket\)/)
 })
 
 test("broadcast transport deadline starts once on the matching starting notification", () => {

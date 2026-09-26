@@ -29,7 +29,7 @@ When EAS evaluates the managed Expo configuration, it can discover the broadcast
 ## Requirements
 
 - Preserve the current UI, accessibility semantics, reactions integration, Android screen sharing, and publish-only-after-ready behavior.
-- Cancellation before transport connection must not synchronously schedule cleanup on an unstarted native network thread.
+- Cancellation before transport connection must not synchronously schedule cleanup on an unstarted native network thread, allow a concurrent accept handler to reopen resources after close, or close the listener descriptor before its dispatch source finishes cancellation.
 - The transport deadline must begin only after the broadcast extension reports that it started.
 - Orientation must be read from the ReplayKit sample-buffer attachment identified by `RPVideoSampleOrientationKey`.
 - A ReplayKit sample buffer must not be retained beyond `processSampleBuffer:withType:` returning.
