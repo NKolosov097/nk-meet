@@ -14,6 +14,8 @@ shareable deep links on iOS and Android.
 - 📱 Cross-platform (iOS/Android)
 - 🔧 Simple setup with Expo
 - 🎛️ Camera and microphone controls
+- 🖥️ Screen sharing
+- 😊 Quick reactions and raise/lower hand
 - 📝 Full TypeScript typing
 - ♿ Accessibility support
 - 🛡️ Error handling and validation
@@ -61,7 +63,9 @@ Metro is already running when you edit `.env.local`, restart the dev server
 
 ### 4. Run the app
 
-⚠️ **Important**: this app uses LiveKit native modules and requires an Expo Development Build, not Expo Go.
+⚠️ **Important**: this app uses LiveKit native modules and screen-sharing
+extensions/services. Run it in an Expo Development Build, not Expo Go. Rebuild
+the native app after changing `app.config.ts` or the config plugins.
 
 ```bash
 # Initial setup (generates the native folders)
@@ -88,6 +92,13 @@ eas build --platform ios --profile development
 1. **Android**: `npx expo run:android` (installs the Development Client automatically)
 2. **iOS**: requires macOS or a cloud build via EAS
 3. **Web**: works, but without video/audio features
+
+Screen sharing differs by platform: on iOS, starting a share opens the system
+ReplayKit broadcast picker and requires the bundled broadcast extension and App
+Group. On Android, the system asks for screen-capture permission and runs a
+foreground service with a notification. Declining either system prompt leaves
+the room connected. Validate capture and stopping on physical devices before
+relying on screen sharing in a release.
 
 ## Usage
 
@@ -147,12 +158,19 @@ The app automatically requests the following permissions:
 - `android.permission.INTERNET` - internet access
 - `android.permission.ACCESS_NETWORK_STATE` - check network state
 - `android.permission.WAKE_LOCK` - prevent the screen from locking
+- `android.permission.FOREGROUND_SERVICE` - run screen capture in the foreground
+- `android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION` - foreground screen-capture service
 
 ### Expo plugins
 
 The project is configured with:
 
 - `@livekit/react-native-expo-plugin` - the main LiveKit plugin for Expo
+- `./plugins/withScreenShareNotificationIcon` - Android screen-sharing notification icon
+- `./plugins/withIosBroadcastExtension` - iOS ReplayKit broadcast extension and App Group
+- `expo-router` - file-based routing
+- `expo-status-bar` - status bar styling
+- `expo-splash-screen` - splash screen configuration
 
 ## Project structure
 
@@ -168,7 +186,9 @@ nk-meet/
 ├── components/
 │   ├── icons/                 # Accessible media and navigation icons
 │   ├── participant/           # Participant video tiles
-│   └── room/                  # Conference UI, grid, and media controls
+│   └── room/                  # Conference UI, reactions, grid, and screen-share controls
+├── plugins/                  # Android notification icon and iOS broadcast extension
+├── patches/                  # Patches applied to dependencies
 ├── services/                  # Tokens, room slugs, identity, and recents
 ├── constants/                 # Theme and environment configuration
 └── types/                     # Shared TypeScript types
@@ -200,6 +220,8 @@ The project is fully typed with TypeScript:
 - Video display for all participants
 - Microphone control (mute/unmute)
 - Camera control (on/off)
+- Screen sharing (start/stop)
+- Quick reactions and raise/lower hand
 - Participant count display
 - Disconnect from room button
 
