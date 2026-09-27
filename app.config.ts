@@ -2,6 +2,11 @@ import { NATIVE_CONFIG_COLORS } from "./constants/colors.ts"
 
 import type { ExpoConfig } from "expo/config"
 
+const BUNDLE_IDENTIFIER = "com.nkolosov.nkmeet"
+// Shared container the ReplayKit broadcast extension and the app talk over
+const IOS_APP_GROUP = `group.${BUNDLE_IDENTIFIER}`
+const IOS_BROADCAST_EXTENSION = `${BUNDLE_IDENTIFIER}.broadcast`
+
 const appConfig: ExpoConfig = {
   name: "NK Meet",
   slug: "nk-meet",
@@ -18,8 +23,13 @@ const appConfig: ExpoConfig = {
       NSMicrophoneUsageDescription:
         "This app needs access to microphone to enable audio calls",
       UIBackgroundModes: ["audio"],
+      RTCAppGroupIdentifier: IOS_APP_GROUP,
+      RTCScreenSharingExtension: IOS_BROADCAST_EXTENSION,
     },
-    bundleIdentifier: "com.nkolosov.nkmeet",
+    entitlements: {
+      "com.apple.security.application-groups": [IOS_APP_GROUP],
+    },
+    bundleIdentifier: BUNDLE_IDENTIFIER,
   },
   android: {
     adaptiveIcon: {
@@ -33,8 +43,10 @@ const appConfig: ExpoConfig = {
       "android.permission.INTERNET",
       "android.permission.ACCESS_NETWORK_STATE",
       "android.permission.WAKE_LOCK",
+      "android.permission.FOREGROUND_SERVICE",
+      "android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION",
     ],
-    package: "com.nkolosov.nkmeet",
+    package: BUNDLE_IDENTIFIER,
   },
   web: {
     favicon: "./assets/favicon.png",
@@ -43,8 +55,17 @@ const appConfig: ExpoConfig = {
     [
       "@livekit/react-native-expo-plugin",
       {
-        enableScreenCapture: false,
-        enableCrisp: true,
+        android: {
+          audioType: "communication",
+          enableScreenShareService: true,
+        },
+      },
+    ],
+    "./plugins/withScreenShareNotificationIcon",
+    [
+      "./plugins/withIosBroadcastExtension",
+      {
+        appGroupIdentifier: IOS_APP_GROUP,
       },
     ],
     "expo-router",

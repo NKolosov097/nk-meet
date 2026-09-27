@@ -1,4 +1,4 @@
-import { contrastRatio } from "../utils/accessibility/contrast"
+import { compositeColor, contrastRatio } from "../utils/accessibility/contrast"
 
 import { BACKGROUND_COLORS, BORDER_COLORS, TEXT_COLORS } from "./colors"
 
@@ -78,5 +78,24 @@ describe("semantic color palette", () => {
         BACKGROUND_COLORS.secondary,
       ),
     ).toBeGreaterThanOrEqual(3)
+  })
+
+  it("keeps the local screen-share label readable over any shared content", () => {
+    // The scrim covers arbitrary video, so both luminance extremes of what can
+    // be shared have to stay readable once the scrim is composited over them.
+    const shareContentExtremes = ["#FFFFFF", "#000000"]
+
+    expect(BACKGROUND_COLORS.localScreenShareScrim).toEqual(expect.any(String))
+
+    shareContentExtremes.forEach(sharedContent => {
+      const scrimmedContent = compositeColor(
+        BACKGROUND_COLORS.localScreenShareScrim,
+        sharedContent,
+      )
+
+      expect(
+        contrastRatio(TEXT_COLORS.light, scrimmedContent),
+      ).toBeGreaterThanOrEqual(4.5)
+    })
   })
 })

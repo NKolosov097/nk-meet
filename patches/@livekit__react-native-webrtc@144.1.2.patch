@@ -1,0 +1,136 @@
+diff --git a/ios/RCTWebRTC/SocketConnection.m b/ios/RCTWebRTC/SocketConnection.m
+--- a/ios/RCTWebRTC/SocketConnection.m
++++ b/ios/RCTWebRTC/SocketConnection.m
+@@ -9,0 +10,4 @@
++@property(nonatomic, strong) dispatch_queue_t lifecycleQueue;
++@property(nonatomic, strong) dispatch_group_t cancellationGroup;
++@property(nonatomic, assign) BOOL listeningSourceResumed;
++@property(nonatomic, assign) BOOL closed;
+@@ -22,0 +27,2 @@
++    self.lifecycleQueue = dispatch_queue_create("org.livekit.socket-connection.lifecycle", DISPATCH_QUEUE_SERIAL);
++    self.cancellationGroup = dispatch_group_create();
+@@ -35,0 +42,13 @@
++    self.listeningSource = dispatch_source_create(DISPATCH_SOURCE_TYPE_READ, self.serverSocket, 0, self.lifecycleQueue);
++    if (!self.listeningSource) {
++        close(self.serverSocket);
++        return nil;
++    }
++    dispatch_group_enter(self.cancellationGroup);
++    int serverSocket = self.serverSocket;
++    dispatch_group_t cancellationGroup = self.cancellationGroup;
++    dispatch_source_set_cancel_handler(self.listeningSource, ^{
++        close(serverSocket);
++        dispatch_group_leave(cancellationGroup);
++    });
++
+@@ -40,11 +59,10 @@
+-    int status = listen(self.serverSocket, 10);
+-    if (status < 0) {
+-        NSLog(@"failure: socket listening");
+-        return;
+-    }
+-
+-    dispatch_source_t listeningSource = dispatch_source_create(DISPATCH_SOURCE_TYPE_READ, self.serverSocket, 0, NULL);
+-    dispatch_source_set_event_handler(listeningSource, ^{
+-        int clientSocket = accept(self.serverSocket, NULL, NULL);
+-        if (clientSocket < 0) {
+-            NSLog(@"failure accepting connection");
++    dispatch_sync(self.lifecycleQueue, ^{
++        if (self.closed || self.listeningSourceResumed) return;
++
++        int status = listen(self.serverSocket, 10);
++        if (status < 0) {
++            NSLog(@"failure: socket listening");
++            self.closed = YES;
++            self.listeningSourceResumed = YES;
++            dispatch_resume(self.listeningSource);
++            dispatch_source_cancel(self.listeningSource);
+@@ -54,2 +72,10 @@
+-        CFReadStreamRef readStream;
+-        CFWriteStreamRef writeStream;
++        __weak __typeof__(self) weakSelf = self;
++        dispatch_source_set_event_handler(self.listeningSource, ^{
++            SocketConnection *connection = weakSelf;
++            if (!connection || connection.closed) return;
++
++            int clientSocket = accept(connection.serverSocket, NULL, NULL);
++            if (clientSocket < 0) {
++                NSLog(@"failure accepting connection");
++                return;
++            }
+@@ -57 +83,2 @@
+-        CFStreamCreatePairWithSocket(kCFAllocatorDefault, clientSocket, &readStream, &writeStream);
++            CFReadStreamRef readStream;
++            CFWriteStreamRef writeStream;
+@@ -59,3 +86 @@
+-        self.inputStream = (__bridge_transfer NSInputStream *)readStream;
+-        self.inputStream.delegate = streamDelegate;
+-        [self.inputStream setProperty:@"kCFBooleanTrue" forKey:@"kCFStreamPropertyShouldCloseNativeSocket"];
++            CFStreamCreatePairWithSocket(kCFAllocatorDefault, clientSocket, &readStream, &writeStream);
+@@ -63,2 +88,3 @@
+-        self.outputStream = (__bridge_transfer NSOutputStream *)writeStream;
+-        [self.outputStream setProperty:@"kCFBooleanTrue" forKey:@"kCFStreamPropertyShouldCloseNativeSocket"];
++            connection.inputStream = (__bridge_transfer NSInputStream *)readStream;
++            connection.inputStream.delegate = streamDelegate;
++            [connection.inputStream setProperty:@"kCFBooleanTrue" forKey:@"kCFStreamPropertyShouldCloseNativeSocket"];
+@@ -66,2 +92,2 @@
+-        [self.networkThread start];
+-        [self performSelector:@selector(scheduleStreams) onThread:self.networkThread withObject:nil waitUntilDone:true];
++            connection.outputStream = (__bridge_transfer NSOutputStream *)writeStream;
++            [connection.outputStream setProperty:@"kCFBooleanTrue" forKey:@"kCFStreamPropertyShouldCloseNativeSocket"];
+@@ -69,3 +95,2 @@
+-        [self.inputStream open];
+-        [self.outputStream open];
+-    });
++            [connection.networkThread start];
++            [connection performSelector:@selector(scheduleStreams) onThread:connection.networkThread withObject:nil waitUntilDone:true];
+@@ -73,2 +98,7 @@
+-    self.listeningSource = listeningSource;
+-    dispatch_resume(listeningSource);
++            [connection.inputStream open];
++            [connection.outputStream open];
++        });
++
++        self.listeningSourceResumed = YES;
++        dispatch_resume(self.listeningSource);
++    });
+@@ -78 +108,21 @@
+-    [self performSelector:@selector(unscheduleStreams) onThread:self.networkThread withObject:nil waitUntilDone:true];
++    __block BOOL shouldCleanUp = NO;
++    dispatch_sync(self.lifecycleQueue, ^{
++        if (self.closed) return;
++
++        self.closed = YES;
++        shouldCleanUp = YES;
++        if (!self.listeningSourceResumed) {
++            self.listeningSourceResumed = YES;
++            dispatch_resume(self.listeningSource);
++        }
++        dispatch_source_cancel(self.listeningSource);
++    });
++    dispatch_group_wait(self.cancellationGroup, DISPATCH_TIME_FOREVER);
++    if (!shouldCleanUp) return;
++
++    if (self.networkThread.isExecuting) {
++        if ([NSThread currentThread] == self.networkThread) {
++            [self unscheduleStreams];
++        } else {
++            [self performSelector:@selector(unscheduleStreams) onThread:self.networkThread withObject:nil waitUntilDone:true];
++        }
+@@ -80,2 +130,2 @@
+-    self.inputStream.delegate = nil;
+-    self.outputStream.delegate = nil;
++        self.inputStream.delegate = nil;
++        self.outputStream.delegate = nil;
+@@ -83,2 +133,2 @@
+-    [self.inputStream close];
+-    [self.outputStream close];
++        [self.inputStream close];
++        [self.outputStream close];
+@@ -86 +136,2 @@
+-    [self.networkThread cancel];
++        [self.networkThread cancel];
++    }
+@@ -88,2 +138,0 @@
+-    dispatch_source_cancel(self.listeningSource);
+-    close(self.serverSocket);

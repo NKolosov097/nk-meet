@@ -1,6 +1,9 @@
 // a11y:components/room/ControlBar.tsx
+// a11y:components/room/controls/ScreenShareControl.tsx
 // a11y:components/icons/DisconnectIcon.tsx
-import { Alert, Dimensions } from "react-native"
+// a11y:components/icons/ScreenShareIcon.tsx
+// a11y:components/icons/ScreenShareStopIcon.tsx
+import { Alert, Dimensions, NativeModules, View } from "react-native"
 
 import { act, fireEvent, render, waitFor } from "@testing-library/react-native"
 
@@ -10,6 +13,7 @@ import { DEFAULT_COMPANY_ID } from "@/constants/company"
 import { ControlBar } from "./ControlBar"
 import { CameraControl } from "./controls/CameraControl"
 import { MicrophoneControl } from "./controls/MicrophoneControl"
+import { ScreenShareControl } from "./controls/ScreenShareControl"
 
 jest.mock("@livekit/react-native", () => ({
   useLocalParticipant: jest.fn(),
@@ -18,8 +22,8 @@ jest.mock("@livekit/react-native", () => ({
 jest.mock("./controls/ReactionsControl", () => ({
   ReactionsControl: () => {
     const React = require("react")
-    const { View } = require("react-native")
-    return React.createElement(View, {
+    const { View: MockView } = require("react-native")
+    return React.createElement(MockView, {
       accessibilityLabel: "Open reactions",
       accessibilityRole: "button",
     })
@@ -89,6 +93,7 @@ const accessibilityLabelsInOrder = (node: unknown): string[] => {
 
 const noop: VoidFunction = () => undefined
 const company = DEFAULT_COMPANY_ID
+const narrowViewportStyle = { width: 320 }
 const dimensions = (width: number) => ({
   window: { width, height: 800, scale: 1, fontScale: 1 },
   screen: { width, height: 800, scale: 1, fontScale: 1 },
@@ -127,10 +132,20 @@ const mockRoom = {
 const mockLocalParticipant = {
   setCameraEnabled: jest.fn<Promise<void>, [boolean]>(),
   setMicrophoneEnabled: jest.fn<Promise<void>, [boolean]>(),
+  setScreenShareEnabled: jest.fn<Promise<void>, [boolean]>(),
+  createScreenTracks: jest.fn<Promise<Array<{ stop: VoidFunction }>>, []>(),
+  publishTrack: jest.fn<Promise<void>, [{ stop: VoidFunction }]>(),
+}
+
+const mockScreenTrack = { stop: jest.fn() }
+
+const mockBroadcastPicker = NativeModules.BroadcastPicker as {
+  present: jest.Mock<Promise<void>, [number]>
 }
 
 let mockCameraEnabled = false
 let mockMicrophoneEnabled = true
+let mockScreenShareEnabled = false
 
 beforeAll(() => {
   Object.defineProperty(navigator, "mediaDevices", {
@@ -141,18 +156,25 @@ beforeAll(() => {
 
 beforeEach(() => {
   jest.clearAllMocks()
+  jest.spyOn(require("react-native"), "findNodeHandle").mockReturnValue(42)
   mockCameraEnabled = false
   mockMicrophoneEnabled = true
+  mockScreenShareEnabled = false
   mockRoom.disconnect.mockResolvedValue(undefined)
   mockRoom.getActiveDevice.mockReturnValue(undefined)
   mockRoom.switchActiveDevice.mockResolvedValue(undefined)
   mockLocalParticipant.setCameraEnabled.mockResolvedValue(undefined)
   mockLocalParticipant.setMicrophoneEnabled.mockResolvedValue(undefined)
+  mockLocalParticipant.setScreenShareEnabled.mockResolvedValue(undefined)
+  mockLocalParticipant.createScreenTracks.mockResolvedValue([mockScreenTrack])
+  mockLocalParticipant.publishTrack.mockResolvedValue(undefined)
+  mockBroadcastPicker.present.mockResolvedValue(undefined)
   mockUseRoomContext.mockReturnValue(mockRoom)
   Dimensions.set(dimensions(342))
   mockUseLocalParticipant.mockImplementation(() => ({
     isCameraEnabled: mockCameraEnabled,
     isMicrophoneEnabled: mockMicrophoneEnabled,
+    isScreenShareEnabled: mockScreenShareEnabled,
     localParticipant: mockLocalParticipant,
   }))
   ;(navigator.mediaDevices.enumerateDevices as jest.Mock).mockResolvedValue([])
@@ -400,6 +422,233 @@ test("dims the camera button when disabled", async () => {
   })
 })
 
+test("starts and stops screen sharing through the local participant", async () => {
+  const view = await render(<ControlBar company={company} />)
+
+  await fireEvent.press(view.getByLabelText("Share your screen"))
+
+  await waitFor(() => {
+    expect(mockLocalParticipant.createScreenTracks).toHaveBeenCalledTimes(1)
+    expect(mockBroadcastPicker.present).toHaveBeenCalledTimes(1)
+    expect(mockLocalParticipant.publishTrack).toHaveBeenCalledWith(
+      mockScreenTrack,
+    )
+    expect(mockLocalParticipant.setScreenShareEnabled).not.toHaveBeenCalled()
+  })
+
+  mockScreenShareEnabled = true
+  await view.rerender(<ControlBar company={company} />)
+
+  const stopButton = view.getByLabelText("Stop sharing your screen")
+
+  expect(stopButton).toHaveStyle({
+    backgroundColor: BACKGROUND_COLORS.primary,
+  })
+
+  await fireEvent.press(stopButton)
+
+  await waitFor(() => {
+    expect(mockLocalParticipant.setScreenShareEnabled).toHaveBeenLastCalledWith(
+      false,
+    )
+  })
+})
+
+test("does not publish when the iOS broadcast picker is canceled", async () => {
+  mockBroadcastPicker.present.mockRejectedValue(
+    Object.assign(new Error("Broadcast picker was dismissed."), {
+      code: "broadcast_cancelled",
+    }),
+  )
+  const view = await render(<ControlBar company={company} />)
+
+  await fireEvent.press(view.getByLabelText("Share your screen"))
+
+  expect(mockBroadcastPicker.present).toHaveBeenCalledTimes(1)
+  expect(mockLocalParticipant.setScreenShareEnabled).not.toHaveBeenCalled()
+  expect(mockLocalParticipant.publishTrack).not.toHaveBeenCalled()
+  expect(mockScreenTrack.stop).toHaveBeenCalledTimes(1)
+})
+
+test("does not publish when the broadcast transport cannot connect", async () => {
+  const alert = jest.spyOn(Alert, "alert").mockImplementation()
+  jest.spyOn(console, "error").mockImplementation()
+  mockBroadcastPicker.present.mockRejectedValue(
+    Object.assign(new Error("Could not connect to the host transport."), {
+      code: "broadcast_transport_failed",
+    }),
+  )
+  const view = await render(<ControlBar company={company} />)
+
+  await fireEvent.press(view.getByLabelText("Share your screen"))
+
+  expect(mockLocalParticipant.createScreenTracks).toHaveBeenCalledTimes(1)
+  expect(mockLocalParticipant.publishTrack).not.toHaveBeenCalled()
+  expect(mockLocalParticipant.setScreenShareEnabled).not.toHaveBeenCalled()
+  expect(mockScreenTrack.stop).toHaveBeenCalledTimes(1)
+  expect(alert).toHaveBeenCalledWith(
+    "Screen sharing unavailable",
+    "Could not start the iOS screen-sharing transport.",
+  )
+})
+
+test("rejects duplicate taps while the iOS broadcast picker is open", async () => {
+  const pendingPicker = createDeferred()
+  mockBroadcastPicker.present.mockReturnValue(pendingPicker.promise)
+  const view = await render(<ControlBar company={company} />)
+  const button = view.getByLabelText("Share your screen")
+
+  await pressTwice(button)
+
+  expect(mockBroadcastPicker.present).toHaveBeenCalledTimes(1)
+  expect(
+    view.getByLabelText("Share your screen").props.accessibilityState?.disabled,
+  ).toBe(true)
+
+  await act(async () => {
+    pendingPicker.resolve()
+    await pendingPicker.promise
+  })
+})
+
+test("reports an iOS broadcast picker launch failure without publishing", async () => {
+  const alert = jest.spyOn(Alert, "alert").mockImplementation()
+  const consoleError = jest.spyOn(console, "error").mockImplementation()
+  mockBroadcastPicker.present.mockRejectedValue(
+    Object.assign(new Error("Broadcast picker button not found."), {
+      code: "broadcast_picker_unavailable",
+    }),
+  )
+  const view = await render(<ControlBar company={company} />)
+
+  await fireEvent.press(view.getByLabelText("Share your screen"))
+
+  expect(mockLocalParticipant.setScreenShareEnabled).not.toHaveBeenCalled()
+  expect(alert).toHaveBeenCalledWith(
+    "Screen sharing unavailable",
+    "Could not open the iOS broadcast picker.",
+  )
+  expect(consoleError).toHaveBeenCalledWith(
+    "Error opening the broadcast picker: ",
+    expect.any(Error),
+  )
+})
+
+test("ignores concurrent screen-share toggles until the current toggle finishes", async () => {
+  const pendingToggle = createDeferred()
+  mockLocalParticipant.publishTrack.mockReturnValue(pendingToggle.promise)
+  const view = await render(<ControlBar company={company} />)
+
+  await pressTwice(view.getByLabelText("Share your screen"))
+
+  expect(mockLocalParticipant.publishTrack).toHaveBeenCalledTimes(1)
+
+  await act(async () => {
+    pendingToggle.resolve()
+    await pendingToggle.promise
+  })
+
+  await fireEvent.press(view.getByLabelText("Share your screen"))
+
+  expect(mockLocalParticipant.publishTrack).toHaveBeenCalledTimes(2)
+})
+
+test("disables the screen-share button while its toggle is pending", async () => {
+  const pendingToggle = createDeferred()
+  mockLocalParticipant.publishTrack.mockReturnValue(pendingToggle.promise)
+  const view = await render(<ControlBar company={company} />)
+  const button = view.getByLabelText("Share your screen")
+
+  await act(async () => {
+    button.props.onClick?.()
+  })
+
+  expect(
+    view.getByLabelText("Share your screen").props.accessibilityState?.disabled,
+  ).toBe(true)
+
+  await act(async () => {
+    pendingToggle.resolve()
+    await pendingToggle.promise
+  })
+
+  expect(
+    view.getByLabelText("Share your screen").props.accessibilityState?.disabled,
+  ).toBeFalsy()
+})
+
+test("dims the screen-share button when disabled", async () => {
+  const disabled = await render(
+    <ScreenShareControl
+      isScreenShareEnabled={false}
+      onToggleScreenShare={noop}
+      onStartIosScreenShare={async () => undefined}
+      disabled
+    />,
+  )
+  const enabled = await render(
+    <ScreenShareControl
+      isScreenShareEnabled={false}
+      onToggleScreenShare={noop}
+      onStartIosScreenShare={async () => undefined}
+      disabled={false}
+    />,
+  )
+
+  expect(disabled.getByLabelText("Share your screen")).toHaveStyle({
+    opacity: 0.4,
+  })
+  expect(enabled.getByLabelText("Share your screen")).toHaveStyle({
+    opacity: 1,
+  })
+})
+
+test("alerts when the screen-share toggle fails", async () => {
+  const alert = jest.spyOn(Alert, "alert").mockImplementation()
+  const consoleError = jest.spyOn(console, "error").mockImplementation()
+  mockLocalParticipant.publishTrack.mockRejectedValue(
+    new Error("screen share failed"),
+  )
+  const view = await render(<ControlBar company={company} />)
+
+  await fireEvent.press(view.getByLabelText("Share your screen"))
+
+  await waitFor(() => {
+    expect(alert).toHaveBeenCalledWith(
+      "Screen sharing unavailable",
+      "Could not open the iOS broadcast picker.",
+    )
+    expect(consoleError).toHaveBeenCalledWith(
+      "Error opening the broadcast picker: ",
+      expect.any(Error),
+    )
+  })
+  expect(
+    view.getByLabelText("Share your screen").props.accessibilityState?.disabled,
+  ).toBeFalsy()
+})
+
+test("stays silent when the capture prompt is declined", async () => {
+  const alert = jest.spyOn(Alert, "alert").mockImplementation()
+  const consoleError = jest.spyOn(console, "error").mockImplementation()
+  const declined = Object.assign(new Error("NotAllowedError"), {
+    code: "DOMException",
+  })
+  mockLocalParticipant.createScreenTracks.mockRejectedValue(declined)
+  const view = await render(<ControlBar company={company} />)
+
+  await fireEvent.press(view.getByLabelText("Share your screen"))
+
+  await waitFor(() => {
+    expect(
+      view.getByLabelText("Share your screen").props.accessibilityState
+        ?.disabled,
+    ).toBeFalsy()
+  })
+  expect(alert).not.toHaveBeenCalled()
+  expect(consoleError).not.toHaveBeenCalled()
+})
+
 test("alerts when the microphone toggle fails", async () => {
   const alert = jest.spyOn(Alert, "alert").mockImplementation()
   const consoleError = jest.spyOn(console, "error").mockImplementation()
@@ -546,6 +795,23 @@ test("renders the company icon as the first control", async () => {
   )
 })
 
+test("wraps every interactive control at a 320dp viewport", async () => {
+  const view = await render(
+    <View style={narrowViewportStyle}>
+      <ControlBar company={company} />
+    </View>,
+  )
+
+  expect(view.getByTestId("control-bar-row")).toHaveStyle({ flexWrap: "wrap" })
+  expect(view.getByLabelText("Mute microphone")).toBeVisible()
+  expect(view.getByLabelText("Select audio device")).toBeVisible()
+  expect(view.getByLabelText("Turn on camera")).toBeVisible()
+  expect(view.getByLabelText("Select camera")).toBeVisible()
+  expect(view.getByLabelText("Share your screen")).toBeVisible()
+  expect(view.getByLabelText("Open reactions")).toBeVisible()
+  expect(view.getByLabelText("Disconnect from room")).toBeVisible()
+})
+
 test("keeps reactions between camera controls and disconnect at 342px", async () => {
   const view = await render(<ControlBar company={company} />)
   const row = findNodeByTestId(view.toJSON(), "control-bar-row")
@@ -557,6 +823,7 @@ test("keeps reactions between camera controls and disconnect at 342px", async ()
     "Select audio device",
     "Turn on camera",
     "Select camera",
+    "Share your screen",
     "Open reactions",
     "Disconnect from room",
   ])
@@ -570,6 +837,7 @@ test("hides only the company icon below 342px", async () => {
 
   const labels = accessibilityLabelsInOrder(row)
   expect(labels).not.toContain("NKolosov company")
+  expect(labels).toContain("Share your screen")
   expect(labels).toContain("Open reactions")
   expect(labels).toContain("Disconnect from room")
 })

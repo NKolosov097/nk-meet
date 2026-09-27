@@ -19,8 +19,19 @@ import { ConfirmDisconnectModal } from "./ConfirmDisconnectModal"
 import { CameraControl } from "./controls/CameraControl"
 import { MicrophoneControl } from "./controls/MicrophoneControl"
 import { ReactionsControl } from "./controls/ReactionsControl"
+import { ScreenShareControl } from "./controls/ScreenShareControl"
 
 type DeviceDropdownSource = Track.Source.Camera | Track.Source.Microphone
+
+// Declining the system capture prompt is a normal outcome, not a failure: the
+// Android bridge reports it as a DOMException carrying "NotAllowedError".
+const isScreenShareDeclined = (error: unknown): boolean => {
+  if (typeof error !== "object" || error === null) return false
+
+  const { name, message } = error as { name?: unknown; message?: unknown }
+
+  return name === "NotAllowedError" || message === "NotAllowedError"
+}
 
 interface ControlBarProps {
   // Canonical company id whose icon is shown alongside the room controls
@@ -30,12 +41,18 @@ interface ControlBarProps {
 export const ControlBar = ({ company }: ControlBarProps) => {
   const { width } = useWindowDimensions()
   const room = useRoomContext()
-  const { localParticipant, isCameraEnabled, isMicrophoneEnabled } =
-    useLocalParticipant()
+  const {
+    localParticipant,
+    isCameraEnabled,
+    isMicrophoneEnabled,
+    isScreenShareEnabled,
+  } = useLocalParticipant()
   const isTogglingMicrophone = useRef<boolean>(false)
   const [isMicrophoneToggling, setIsMicrophoneToggling] = useState(false)
   const isTogglingCamera = useRef<boolean>(false)
   const [isCameraToggling, setIsCameraToggling] = useState(false)
+  const isTogglingScreenShare = useRef<boolean>(false)
+  const [isScreenShareToggling, setIsScreenShareToggling] = useState(false)
   const [openDeviceDropdown, setOpenDeviceDropdown] =
     useState<DeviceDropdownSource | null>(null)
   const [isConfirmingDisconnect, setIsConfirmingDisconnect] = useState(false)
@@ -80,6 +97,54 @@ export const ControlBar = ({ company }: ControlBarProps) => {
       setIsCameraToggling(false)
     }
   }, [localParticipant, isCameraEnabled])
+
+  const toggleScreenShare = useCallback(async (): Promise<void> => {
+    if (isTogglingScreenShare.current) return
+
+    isTogglingScreenShare.current = true
+    setIsScreenShareToggling(true)
+
+    try {
+      await localParticipant.setScreenShareEnabled(!isScreenShareEnabled)
+    } catch (error) {
+      if (!isScreenShareDeclined(error)) {
+        console.error("Error toggling screen sharing: ", error)
+        Alert.alert("Error", "Failed to toggle screen sharing")
+      }
+    } finally {
+      isTogglingScreenShare.current = false
+      setIsScreenShareToggling(false)
+    }
+  }, [localParticipant, isScreenShareEnabled])
+
+  const startIosScreenShare = useCallback(
+    async (waitForBroadcastReady: () => Promise<void>): Promise<void> => {
+      if (isTogglingScreenShare.current) return
+
+      isTogglingScreenShare.current = true
+      setIsScreenShareToggling(true)
+      let tracks: Awaited<
+        ReturnType<typeof localParticipant.createScreenTracks>
+      > = []
+
+      try {
+        // Creating the track starts react-native-webrtc's Unix socket listener,
+        // but nothing is published until the extension confirms it connected.
+        tracks = await localParticipant.createScreenTracks()
+        await waitForBroadcastReady()
+        await Promise.all(
+          tracks.map(track => localParticipant.publishTrack(track)),
+        )
+      } catch (error) {
+        tracks.forEach(track => track.stop())
+        throw error
+      } finally {
+        isTogglingScreenShare.current = false
+        setIsScreenShareToggling(false)
+      }
+    },
+    [localParticipant],
+  )
 
   const requestDisconnect = useCallback((): void => {
     setIsConfirmingDisconnect(true)
@@ -127,6 +192,13 @@ export const ControlBar = ({ company }: ControlBarProps) => {
           onCloseDropdown={() => setOpenDeviceDropdown(null)}
         />
 
+        {/* Screen sharing toggle; no device list, so no dropdown */}
+        <ScreenShareControl
+          isScreenShareEnabled={isScreenShareEnabled}
+          onToggleScreenShare={toggleScreenShare}
+          onStartIosScreenShare={startIosScreenShare}
+          disabled={isScreenShareToggling}
+        />
         <ReactionsControl />
 
         {/* Disconnect button */}
@@ -152,9 +224,12 @@ export const ControlBar = ({ company }: ControlBarProps) => {
 const styles = StyleSheet.create({
   controlsContainer: {
     flexDirection: "row",
-    justifyContent: "space-evenly",
+    flexWrap: "wrap",
+    justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 20,
+    columnGap: 12,
+    rowGap: 12,
+    paddingHorizontal: 12,
     paddingVertical: 20,
     backgroundColor: BACKGROUND_COLORS.tertiary,
   },
