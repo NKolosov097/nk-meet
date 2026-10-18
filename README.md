@@ -25,71 +25,87 @@ shareable deep links on iOS and Android.
 ### 1. Install dependencies
 
 ```bash
-pnpm install
+pnpm install --frozen-lockfile
 ```
 
-### 2. Set up a LiveKit Cloud project
+### 2. Configure the backend
 
-The app connects to [LiveKit Cloud](https://cloud.livekit.io/) and gets access
-tokens from the project's token server, so no backend of your own is needed.
-
-In the project settings you need two values:
-
-- **Project URL** — the `wss://` address of the project
-- **Token server ID** — enable "Token server" in the project settings and copy the ID
-
-> The token server issues a token to anyone who asks, with any permissions. It
-> is meant for local development and testing, not for production.
-
-### 3. Configure the environment
-
-Copy `.env.example` to `.env.local` and fill in the values:
+Create a [LiveKit Cloud project](https://cloud.livekit.io/) and copy its project
+URL, API key and API secret into a local backend environment file:
 
 ```bash
-cp .env.example .env.local
+cp backend/.env.example backend/.env
 ```
 
-| Variable                         | Meaning                                                   |
-| -------------------------------- | --------------------------------------------------------- |
-| `EXPO_PUBLIC_LIVEKIT_URL`        | Project URL, for example `wss://my-project.livekit.cloud` |
-| `EXPO_PUBLIC_LIVEKIT_SANDBOX_ID` | Token server ID                                           |
+Set `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` and
+`HOST_CODE_ENCRYPTION_KEY`. Generate the encryption key locally with:
 
-`.env.local` is git-ignored. If a variable is missing, the login screen says
-which one and the "Join" button stays disabled.
+```bash
+node -e "console.log(require('node:crypto').randomBytes(32).toString('base64'))"
+```
 
-Expo inlines `EXPO_PUBLIC_*` values into the bundle at build time, so if
-Metro is already running when you edit `.env.local`, restart the dev server
-(ideally `npx expo start -c --dev-client`) for the new values to take effect.
+Keep that key and the API secret on the backend. Never put them in
+`EXPO_PUBLIC_*` variables. The gitignored `backend/.env` is loaded by the
+backend dev/start commands. `DATABASE_PATH` defaults to
+`./data/meetings.sqlite` relative to `backend/`.
+
+```bash
+pnpm dev:backend
+```
+
+The initial backend supports one Node process and one persistent SQLite file.
+For deployment, mount persistent storage, back up the database consistently,
+and retain its encryption key separately. Losing the key prevents recovery of
+stored host codes. Add shared storage and locking before running multiple replicas.
+Production must serve the API over HTTPS. If a local reverse proxy supplies the
+client IP, enable `TRUST_LOCAL_PROXY` only behind that trusted local proxy.
+Set `WEB_ORIGINS` to the allowed browser origins.
+
+### 3. Configure the frontend
+
+```bash
+cp frontend/.env.example frontend/.env.local
+```
+
+Set `EXPO_PUBLIC_BACKEND_URL` to the backend address reachable from the device or
+browser. On a physical device, use the development computer's LAN address;
+`localhost` refers to the device itself. The API returns the authorized
+LiveKit URL and token after a room Join request.
+
+Local environment files are gitignored. Expo inlines `EXPO_PUBLIC_*` values
+at build time; restart Metro with `pnpm start --clear` after changing them.
+Keep any existing root environment file as a local backup; the app now reads
+its configuration from `frontend/`.
 
 ### 4. Run the app
 
 ⚠️ **Important**: this app uses LiveKit native modules and screen-sharing
 extensions/services. Run it in an Expo Development Build, not Expo Go. Rebuild
-the native app after changing `app.config.ts` or the config plugins.
+the native app after changing `frontend/app.config.ts` or the config plugins.
 
 ```bash
 # Initial setup (generates the native folders)
-npx expo prebuild --clean
+pnpm prebuild
 
 # Development with the Development Client
-npx expo start --dev-client
+pnpm start
 
 # iOS simulator (macOS only)
-npx expo run:ios
+pnpm ios
 
 # Android emulator
-npx expo run:android
+pnpm android
 
 # Web version (limited functionality)
-npx expo start --web
+pnpm web
 
 # Cloud build for iOS (via EAS)
-eas build --platform ios --profile development
+pnpm build:ios
 ```
 
 #### First run:
 
-1. **Android**: `npx expo run:android` (installs the Development Client automatically)
+1. **Android**: `pnpm android` (installs the Development Client automatically)
 2. **iOS**: requires macOS or a cloud build via EAS
 3. **Web**: works, but without video/audio features
 
@@ -102,10 +118,20 @@ relying on screen sharing in a release.
 
 ## Usage
 
-1. Open a company landing, such as `/nkolosov`
-2. Enter a room code to join an existing room in that company, or tap "Create a new room"
-3. Enter your name
-4. Press "Join" — the app requests an access token and joins that room
+1. Open the default company landing, `/nkolosov`.
+2. Create a room with your own eight-digit host code, displayed as `0000-0000`.
+3. Share the guest link. Participants join with their name and receive no host code.
+4. To join as host, select host mode and enter the current room code.
+5. Before joining, open Settings by verifying the current host code; changing it
+   requires the current code and a manually entered replacement.
+
+After a code change, connected hosts retain their role and receive a notification.
+`Show new host code` explicitly retrieves, displays and copies the current code;
+receiving the notification never reveals it. Automatic reconnect preserves host
+access. After leaving, a new host Join requires the current code.
+
+Only backend-registered rooms can be joined. Old unregistered links show
+`Meeting not found`; their room code is never treated as host authorization.
 
 ### Room links
 
@@ -118,7 +144,7 @@ nk-meet://nkolosov/team-sync
 ```
 
 Opening a company-only link shows that company's landing; a room link opens its
-name-entry screen. Company and room segments are canonicalized exactly like a
+join screen. Company and room segments are canonicalized exactly like a
 typed room code (lowercased, anything else collapsed into `-`), so
 `nk-meet://NKolosov/Team Sync` and `nk-meet://nkolosov/team-sync` select the same
 meeting. A link with extra path segments redirects to the safe root screen. A
@@ -135,8 +161,8 @@ npx uri-scheme open "nk-meet://nkolosov/test-room" --android
 xcrun simctl openurl booted "nk-meet://nkolosov/test-room"
 ```
 
-The scheme is declared in `app.config.ts` (`scheme`), so it only reaches the
-native projects through `npx expo prebuild` — run it (or `npx expo prebuild
+The scheme is declared in `frontend/app.config.ts` (`scheme`), so it only reaches the
+native projects through `pnpm --dir frontend exec expo prebuild` — run it (or `pnpm --dir frontend exec expo prebuild
 --clean`) before expecting a link to open the app.
 
 ## Configuration
@@ -176,22 +202,20 @@ The project is configured with:
 
 ```
 nk-meet/
-├── app/                       # Expo Router routes and routing tests
-│   ├── _layout.tsx            # Root layout and active-room lifecycle
-│   ├── +native-intent.ts      # Incoming deep-link normalization
-│   ├── index.tsx              # Redirect to the default company landing
-│   └── [company]/             # Company landing and company-scoped room routes
-├── screens/
-│   └── JoinScreen.tsx         # Participant name and join form
-├── components/
-│   ├── icons/                 # Accessible media and navigation icons
-│   ├── participant/           # Participant video tiles
-│   └── room/                  # Conference UI, reactions, grid, and screen-share controls
-├── plugins/                  # Android notification icon and iOS broadcast extension
-├── patches/                  # Patches applied to dependencies
-├── services/                  # Tokens, room slugs, identity, and recents
-├── constants/                 # Theme and environment configuration
-└── types/                     # Shared TypeScript types
+??? frontend/                 # Expo app, assets, native plugins and client tests
+?   ??? app/                  # Expo Router routes and routing tests
+?   ??? screens/              # Landing, joining and conference screens
+?   ??? components/           # Conference UI, controls, icons and participant tiles
+?   ??? services/             # Tokens, room slugs, identity and recents
+?   ??? constants/            # Theme and environment configuration
+?   ??? types/                # Client TypeScript types
+?   ??? plugins/              # Android notification and iOS broadcast extension
+?   ??? assets/               # Icons and splash images
+??? backend/                  # Server application and tests
+??? specs/                    # Requirements, plans and implementation tasks
+??? patches/                  # Existing dependency patches
+??? pnpm-workspace.yaml       # Workspace settings and dependency overrides
+??? pnpm-lock.yaml            # Shared dependency lockfile
 ```
 
 ## TypeScript
@@ -199,7 +223,7 @@ nk-meet/
 The project is fully typed with TypeScript:
 
 - **Strict typing** - all components and functions have explicit types
-- **Interfaces** - defined in `types/index.ts` for all core data structures
+- **Interfaces** - defined in `frontend/types/index.ts` for all core data structures
 - **Type safety** - prevents runtime errors
 - **IntelliSense** - improved IDE support
 
@@ -212,7 +236,7 @@ The project is fully typed with TypeScript:
 ### Login screen
 
 - Participant name input
-- Access token requested from the LiveKit Cloud token server
+- Access token authorized by the backend for a registered room
 - Environment configuration and connection errors shown inline
 
 ### Video call screen
@@ -226,6 +250,16 @@ The project is fully typed with TypeScript:
 - Disconnect from room button
 
 ## Development
+
+Run the documented `pnpm` commands from the repository root; Expo and EAS
+commands forward to `frontend/`. Direct Expo/EAS commands must run from that
+folder. App config is `frontend/app.config.ts`; native projects are generated
+in `frontend/android/` and `frontend/ios/`. Existing root native folders and
+local environment files are preserved but are no longer the app working paths.
+
+Backend commands are `pnpm dev:backend`, `pnpm build:backend`, and
+`pnpm test:backend`. Root lint/type-check cover both workspaces; `pnpm test`
+runs frontend Jest and `pnpm test:node` runs frontend Node tests and backend tests.
 
 ### Requirements
 
@@ -255,16 +289,16 @@ pnpm test:node
 
 ```bash
 # Show logs
-npx expo logs
+pnpm --dir frontend exec expo logs
 
 # Clear the cache
-npx expo start -c
+pnpm start --clear
 
 # Check TypeScript types
-npx tsc --noEmit
+pnpm type-check
 
 # Check types in watch mode
-npx tsc --noEmit --watch
+pnpm --dir frontend exec tsc --noEmit --watch
 ```
 
 ## Useful links
@@ -283,25 +317,34 @@ This error happens when you try to use Expo Go instead of a Development Build:
 1. **On Android**:
 
    ```bash
-   npx expo run:android
+   pnpm android
    ```
 
 2. **On iOS (macOS only)**:
 
    ```bash
-   npx expo run:ios
+   pnpm ios
    ```
 
 3. **For iOS on Windows/Linux**:
    ```bash
-   eas build --platform ios --profile development
+   pnpm build:ios
    ```
 
 ### Other issues
 
-- **Native module problems**: run `npx expo prebuild --clean`
-- **Cache problems**: use `npx expo start -c --dev-client`
+- **Native module problems**: run `pnpm prebuild`
+- **Cache problems**: use `pnpm start --clear`
 - **Metro bundler errors**: restart the development server
+
+## Production cutover
+
+Build and deploy the backend with persistent storage, then rebuild the frontend
+with its production API URL. Disable the LiveKit sandbox token server in the
+LiveKit project before production use; an accessible sandbox issuer bypasses
+this backend's authorization. Previously installed sandbox clients must update.
+Disabling the external sandbox and deploying this server have not been performed
+by this repository change. Validate calls and screen sharing on devices before release.
 
 ## Support
 
@@ -309,8 +352,8 @@ If you run into problems:
 
 1. Verify you are using a Development Build, not Expo Go
 2. Make sure all dependencies are installed correctly
-3. Check that `.env.local` exists and both variables are filled in
-4. Check that the token server is enabled in the LiveKit Cloud project settings
+3. Check that `frontend/.env.local` exists and its API URL is reachable
+4. Check that the backend is running and its LiveKit credentials are configured
 5. Consult the LiveKit documentation
 
 ## License
