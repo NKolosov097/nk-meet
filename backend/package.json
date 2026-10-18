@@ -1,0 +1,28 @@
+{
+  "name": "@nk-meet/backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.19.0"
+  },
+  "scripts": {
+    "dev": "node --watch --env-file-if-exists=.env src/server.ts",
+    "type-check": "tsc --noEmit -p tsconfig.check.json",
+    "build": "tsc",
+    "start": "node --env-file-if-exists=.env dist/server.js",
+    "test": "node --test tests/meetings.test.ts tests/http.test.ts tests/config.test.ts",
+    "lint": "eslint src tests",
+    "lint:fix": "eslint src tests --fix"
+  },
+  "dependencies": {
+    "livekit-server-sdk": "2.19.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "typescript": "6.0.3",
+    "eslint": "8.57.1",
+    "@typescript-eslint/parser": "8.66.0",
+    "@typescript-eslint/eslint-plugin": "8.66.0"
+  }
+}

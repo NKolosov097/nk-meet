@@ -59,3 +59,11 @@ metro.config.js
 
 # Process artifacts (git-ignored, not meant to be linted)
 .superpowers/
+# Local worktrees and process artifacts
+.worktrees/
+.claude/
+docs/superpowers/
+TODO.md
+
+# Backend persistent local data
+backend/data/

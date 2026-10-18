@@ -48,3 +48,6 @@ jobs:
 
       - name: Run Node tests
         run: pnpm test:node
+
+      - name: Build backend
+        run: pnpm build:backend
