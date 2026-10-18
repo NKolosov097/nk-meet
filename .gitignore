@@ -43,6 +43,8 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+/frontend/ios
+/frontend/android
 
 # local design docs and agent workspace
 docs/superpowers/
@@ -50,3 +52,6 @@ docs/superpowers/
 .worktrees/
 .claude/settings.local.json
 TODO.md
+
+# Backend persistent local data
+/backend/data/

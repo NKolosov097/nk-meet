@@ -1,92 +1,30 @@
 {
-  "name": "nk-meet",
+  "name": "nk-meet-workspace",
   "version": "1.0.0",
+  "private": true,
   "packageManager": "pnpm@11.21.0",
-  "main": "index.js",
   "scripts": {
-    "start": "expo start --dev-client",
-    "android": "expo run:android",
-    "ios": "expo run:ios",
-    "web": "expo start --web",
-    "build:ios": "eas build --platform ios --profile development",
-    "build:ios:production": "eas build --platform ios --profile production",
-    "build:android": "eas build --platform android",
-    "prebuild": "expo prebuild --clean",
-    "prebuild:ios": "expo prebuild --platform ios --clean",
-    "test": "jest --runInBand",
-    "test:node": "node --test --experimental-strip-types components/room/controls/deviceDropdownLayout.node.test.ts components/room/grid/gridLayout.node.test.ts components/room/grid/swipeResponder.node.test.ts components/room/grid/trackKey.node.test.ts plugins/screenSharePlugins.node.test.ts",
-    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
-    "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
+    "start": "pnpm --dir frontend start",
+    "android": "pnpm --dir frontend android",
+    "ios": "pnpm --dir frontend ios",
+    "web": "pnpm --dir frontend web",
+    "build:ios": "pnpm --dir frontend build:ios",
+    "build:ios:production": "pnpm --dir frontend build:ios:production",
+    "build:android": "pnpm --dir frontend build:android",
+    "prebuild": "pnpm --dir frontend prebuild",
+    "prebuild:ios": "pnpm --dir frontend prebuild:ios",
+    "test": "pnpm --dir frontend test",
+    "test:node": "pnpm --dir frontend test:node && pnpm --dir backend test",
+    "lint": "pnpm -r --if-present lint",
+    "lint:fix": "pnpm -r --if-present lint:fix",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
     "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,md}\"",
-    "type-check": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@livekit/components-core": "0.12.14",
-    "@livekit/react-native": "2.12.0",
-    "@livekit/react-native-expo-plugin": "1.0.2",
-    "@livekit/react-native-webrtc": "144.1.2",
-    "@react-native-async-storage/async-storage": "2.2.0",
-    "@types/react": "19.2.18",
-    "expo": "57.0.12",
-    "expo-blur": "~57.0.2",
-    "expo-constants": "~57.0.10",
-    "expo-dev-client": "57.0.11",
-    "expo-linking": "~57.0.5",
-    "expo-router": "57.0.12",
-    "expo-splash-screen": "~57.0.6",
-    "expo-status-bar": "57.0.1",
-    "expo-system-ui": "~57.0.2",
-    "livekit-client": "2.21.0",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
-    "react-native": "0.86.2",
-    "react-native-safe-area-context": "~5.7.0",
-    "react-native-svg": "15.15.4",
-    "react-native-web": "0.21.2",
-    "react-native-worklets": "0.10.1",
-    "typescript": "6.0.3"
-  },
-  "private": true,
-  "jest": {
-    "preset": "jest-expo",
-    "setupFilesAfterEnv": [
-      "<rootDir>/jest.setup.ts"
-    ],
-    "moduleNameMapper": {
-      "^@/(.*)$": "<rootDir>/$1"
-    },
-    "testPathIgnorePatterns": [
-      "\\.node\\.test\\.ts$",
-      "<rootDir>/\\.claude/worktrees/"
-    ],
-    "modulePathIgnorePatterns": [
-      "<rootDir>/\\.claude/worktrees/"
-    ],
-    "watchPathIgnorePatterns": [
-      "<rootDir>/\\.claude/worktrees/"
-    ]
+    "type-check": "pnpm -r --if-present type-check",
+    "dev:backend": "pnpm --dir backend dev",
+    "build:backend": "pnpm --dir backend build",
+    "test:backend": "pnpm --dir backend test"
   },
   "devDependencies": {
-    "@react-native-community/eslint-config": "3.2.0",
-    "@testing-library/react-native": "^14.0.1",
-    "@trivago/prettier-plugin-sort-imports": "4.3.0",
-    "@types/jest": "29.5.14",
-    "@types/node": "^24.13.3",
-    "@typescript-eslint/eslint-plugin": "8.66.0",
-    "@typescript-eslint/parser": "8.66.0",
-    "eslint": "8.57.1",
-    "eslint-config-prettier": "10.1.8",
-    "eslint-import-resolver-typescript": "3.10.1",
-    "eslint-plugin-import": "2.32.0",
-    "eslint-plugin-jest": "29.16.0",
-    "eslint-plugin-prettier": "5.5.6",
-    "eslint-plugin-react": "7.37.5",
-    "eslint-plugin-react-hooks": "5.2.0",
-    "eslint-plugin-react-native": "5.0.0",
-    "eslint-plugin-simple-import-sort": "12.1.1",
-    "jest": "~29.7.0",
-    "jest-expo": "~57.0.4",
     "prettier": "3.9.6"
   }
 }
